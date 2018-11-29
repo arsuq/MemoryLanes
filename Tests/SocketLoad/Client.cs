@@ -28,6 +28,9 @@ namespace Tests.SocketLoad
 				if (BitConverter.TryWriteBytes(msg, len))
 				{
 					if (sleepms > 0) await Task.Delay(sleepms);
+					Console.WriteLine("Header bytes: {0}.{1}.{2}.{3}", msg[0], msg[1], msg[2], msg[3]);
+					int check = BitConverter.ToInt32(msg, 0);
+					Console.WriteLine("Header check: {0}", check);
 					await ns.WriteAsync(msg);
 				}
 				else

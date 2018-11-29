@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Tests.SocketLoad
@@ -12,74 +13,98 @@ namespace Tests.SocketLoad
 		public Server(int port)
 		{
 			AppDomain.CurrentDomain.ProcessExit += ProcessExit;
-			server = new TcpListener(IPAddress.Loopback, port);
+			server = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+			server.Bind(new IPEndPoint(IPAddress.Loopback, port));
 		}
 
 		public async Task ReceiveLoop()
 		{
-			server.Start();
 			Console.WriteLine("Started.");
 
 			var data = new List<byte>();
+			server.Listen(100);
 
 			while (true)
 			{
-				var client = await server.AcceptTcpClientAsync().ConfigureAwait(false);
-				var ns = client.GetStream();
+				var client = await server.AcceptAsync().ConfigureAwait(false);
 				new Task(() =>
-					Process(ns, (b) => Console.WriteLine(
+					Process(client, (b) => Print.AsSuccess(
 					   "{0} bytes received from {1}.",
 					   b.Length,
-					   ((IPEndPoint)client.Client.RemoteEndPoint).Port.ToString())).Wait()
+					   ((IPEndPoint)client.RemoteEndPoint).Port.ToString())).Wait()
 				).Start();
 			}
 		}
 
-		async Task Process(NetworkStream ns, Action<byte[]> onmessage, bool stop = false)
+		async Task Process(Socket client, Action<byte[]> onmessage, bool stop = false)
 		{
 			try
 			{
-				var header = new byte[4];
-				byte[] frame = null;
-				var total = 0;
-				var read = 0;
-				var frameLen = 0;
+				Console.WriteLine("New client");
+				Console.WriteLine();
+				Console.WriteLine();
 
-				while (!stop && ns.DataAvailable)
+				using (var ns = new NetworkStream(client))
 				{
-					total = 0;
-					read = await ns.ReadAsync(header, 0, 4).ConfigureAwait(false);
-					if (read < 1)
-					{
-						Console.WriteLine("!!! Read nothing {0} as header", read);
-						continue;
-					}
-					frameLen = BitConverter.ToInt32(header);
-					frame = new byte[frameLen];
-					Console.WriteLine("Frame length:{0}", frameLen);
+					var header = new byte[4];
+					byte[] frame = null;
+					var total = 0;
+					var read = 0;
+					var frameLen = 0;
 
-					while (ns.DataAvailable && read > 0)
+					while (!stop)
 					{
-						read = await ns.ReadAsync(frame, total, frameLen - total).ConfigureAwait(false);
-						total += read;
+						total = 0;
+						read = await ns.ReadAsync(header, 0, 4).ConfigureAwait(false);
 
-						if (total >= frameLen)
+						// The other side is gone.
+						// As long as the sender is not disposed/closed the ReadAsync will wait for 
+						if (read < 1)
 						{
-							onmessage?.Invoke(frame);
+							Print.AsError("The client is gone.");
 							break;
+						}
+
+						frameLen = BitConverter.ToInt32(header, 0);
+
+						// Send "Bad header" to the remote party
+						if (frameLen < 1)
+						{
+							Print.AsError("Bad header, thread {0}", Thread.CurrentThread.ManagedThreadId);
+							break;
+						}
+
+						frame = new byte[frameLen];
+						Print.AsInfo("Frame length:{0}", frameLen);
+
+						while (total < frameLen && !stop)
+						{
+							read = await ns.ReadAsync(frame, total, frameLen - total).ConfigureAwait(false);
+							total += read;
+
+							Print.AsInnerInfo("    read {0} on thread {1}", read, Thread.CurrentThread.ManagedThreadId);
+
+							if (total >= frameLen)
+							{
+								onmessage?.Invoke(frame);
+								break;
+							}
 						}
 					}
 				}
 			}
-			catch (Exception ex) { Console.WriteLine(ex.Message); }
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
+			}
 		}
 
 		void ProcessExit(object sender, EventArgs e)
 		{
-			try { server?.Stop(); }
+			try { server?.Close(); }
 			catch { }
 		}
 
-		TcpListener server;
+		Socket server;
 	}
 }

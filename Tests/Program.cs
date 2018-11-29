@@ -32,7 +32,8 @@ namespace Tests
 			}
 			catch (Exception ex) { Console.WriteLine(ex.Message); }
 
-			Console.WriteLine("Done.");
+			Console.WriteLine("Done. Press <Enter> to close.");
+			Console.ReadLine();
 		}
 	}
 }
