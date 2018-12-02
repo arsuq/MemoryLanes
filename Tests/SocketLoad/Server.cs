@@ -40,9 +40,7 @@ namespace Tests.SocketLoad
 		{
 			try
 			{
-				Console.WriteLine("New client");
-				Console.WriteLine();
-				Console.WriteLine();
+				Print.AsInfo("New client" + Environment.NewLine);
 
 				using (var ns = new NetworkStream(client))
 				{
@@ -58,7 +56,7 @@ namespace Tests.SocketLoad
 						read = await ns.ReadAsync(header, 0, 4).ConfigureAwait(false);
 
 						// The other side is gone.
-						// As long as the sender is not disposed/closed the ReadAsync will wait for 
+						// As long as the sender is not disposed/closed the ReadAsync will wait  
 						if (read < 1)
 						{
 							Print.AsError("The client is gone.");
@@ -67,7 +65,6 @@ namespace Tests.SocketLoad
 
 						frameLen = BitConverter.ToInt32(header, 0);
 
-						// Send "Bad header" to the remote party
 						if (frameLen < 1)
 						{
 							Print.AsError("Bad header, thread {0}", Thread.CurrentThread.ManagedThreadId);

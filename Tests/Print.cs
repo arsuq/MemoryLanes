@@ -8,6 +8,8 @@ namespace Tests
 	{
 		public static void AsInfo(this string text, params object[] formatArgs)
 		{
+			if (IgnoreAll) return;
+
 			Console.WriteLine(text, formatArgs);
 		}
 
@@ -18,6 +20,8 @@ namespace Tests
 
 		public static void AsInnerInfo(this string text, params object[] formatArgs)
 		{
+			if (IgnoreAll) return;
+			
 			Console.WriteLine("    " + text, formatArgs);
 		}
 
@@ -33,10 +37,14 @@ namespace Tests
 
 		public static void Trace(this string text, ConsoleColor c, params object[] formatArgs)
 		{
+			if (IgnoreAll) return;
+
 			var cc = Console.ForegroundColor;
 			Console.ForegroundColor = ConsoleColor.Green;
 			Console.WriteLine(text, formatArgs);
 			Console.ForegroundColor = cc;
 		}
+
+		public static bool IgnoreAll = false;
 	}
 }

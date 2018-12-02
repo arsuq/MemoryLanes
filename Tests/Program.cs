@@ -15,6 +15,8 @@ namespace Tests
 				return;
 			}
 
+			Print.IgnoreAll = true;
+
 			try
 			{
 				var c = args[0];

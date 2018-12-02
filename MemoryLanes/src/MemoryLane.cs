@@ -30,8 +30,10 @@ namespace System
 		{
 			var result = false;
 
+			Thread.MemoryBarrier();
+
 			// Quick fail
-			if (offset + size >= LaneCapacity) return result;
+			if (offset + size >= LaneCapacity || isClosed > 0) return result;
 
 			var tid = Thread.CurrentThread.ManagedThreadId;
 			var id = -1;
@@ -39,17 +41,17 @@ namespace System
 			// Wait, allocations are serialized
 			while (id != tid) id = Interlocked.CompareExchange(ref allocThreadId, tid, 0);
 
-			// Now really check
 			Thread.MemoryBarrier();
 
 			var newoffset = offset + size;
 
-			if (newoffset < LaneCapacity)
+			if (isClosed < 1 && newoffset < LaneCapacity)
 			{
 				frag = new FragmentRange(offset, size);
 
 				Interlocked.Exchange(ref offset, newoffset);
 				Interlocked.Increment(ref allocations);
+				Interlocked.Exchange(ref lastAllocTick, DateTime.Now.Ticks);
 
 				result = true;
 			}
@@ -66,12 +68,37 @@ namespace System
 				Interlocked.Exchange(ref offset, 0);
 		}
 
+		/// <remarks>
+		/// The derived implementations should decide wether to expose this
+		/// </remarks>
+		protected void force(bool close, bool reset = false)
+		{
+			var tid = Thread.CurrentThread.ManagedThreadId;
+			var id = -1;
+
+			while (id != tid) id = Interlocked.CompareExchange(ref allocThreadId, tid, 0);
+
+			Interlocked.Exchange(ref isClosed, close ? 1 : 0);
+			if (reset) Interlocked.Exchange(ref offset, 0);
+			Interlocked.Exchange(ref allocThreadId, 0);
+		}
+
 		public abstract int LaneCapacity { get; }
 		public abstract void Dispose();
+
+		// Use Offset, Allocations and LastAllocTick to determine bad disposing behavior 
+
+		public int Offset => Thread.VolatileRead(ref offset);
+		public int Allocations => Thread.VolatileRead(ref allocations);
+		public long LastAllocTick => Thread.VolatileRead(ref lastAllocTick);
+		public bool IsClosed => Thread.VolatileRead(ref isClosed) > 0;
 
 		protected bool isDisposed;
 		protected int allocThreadId;
 		protected int allocations;
 		protected int offset;
+		protected long lastAllocTick;
+
+		int isClosed;
 	}
 }
