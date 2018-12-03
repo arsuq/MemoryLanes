@@ -24,12 +24,9 @@ namespace System
 			else return false;
 		}
 
-		public override void Dispose()
-		{
-			Destroy(false);
-		}
+		public override void Dispose() => destroy(false);
 
-		void Destroy(bool isGC)
+		void destroy(bool isGC)
 		{
 			if (!isDisposed)
 			{
@@ -40,13 +37,9 @@ namespace System
 			}
 		}
 
-		~MarshalLane()
-		{
-			Destroy(true);
-		}
+		~MarshalLane() => destroy(true);
 
 		public override int LaneCapacity => Capacity;
-
 		public readonly int Capacity;
 
 		IntPtr lanePtr;

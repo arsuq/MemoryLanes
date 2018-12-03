@@ -9,7 +9,8 @@ namespace System
 		public MMFLane(int capacity, string filename = null) : base(capacity)
 		{
 			laneCapacity = capacity;
-			FileID = string.IsNullOrEmpty(filename) ? Guid.NewGuid().ToString() : filename;
+			if (string.IsNullOrEmpty(filename)) FileID = string.Format("MMF-{0}K-{1}", capacity / 1024, Guid.NewGuid().ToString().Substring(0, 8));
+			else FileID = filename;
 			mmf = MemoryMappedFile.CreateFromFile(FileID, FileMode.CreateNew, null, capacity);
 			mmva = mmf.CreateViewAccessor();
 		}
@@ -27,12 +28,9 @@ namespace System
 			else return false;
 		}
 
-		public override void Dispose()
-		{
-			Destroy();
-		}
+		public override void Dispose() => destroy();
 
-		void Destroy(bool isGC = false)
+		void destroy(bool isGC = false)
 		{
 			if (!isDisposed)
 			{
@@ -40,6 +38,7 @@ namespace System
 				{
 					if (mmva != null) mmva.Dispose();
 					if (mmf != null) mmf.Dispose();
+					if (!string.IsNullOrEmpty(FileID) && File.Exists(FileID)) File.Delete(FileID);
 					if (!isGC) GC.SuppressFinalize(this);
 				}
 				catch { }
@@ -47,10 +46,7 @@ namespace System
 			}
 		}
 
-		~MMFLane()
-		{
-			Destroy(true);
-		}
+		~MMFLane() => destroy(true);
 
 		public override int LaneCapacity => laneCapacity;
 		public readonly string FileID;

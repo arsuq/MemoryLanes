@@ -5,46 +5,90 @@ namespace System
 	public delegate bool FragmentCtor<L, F>(L ml, int size, ref F f) where L : MemoryLane where F : struct;
 	public delegate L LaneCtor<L>(int size) where L : MemoryLane;
 
-
+	/// <summary>
+	/// Allocates memory lanes on the large object heap (if the length is > 80K).
+	/// </summary>
 	public class HeapHighway : MemoryCarriage<LOHLane, LOHFragment>
 	{
-		public HeapHighway(params int[] lanes) : base(FragMaker, LaneMaker, new MemoryLaneSettings())
-		{
-			Create(lanes);
-		}
+		/// <summary>
+		/// Creates new lanes with the specified lengths and a default MemoryLaneSettings instance.
+		/// </summary>
+		/// <param name="lanes">The initial layout.</param>
+		public HeapHighway(params int[] lanes)
+			: base(FragMaker, LaneMaker, new MemoryLaneSettings()) => Create(lanes);
 
-		public HeapHighway(MemoryLaneSettings stg, params int[] lanes) : base(FragMaker, LaneMaker, stg)
-		{
-			Create(lanes);
-		}
+		/// <summary>
+		/// Creates new lanes with the specified lengths and settings.
+		/// When needed, the MemoryCarriage will create the new lanes with settings.DefaultCapacity in length.
+		/// </summary>
+		/// <param name="stg">Generic settings for all MemoryCarriage derivatives.</param>
+		/// <param name="lanes">The initial setup.</param>
+		public HeapHighway(MemoryLaneSettings stg, params int[] lanes)
+			: base(FragMaker, LaneMaker, stg) => Create(lanes);
 
-		static bool FragMaker(LOHLane lane, int size, ref LOHFragment frag)
-		{
-			return lane.TryCreateFragment(size, ref frag);
-		}
-
-		static LOHLane LaneMaker(int size)
-		{
-			return new LOHLane(size);
-		}
+		static bool FragMaker(LOHLane lane, int size, ref LOHFragment frag) => lane.TryCreateFragment(size, ref frag);
+		static LOHLane LaneMaker(int size) => new LOHLane(size);
 	}
 
+	/// <summary>
+	/// Allocates memory lanes via Marshal.AllocHGlobal
+	/// </summary>
+	public class MarshalHighway : MemoryCarriage<MarshalLane, MarshalFragment>
+	{
+		/// <summary>
+		/// Creates new lanes with the specified lengths and a default MemoryLaneSettings instance.
+		/// </summary>
+		/// <param name="lanes">The initial layout.</param>
+		public MarshalHighway(params int[] lanes)
+			: base(FragMaker, LaneMaker, new MemoryLaneSettings()) => Create(lanes);
+
+		/// <summary>
+		/// Creates new lanes with the specified lengths and settings.
+		/// When needed, the MemoryCarriage will create the new lanes with settings.DefaultCapacity in length.
+		/// </summary>
+		/// <param name="stg">Generic settings for all MemoryCarriage derivatives.</param>
+		/// <param name="lanes">The initial setup.</param>
+		public MarshalHighway(MemoryLaneSettings stg, params int[] lanes)
+			: base(FragMaker, LaneMaker, stg) => Create(lanes);
+
+		static bool FragMaker(MarshalLane lane, int size, ref MarshalFragment frag) => lane.TryCreateFragment(size, ref frag);
+		static MarshalLane LaneMaker(int size) => new MarshalLane(size);
+	}
+
+	/// <summary>
+	/// Allocates memory lanes as memory mapped files - one lane is one file.
+	/// </summary>
 	public class MappedHighway : MemoryCarriage<MMFLane, MMFFragment>
 	{
-		public MappedHighway(MemoryLaneSettings stg) : base(FragMaker, LaneMaker, stg) { }
+		/// <summary>
+		/// Creates new lanes with the specified lengths and a default MemoryLaneSettings instance.
+		/// Note that every lane is one memory mapped file.
+		/// </summary>
+		/// <param name="lanes">The initial layout.</param>
+		public MappedHighway(params int[] lanes)
+			: base(FragMaker, LaneMaker, new MemoryLaneSettings()) => Create(lanes);
 
-		static bool FragMaker(MMFLane lane, int size, ref MMFFragment frag)
-		{
-			return lane.TryCreateFragment(size, ref frag);
-		}
+		/// <summary>
+		/// Creates new lanes with the specified lengths and settings.
+		/// When needed, the MemoryCarriage will create the new lanes with settings.DefaultCapacity in length.
+		/// Note that every lane is a separate memory mapped file.
+		/// </summary>
+		/// <param name="stg">Generic settings for all MemoryCarriage derivatives.</param>
+		/// <param name="lanes">The initial setup.</param>
+		public MappedHighway(MemoryLaneSettings stg, params int[] lanes)
+			: base(FragMaker, LaneMaker, stg) => Create(lanes);
 
-		static MMFLane LaneMaker(int size)
-		{
-			return new MMFLane(size);
-		}
+		static bool FragMaker(MMFLane lane, int size, ref MMFFragment frag) => lane.TryCreateFragment(size, ref frag);
+		static MMFLane LaneMaker(int size) => new MMFLane(size);
 	}
 
-	public class MemoryCarriage<L, F> where L : MemoryLane where F : struct
+
+	/// <summary>
+	/// The allocation/release behavior is generalized here.
+	/// </summary>
+	/// <typeparam name="L"></typeparam>
+	/// <typeparam name="F"></typeparam>
+	public class MemoryCarriage<L, F> : IDisposable where L : MemoryLane where F : struct
 	{
 		public MemoryCarriage(FragmentCtor<L, F> fc, LaneCtor<L> lc, MemoryLaneSettings stg)
 		{
@@ -53,30 +97,70 @@ namespace System
 			settings = stg;
 			fragCtor = fc;
 			laneCtor = lc;
+
+			AppDomain.CurrentDomain.ProcessExit += (s, e) => destroy();
 		}
 
+		/// <summary>
+		/// Creates new lanes with the default capacity from the MemoryLaneSettings. 
+		/// </summary>
+		/// <param name="count">Number of lanes to create.</param>
+		/// <exception cref="System.MemoryLaneException">
+		/// Code.MaxLanesCountReached: when the MaxLanesCountReached threshold in settings is reached AND
+		/// the OnMaxLaneReached handler is either null or returns false
+		/// Code.MaxTotalAllocBytesReached: when the total lanes capacity is greater than MaxTotalAllocatedBytes AND
+		/// the OnMaxTotalBytesReached handler is either null or returns false, meaning "do not ignore".
+		/// In both cases if the callbacks return true the MemoryCarriage will continue to allocate lanes. 
+		/// </exception>
+		/// <exception cref="System.ArgumentOutOfRangeException">If count is outside the 1-MemoryLaneSettings.MAX_COUNT interval </exception>
 		public void Create(int count)
 		{
-			if (count > 0 && count < MemoryLaneSettings.MAX_COUNT)
-				for (int i = 0; i < count; i++)
-					CreateLane(settings.DefaultCapacity);
+			if (count < 1 || count > MemoryLaneSettings.MAX_COUNT) throw new ArgumentOutOfRangeException("count");
+
+			for (int i = 0; i < count; i++)
+				CreateLane(settings.DefaultCapacity);
 		}
 
+		/// <summary>
+		/// Creates new lanes with specific capacities. 
+		/// </summary>
+		/// <param name="laneSizes">Lanes by length.</param>
+		/// <exception cref="System.MemoryLaneException">
+		/// Code.MaxLanesCountReached: when the MaxLanesCountReached threshold in settings is reached AND
+		/// the OnMaxLaneReached handler is either null or returns false
+		/// Code.MaxTotalAllocBytesReached: when the total lanes capacity is greater than MaxTotalAllocatedBytes AND
+		/// the OnMaxTotalBytesReached handler is either null or returns false, meaning "do not ignore".
+		/// In both cases if the callbacks return true the MemoryCarriage will continue to allocate lanes. 
+		/// Code.SizeOutOfRange: when at least one of the lengths is outside the 
+		/// MemoryLaneSettings.MIN_CAPACITY - MemoryLaneSettings.MAX_CAPACITY interval.
+		/// </exception>
+		/// <exception cref="System.ArgumentNullException">When the laneSizes is either null or has zero items.</exception>
 		public void Create(int[] laneSizes)
 		{
-			if (laneSizes == null || laneSizes.Length < 1)
-				throw new MemoryLaneException(MemoryLaneException.Code.InitFailure, "At least one lane is required.");
+			if (laneSizes == null || laneSizes.Length < 1) throw new ArgumentNullException("laneSizes");
 
 			foreach (var ls in laneSizes)
-				if (ls > MemoryLaneSettings.MIN_CAPACITY && ls < MemoryLaneSettings.MAX_CAPACITY)
-					CreateLane(ls);
+				if (ls > MemoryLaneSettings.MIN_CAPACITY && ls < MemoryLaneSettings.MAX_CAPACITY) CreateLane(ls);
 				else throw new MemoryLaneException(MemoryLaneException.Code.SizeOutOfRange);
 		}
 
+		/// <summary>
+		/// Allocates a generic fragment with a specified length.
+		/// </summary>
+		/// <param name="size">The number of bytes to allocate.</param>
+		/// <returns>The fragment structure.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// If size is negative or greater than MemoryLaneSettings.MAX_CAPACITY.
+		/// </exception>
+		/// <exception cref="System.MemoryLaneException">
+		/// Code.NotInitialized: when the lanes are not initialized.
+		/// Code.NewLaneAllocFail: after an unsuccessful attempt to allocate a fragment in a dedicated new lane.
+		/// One should never see this one!
+		/// </exception>
 		public F Alloc(int size)
 		{
 			if (Lanes == null || Lanes.Count < 1) throw new MemoryLaneException(MemoryLaneException.Code.NotInitialized);
-			if (size < 0) throw new ArgumentOutOfRangeException("size");
+			if (size < 0 || size > MemoryLaneSettings.MAX_CAPACITY) throw new ArgumentOutOfRangeException("size");
 
 			var frag = new F();
 
@@ -94,6 +178,8 @@ namespace System
 
 			return frag;
 		}
+
+		public void Dispose() => destroy();
 
 		L CreateLane(int capacity)
 		{
@@ -122,9 +208,28 @@ namespace System
 			return ml;
 		}
 
+		void destroy(bool isGC = false)
+		{
+			if (!isDisposed)
+			{
+				try
+				{
+					if (Lanes != null && Lanes.Count > 0)
+						foreach (var lane in Lanes)
+							lane.Dispose();
+				}
+				catch { }
+				isDisposed = true;
+			}
+		}
+
+		~MemoryCarriage() => destroy(true);
+
+		protected readonly MemoryLaneSettings settings;
+
 		LaneCtor<L> laneCtor;
 		FragmentCtor<L, F> fragCtor;
 		List<L> Lanes = new List<L>();
-		MemoryLaneSettings settings;
+		bool isDisposed;
 	}
 }

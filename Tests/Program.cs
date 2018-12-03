@@ -9,7 +9,7 @@ namespace Tests
 		{
 			if (args == null || args.Length < 1)
 			{
-				Console.WriteLine("Args: mode, number of messages, message count, randopm size ");
+				Console.WriteLine("Args: mode, number of messages, message count, random size ");
 				Console.WriteLine(" -s: server mode, -c: client mode, -r random size ");
 				Console.WriteLine("Example: -c 200 1024 -r");
 				return;

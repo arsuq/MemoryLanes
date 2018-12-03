@@ -69,7 +69,7 @@ namespace System
 		}
 
 		/// <remarks>
-		/// The derived implementations should decide wether to expose this
+		/// The derived implementations should decide whether to expose this
 		/// </remarks>
 		protected void force(bool close, bool reset = false)
 		{
