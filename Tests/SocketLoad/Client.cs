@@ -22,6 +22,9 @@ namespace Tests.SocketLoad
 			var rdm = new Random();
 			var sendBuff = new byte[size + 4];
 
+			byte v = 0;
+			for (int i = 4; i < sendBuff.Length; i++) sendBuff[i] = ++v;
+
 			for (; msgCount > 0; msgCount--)
 			{
 				var len = randomSize ? rdm.Next(1024, size) : size;

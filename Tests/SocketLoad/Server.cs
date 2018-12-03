@@ -36,16 +36,17 @@ namespace Tests.SocketLoad
 			}
 		}
 
-		async Task Process(Socket client, Action<byte[]> onmessage, bool stop = false)
+		async Task Process(Socket client, Action<Memory<byte>> onmessage, bool stop = false)
 		{
 			try
 			{
 				Print.AsInfo("New client" + Environment.NewLine);
 
+				var hh = new HeapHighway(1025, 2048);
+
 				using (var ns = new NetworkStream(client))
 				{
 					var header = new byte[4];
-					byte[] frame = null;
 					var total = 0;
 					var read = 0;
 					var frameLen = 0;
@@ -71,20 +72,22 @@ namespace Tests.SocketLoad
 							break;
 						}
 
-						frame = new byte[frameLen];
-						Print.AsInfo("Frame length:{0}", frameLen);
-
-						while (total < frameLen && !stop)
+						using (var frag = hh.Alloc(frameLen))
 						{
-							read = await ns.ReadAsync(frame, total, frameLen - total).ConfigureAwait(false);
-							total += read;
+							Print.AsInfo("Frame length:{0}", frameLen);
 
-							Print.AsInnerInfo("    read {0} on thread {1}", read, Thread.CurrentThread.ManagedThreadId);
-
-							if (total >= frameLen)
+							while (total < frameLen && !stop)
 							{
-								onmessage?.Invoke(frame);
-								break;
+								read = await ns.ReadAsync(frag.Memory.Slice(total)).ConfigureAwait(false);
+								total += read;
+
+								Print.AsInnerInfo("    read {0} on thread {1}", read, Thread.CurrentThread.ManagedThreadId);
+
+								if (total >= frameLen)
+								{
+									onmessage?.Invoke(frag.Memory);
+									break;
+								}
 							}
 						}
 					}

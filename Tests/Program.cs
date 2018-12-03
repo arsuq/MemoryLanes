@@ -15,7 +15,7 @@ namespace Tests
 				return;
 			}
 
-			Print.IgnoreAll = true;
+			Print.IgnoreAll = false;
 
 			try
 			{
