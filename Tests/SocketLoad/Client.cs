@@ -20,18 +20,23 @@ namespace Tests.SocketLoad
 		{
 			var ns = client.GetStream();
 			var rdm = new Random();
-			var sendBuff = new byte[size + 4];
+			var sendBuff = new Memory<byte>(new byte[size + 4]);
+			var header = sendBuff.Slice(0, 4);
 
 			byte v = 0;
-			for (int i = 4; i < sendBuff.Length; i++) sendBuff[i] = ++v;
+			for (int i = 4; i < sendBuff.Length; i++) sendBuff.Span[i] = ++v;
 
 			for (; msgCount > 0; msgCount--)
 			{
 				var len = randomSize ? rdm.Next(1024, size) : size;
-				if (BitConverter.TryWriteBytes(sendBuff, len))
+				if (BitConverter.TryWriteBytes(header.Span, len))
 				{
+					var hs = header.Span.ToArray();
+					Print.AsInfo("Frame length: {0}", len);
+					Print.AsInfo("Frame header bytes: {0}.{1}.{2}.{3}", hs[0], hs[1], hs[2], hs[3]);
+					Print.AsWarn("Header value double check: {0} ", BitConverter.ToInt32(hs, 0));
 					if (sleepms > 0) await Task.Delay(sleepms);
-					await ns.WriteAsync(sendBuff);
+					await ns.WriteAsync(sendBuff.Slice(0, len + 4));
 				}
 				else
 				{

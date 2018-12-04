@@ -10,6 +10,8 @@ namespace Tests.SocketLoad
 {
 	public class Server
 	{
+		enum AllocType { Heap, MMF, Marshal }
+
 		public Server(int port)
 		{
 			AppDomain.CurrentDomain.ProcessExit += ProcessExit;
@@ -34,7 +36,7 @@ namespace Tests.SocketLoad
 				{
 					var client = accept.Result;
 					new Task(() =>
-						ProcessMMF(client, (len) => Print.AsSuccess(
+						Process(AllocType.Heap, client, (len) => Print.AsSuccess(
 						   "{0} bytes received from {1}.",
 						   len,
 						   ((IPEndPoint)client.RemoteEndPoint).Port.ToString())).Wait()
@@ -44,82 +46,37 @@ namespace Tests.SocketLoad
 			}
 		}
 
-		async Task Process(Socket client, Action<int> onmessage, bool stop = false)
+		async Task Process(AllocType at, Socket client, Action<int> onmessage, bool stop = false)
 		{
+			Print.AsInfo(at.ToString() + Environment.NewLine);
+
 			try
 			{
 				Print.AsInfo("New client" + Environment.NewLine);
 
-				var hw = new HeapHighway(1025, 2040);
+				IHighwayAlloc hw = null;
+				var lanes = new int[] { 1025, 2048 };
 
-				using (var ns = new NetworkStream(client))
+				switch (at)
 				{
-					var header = new byte[4];
-					var total = 0;
-					var read = 0;
-					var frameLen = 0;
-
-					while (!stop)
-					{
-						total = 0;
-						read = await ns.ReadAsync(header, 0, 4).ConfigureAwait(false);
-
-						// The other side is gone.
-						// As long as the sender is not disposed/closed the ReadAsync will wait  
-						if (read < 1)
-						{
-							Print.AsError("The client is gone.");
-							break;
-						}
-
-						frameLen = BitConverter.ToInt32(header, 0);
-
-						if (frameLen < 1)
-						{
-							Print.AsError("Bad header, thread {0}", Thread.CurrentThread.ManagedThreadId);
-							break;
-						}
-
-						using (var frag = hw.Alloc(frameLen))
-						{
-							Print.AsInfo("Frame length:{0}", frameLen);
-
-							while (total < frameLen && !stop)
-							{
-								read = await ns.ReadAsync(frag.Memory.Slice(total)).ConfigureAwait(false);
-								total += read;
-
-								Print.AsInnerInfo("    read {0} on thread {1}", read, Thread.CurrentThread.ManagedThreadId);
-
-								if (total >= frameLen)
-								{
-									onmessage?.Invoke(frag.Memory.Length);
-									break;
-								}
-							}
-						}
-					}
+					case AllocType.Heap:
+					hw = new HeapHighway(lanes);
+					break;
+					case AllocType.MMF:
+					hw = new MappedHighway(lanes);
+					break;
+					case AllocType.Marshal:
+					hw = new MarshalHighway(lanes);
+					break;
+					default:
+					throw new ArgumentNullException();
 				}
-			}
-			catch (Exception ex)
-			{
-				Console.WriteLine(ex.Message);
-			}
-		}
 
-		async Task ProcessMMF(Socket client, Action<int> onmessage, bool stop = false)
-		{
-			Print.AsInfo("MappedHighway" + Environment.NewLine);
-
-			try
-			{
-				Print.AsInfo("New client" + Environment.NewLine);
-
-				using (var mh = new MappedHighway(1025, 2040))
+				using (hw)
 				using (var ns = new NetworkStream(client))
 				{
 					var header = new byte[4];
-					var spoon = new byte[20000];
+					var spoon = new byte[16000];
 					var total = 0;
 					var read = 0;
 					var frameLen = 0;
@@ -128,6 +85,7 @@ namespace Tests.SocketLoad
 					{
 						total = 0;
 						read = await ns.ReadAsync(header, 0, 4).ConfigureAwait(false);
+						Print.AsInfo("Received header bytes: {0}.{1}.{2}.{3}", header[0], header[1], header[2], header[3]);
 
 						// The other side is gone.
 						// As long as the sender is not disposed/closed the ReadAsync will wait  
@@ -145,13 +103,19 @@ namespace Tests.SocketLoad
 							break;
 						}
 
-						using (var frag = mh.Alloc(frameLen))
+						using (var frag = hw.BoxAlloc(frameLen))
 						{
 							Print.AsInfo("Frame length:{0}", frameLen);
 
+							// The sip length guards against jumping into the next frame
+							var sip = 0;
 							while (total < frameLen && !stop)
 							{
-								read = await ns.ReadAsync(spoon, 0, spoon.Length).ConfigureAwait(false);
+								sip = frameLen - total;
+								if (sip > spoon.Length) sip = spoon.Length;
+
+								// the read amount could be smaller than the sip
+								read = await ns.ReadAsync(spoon, 0, sip).ConfigureAwait(false);
 								frag.Write(spoon, total, read);
 								total += read;
 
@@ -167,12 +131,17 @@ namespace Tests.SocketLoad
 					}
 				}
 			}
+			catch (MemoryLaneException mex)
+			{
+				Console.WriteLine(mex.Message);
+				Console.WriteLine(mex.ErrorCode.ToString());
+				Console.WriteLine(mex.StackTrace);
+			}
 			catch (Exception ex)
 			{
 				Console.WriteLine(ex.Message);
 			}
 		}
-
 
 		void ProcessExit(object sender, EventArgs e)
 		{

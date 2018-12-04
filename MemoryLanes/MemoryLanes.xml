@@ -4,19 +4,83 @@
         <name>MemoryLanes</name>
     </assembly>
     <members>
+        <member name="T:System.IMemoryLaneFragment">
+            <summary>
+            Represents the boxed interface of a fragment structure.
+            </summary>
+        </member>
+        <member name="M:System.LOHFragment.Write(System.Byte[],System.Int32,System.Int32)">
+            <summary>Writes the bytes in data into the heap fragment.</summary>
+            <param name="data">The bytes to be written</param>
+            <param name="offset">The writing position in the fragment window.</param>
+            <param name="length">The amount of bytes to take from <c>data</c> (0-length).</param>
+            <returns>The new offset, i.e. <c>offset + length</c>.</returns>
+            <exception cref="T:System.ArgumentNullException">If data is null.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">If offset and length are out of range.</exception>
+        </member>
+        <member name="M:System.LOHFragment.Read(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Reads bytes from a MMF starting at offset and reading as long as <c>destination</c> is not filled up. 
+            The writing starts at destOffset and ends either at destination.Length or at fragment.Length - offset.
+            </summary>
+            <param name="destination">The buffer where the MMF data goes to.</param>
+            <param name="offset">The reading starts at offset.</param>
+            <param name="destOffset">The writing starts at destOffset.</param>
+            <returns>The new reading position = offset + the read bytes count.</returns>
+            <exception cref="T:System.ArgumentNullException">If destination is null.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">For offset and destOffset.</exception>
+        </member>
+        <member name="M:System.MarshalFragment.Write(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Writes the bytes in data (0-length) to the underlying native memory region starting at <c>offset</c> position.
+            </summary>
+            <param name="data">The source array.</param>
+            <param name="offset">The writing position in the native fragment</param>
+            <param name="length">How many bytes from the source to take.</param>
+            <returns>The offset + length</returns>
+        </member>
+        <member name="M:System.MarshalFragment.Read(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Reads bytes from native memory starting at offset (within the fragment region) and reads until 
+            <c>destination</c> is full or there is no more data.
+            The writing in <c>destination</c> starts at destOffset.
+            </summary>
+            <param name="destination">The read data.</param>
+            <param name="offset">The position in source to begin reading from.</param>
+            <param name="destOffset">Index in destination where the copying will begin at. By default is 0.</param>
+            <returns>The total bytes read, i.e. the new offset.</returns>
+            <exception cref="T:System.ArgumentNullException">If destination is null.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">For offset and destOffset.</exception>
+        </member>
+        <member name="M:System.MarshalFragment.Span">
+            <summary>
+            Creates a Span from a raw pointer marking the beginning of the fragment window.
+            </summary>
+            <returns>A Span structure</returns>
+        </member>
+        <member name="F:System.MarshalFragment.StartIdx">
+            <summary>
+            The beginning position within the MarshalLane
+            </summary>
+        </member>
+        <member name="F:System.MarshalFragment.Length">
+            <summary>
+            The end position in the lane
+            </summary>
+        </member>
         <member name="T:System.MMFFragment">
             <summary>
             Represents a fragment of a memory mapped file.
             </summary>
         </member>
         <member name="M:System.MMFFragment.Write(System.Byte[],System.Int32,System.Int32)">
-            <summary>Writes the bytes in data to the MMF.</summary>
+            <summary>Writes the bytes in data into the MMF.</summary>
             <remarks>Note that the Read() and Write() methods are not synchronized with access trough Span().
             Use either Read/Write or Span().</remarks>
             <param name="data">The bytes to be written</param>
             <param name="offset">The number of written bytes so far.</param>
             <param name="length">The amount of bytes to take from data (takes from 0 to length).</param>
-            <returns>The total written bytes, i.e. the offset index.</returns>
+            <returns>The total written bytes, i.e. offset + length.</returns>
             <exception cref="T:System.ArgumentNullException">If data is null.</exception>
             <exception cref="T:System.ArgumentOutOfRangeException">If offset and length are out of range.</exception>
         </member>
@@ -68,25 +132,6 @@
             <param name="stg">Generic settings for all MemoryCarriage derivatives.</param>
             <param name="lanes">The initial setup.</param>
         </member>
-        <member name="T:System.MarshalHighway">
-            <summary>
-            Allocates memory lanes via Marshal.AllocHGlobal
-            </summary>
-        </member>
-        <member name="M:System.MarshalHighway.#ctor(System.Int32[])">
-            <summary>
-            Creates new lanes with the specified lengths and a default MemoryLaneSettings instance.
-            </summary>
-            <param name="lanes">The initial layout.</param>
-        </member>
-        <member name="M:System.MarshalHighway.#ctor(System.MemoryLaneSettings,System.Int32[])">
-            <summary>
-            Creates new lanes with the specified lengths and settings.
-            When needed, the MemoryCarriage will create the new lanes with settings.DefaultCapacity in length.
-            </summary>
-            <param name="stg">Generic settings for all MemoryCarriage derivatives.</param>
-            <param name="lanes">The initial setup.</param>
-        </member>
         <member name="T:System.MappedHighway">
             <summary>
             Allocates memory lanes as memory mapped files - one lane is one file.
@@ -104,6 +149,25 @@
             Creates new lanes with the specified lengths and settings.
             When needed, the MemoryCarriage will create the new lanes with settings.DefaultCapacity in length.
             Note that every lane is a separate memory mapped file.
+            </summary>
+            <param name="stg">Generic settings for all MemoryCarriage derivatives.</param>
+            <param name="lanes">The initial setup.</param>
+        </member>
+        <member name="T:System.MarshalHighway">
+            <summary>
+            Allocates memory lanes via Marshal.AllocHGlobal
+            </summary>
+        </member>
+        <member name="M:System.MarshalHighway.#ctor(System.Int32[])">
+            <summary>
+            Creates new lanes with the specified lengths and a default MemoryLaneSettings instance.
+            </summary>
+            <param name="lanes">The initial layout.</param>
+        </member>
+        <member name="M:System.MarshalHighway.#ctor(System.MemoryLaneSettings,System.Int32[])">
+            <summary>
+            Creates new lanes with the specified lengths and settings.
+            When needed, the MemoryCarriage will create the new lanes with settings.DefaultCapacity in length.
             </summary>
             <param name="stg">Generic settings for all MemoryCarriage derivatives.</param>
             <param name="lanes">The initial setup.</param>
@@ -126,6 +190,8 @@
             Code.MaxTotalAllocBytesReached: when the total lanes capacity is greater than MaxTotalAllocatedBytes AND
             the OnMaxTotalBytesReached handler is either null or returns false, meaning "do not ignore".
             In both cases if the callbacks return true the MemoryCarriage will continue to allocate lanes. 
+            Code.SizeOutOfRange: when at least one of the lengths is outside the 
+            MemoryLaneSettings.MIN_CAPACITY - MemoryLaneSettings.MAX_CAPACITY interval.
             </exception>
             <exception cref="T:System.ArgumentOutOfRangeException">If count is outside the 1-MemoryLaneSettings.MAX_COUNT interval </exception>
         </member>

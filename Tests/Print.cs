@@ -40,7 +40,7 @@ namespace Tests
 			if (IgnoreAll) return;
 
 			var cc = Console.ForegroundColor;
-			Console.ForegroundColor = ConsoleColor.Green;
+			Console.ForegroundColor = c;
 			Console.WriteLine(text, formatArgs);
 			Console.ForegroundColor = cc;
 		}

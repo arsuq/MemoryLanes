@@ -26,6 +26,6 @@ namespace System
 
 		public MemoryLaneException(string msg, Exception inner) : base(msg, inner) { }
 
-		Code ErrorCode;
+		public readonly Code ErrorCode;
 	}
 }

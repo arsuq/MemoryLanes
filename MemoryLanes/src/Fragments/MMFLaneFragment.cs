@@ -6,7 +6,7 @@ namespace System
 	/// <summary>
 	/// Represents a fragment of a memory mapped file.
 	/// </summary>
-	public struct MMFFragment : IDisposable
+	public struct MMFFragment : IMemoryLaneFragment
 	{
 		public MMFFragment(long startIdx, int length, MemoryMappedViewAccessor va, Action dtor)
 		{
@@ -16,13 +16,13 @@ namespace System
 			mmva = va;
 		}
 
-		/// <summary>Writes the bytes in data to the MMF.</summary>
+		/// <summary>Writes the bytes in data into the MMF.</summary>
 		/// <remarks>Note that the Read() and Write() methods are not synchronized with access trough Span().
 		/// Use either Read/Write or Span().</remarks>
 		/// <param name="data">The bytes to be written</param>
 		/// <param name="offset">The number of written bytes so far.</param>
 		/// <param name="length">The amount of bytes to take from data (takes from 0 to length).</param>
-		/// <returns>The total written bytes, i.e. the offset index.</returns>
+		/// <returns>The total written bytes, i.e. offset + length.</returns>
 		/// <exception cref="System.ArgumentNullException">If data is null.</exception>
 		/// <exception cref="System.ArgumentOutOfRangeException">If offset and length are out of range.</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -55,8 +55,8 @@ namespace System
 			if (offset < 0 || offset >= Length) throw new ArgumentOutOfRangeException("offset");
 			if (destOffset < 0 || destOffset > destination.Length) throw new ArgumentOutOfRangeException("destOffset");
 
-			var readLength = (destination.Length + offset) > Length ?
-				Length - offset : destination.Length;
+			var destLength = destination.Length - destOffset;
+			var readLength = (destLength + offset) > Length ? Length - offset : destLength;
 
 			return offset + mmva.ReadArray(StartIdx + offset, destination, destOffset, readLength);
 		}
@@ -99,6 +99,8 @@ namespace System
 		/// The length of the fragment. 
 		/// </summary>
 		public readonly int Length;
+
+		int IMemoryLaneFragment.Length => Length;
 
 		Action destructor;
 		MemoryMappedViewAccessor mmva;
