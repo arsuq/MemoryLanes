@@ -4,6 +4,11 @@
         <name>MemoryLanes</name>
     </assembly>
     <members>
+        <member name="T:System.LOHFragment">
+            <summary>
+            Represents a slice of a heap allocated buffer
+            </summary>
+        </member>
         <member name="M:System.LOHFragment.Write(System.Byte[],System.Int32,System.Int32)">
             <summary>Writes the bytes in data into the heap fragment.</summary>
             <param name="data">The bytes to be written</param>
@@ -25,7 +30,12 @@
             <exception cref="T:System.ArgumentNullException">If destination is null.</exception>
             <exception cref="T:System.ArgumentOutOfRangeException">For offset and destOffset.</exception>
         </member>
-        <member name="M:System.MarshalFragment.Write(System.Byte[],System.Int32,System.Int32)">
+        <member name="T:System.MarshalLaneFragment">
+            <summary>
+            Represents a slice of a MemoryLane allocated via Marshal.AllocHGlobal
+            </summary>
+        </member>
+        <member name="M:System.MarshalLaneFragment.Write(System.Byte[],System.Int32,System.Int32)">
             <summary>
             Writes the bytes in data (0-length) to the underlying native memory region starting at <c>offset</c> position.
             </summary>
@@ -34,7 +44,7 @@
             <param name="length">How many bytes from the source to take.</param>
             <returns>The offset + length</returns>
         </member>
-        <member name="M:System.MarshalFragment.Read(System.Byte[],System.Int32,System.Int32)">
+        <member name="M:System.MarshalLaneFragment.Read(System.Byte[],System.Int32,System.Int32)">
             <summary>
             Reads bytes from native memory starting at offset (within the fragment region) and reads until 
             <c>destination</c> is full or there is no more data.
@@ -47,21 +57,66 @@
             <exception cref="T:System.ArgumentNullException">If destination is null.</exception>
             <exception cref="T:System.ArgumentOutOfRangeException">For offset and destOffset.</exception>
         </member>
-        <member name="M:System.MarshalFragment.Span">
+        <member name="M:System.MarshalLaneFragment.Span">
             <summary>
             Creates a Span from a raw pointer marking the beginning of the fragment window.
             </summary>
             <returns>A Span structure</returns>
         </member>
-        <member name="F:System.MarshalFragment.StartIdx">
+        <member name="F:System.MarshalLaneFragment.StartIdx">
             <summary>
             The beginning position within the MarshalLane
             </summary>
         </member>
-        <member name="F:System.MarshalFragment.length">
+        <member name="F:System.MarshalLaneFragment.length">
             <summary>
-            The end position in the lane
+            The length of the fragment. 
             </summary>
+        </member>
+        <member name="T:System.MarshalParkingSlot">
+            <summary>
+            Represents a slice of unmanaged memory. 
+            This object is not part of a MemoryLane and its lifetime does not affect other MemoryFragment instances.
+            Use the MarshalParkingSlot for large and/or long living data, which would fragment the memory lanes (prevent resetting), 
+            or burden the GC and the managed heap if allocated there.
+            </summary>
+        </member>
+        <member name="M:System.MarshalParkingSlot.Write(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Writes the bytes in data (0-length) to the underlying native memory region starting at <c>offset</c> position.
+            </summary>
+            <param name="data">The source array.</param>
+            <param name="offset">The writing position in the native fragment</param>
+            <param name="length">How many bytes from the source to take.</param>
+            <returns>The offset + length</returns>
+        </member>
+        <member name="M:System.MarshalParkingSlot.Read(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Reads bytes from native memory starting at offset (within the fragment region) and reads until 
+            <c>destination</c> is full or there is no more data.
+            The writing in <c>destination</c> starts at destOffset.
+            </summary>
+            <param name="destination">The read data.</param>
+            <param name="offset">The position in source to begin reading from.</param>
+            <param name="destOffset">Index in destination where the copying will begin at. By default is 0.</param>
+            <returns>The total bytes read, i.e. the new offset.</returns>
+            <exception cref="T:System.ArgumentNullException">If destination is null.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">For offset and destOffset.</exception>
+        </member>
+        <member name="M:System.MarshalParkingSlot.Store``1(``0)">
+            <summary>
+            Store an unmanaged structure which has no managed references. 
+            </summary>
+            <typeparam name="T">Unmanaged structure type</typeparam>
+            <param name="str">The value</param>
+            <returns></returns>
+        </member>
+        <member name="M:System.MarshalParkingSlot.Load``1">
+            <summary>
+            Constructs previously stored unmanaged structure.
+            </summary>
+            <typeparam name="T">A reference free structure type</typeparam>
+            <returns>The initialized structure</returns>
         </member>
         <member name="T:System.MMFFragment">
             <summary>
@@ -220,6 +275,11 @@
             Code.NewLaneAllocFail: after an unsuccessful attempt to allocate a fragment in a dedicated new lane.
             One should never see this one!
             </exception>
+        </member>
+        <member name="P:System.MemoryCarriage`2.LastAnyLaneAllocTick">
+            <summary>
+            Use to detect bad disposal behavior. 
+            </summary>
         </member>
         <member name="M:System.MemoryLane.force(System.Boolean,System.Boolean)">
             <remarks>

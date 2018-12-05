@@ -1,13 +1,14 @@
 using System.Collections.Generic;
+using System.Threading;
 
 namespace System
 {
 	public interface IHighwayAlloc : IDisposable
 	{
-		MemoryLaneFragment AllocFragment(int size);
+		MemoryFragment AllocFragment(int size);
 	}
 
-	public delegate bool FragmentCtor<L, F>(L ml, int size, ref F f) where L : MemoryLane where F : MemoryLaneFragment, new();
+	public delegate bool FragmentCtor<L, F>(L ml, int size, ref F f) where L : MemoryLane where F : MemoryFragment, new();
 	public delegate L LaneCtor<L>(int size) where L : MemoryLane;
 
 	/// <summary>
@@ -15,7 +16,7 @@ namespace System
 	/// </summary>
 	/// <typeparam name="L"></typeparam>
 	/// <typeparam name="F"></typeparam>
-	public class MemoryCarriage<L, F> : IHighwayAlloc, IDisposable where L : MemoryLane where F : MemoryLaneFragment, new()
+	public class MemoryCarriage<L, F> : IHighwayAlloc, IDisposable where L : MemoryLane where F : MemoryFragment, new()
 	{
 		public MemoryCarriage(FragmentCtor<L, F> fc, LaneCtor<L> lc, MemoryLaneSettings stg)
 		{
@@ -106,10 +107,12 @@ namespace System
 					MemoryLaneException.Code.NewLaneAllocFail,
 					string.Format("Failed to allocate {0} bytes on a dedicated lane.", size));
 
+			Interlocked.Exchange(ref lastAnyLaneAllocTick, DateTime.Now.Ticks);
+
 			return frag;
 		}
 
-		public MemoryLaneFragment AllocFragment(int size) => Alloc(size);
+		public MemoryFragment AllocFragment(int size) => Alloc(size);
 
 		public void Dispose() => destroy();
 
@@ -150,6 +153,7 @@ namespace System
 							lane.Dispose();
 				}
 				catch { }
+				if (isGC) GC.SuppressFinalize(this);
 				isDisposed = true;
 			}
 		}
@@ -157,6 +161,11 @@ namespace System
 		~MemoryCarriage() => destroy(true);
 
 		protected readonly MemoryLaneSettings settings;
+		/// <summary>
+		/// Use to detect bad disposal behavior. 
+		/// </summary>
+		public long LastAnyLaneAllocTick => Thread.VolatileRead(ref lastAnyLaneAllocTick);
+		long lastAnyLaneAllocTick;
 
 		LaneCtor<L> laneCtor;
 		FragmentCtor<L, F> fragCtor;

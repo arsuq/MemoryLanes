@@ -3,7 +3,10 @@ using System.Runtime.CompilerServices;
 
 namespace System
 {
-	public class LOHFragment : MemoryLaneFragment
+	/// <summary>
+	/// Represents a slice of a heap allocated buffer
+	/// </summary>
+	public class LOHFragment : MemoryFragment
 	{
 		public LOHFragment() { }
 

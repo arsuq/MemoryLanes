@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Allocates memory lanes via Marshal.AllocHGlobal
 	/// </summary>
-	public class MarshalHighway : MemoryCarriage<MarshalLane, MarshalFragment>
+	public class MarshalHighway : MemoryCarriage<MarshalLane, MarshalLaneFragment>
 	{
 		/// <summary>
 		/// Creates new lanes with the specified lengths and a default MemoryLaneSettings instance.
@@ -21,7 +21,7 @@
 		public MarshalHighway(MemoryLaneSettings stg, params int[] lanes)
 			: base(FragMaker, LaneMaker, stg) => Create(lanes);
 
-		static bool FragMaker(MarshalLane lane, int size, ref MarshalFragment frag) => lane.TryCreateFragment(size, ref frag);
+		static bool FragMaker(MarshalLane lane, int size, ref MarshalLaneFragment frag) => lane.TryCreateFragment(size, ref frag);
 		static MarshalLane LaneMaker(int size) => new MarshalLane(size);
 	}
 }

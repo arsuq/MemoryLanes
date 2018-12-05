@@ -22,7 +22,7 @@ namespace System
 			else return false;
 		}
 
-		public override void Dispose() { }
+		public override void Dispose() { lane = null; }
 		public override int LaneCapacity => lane != null ? lane.Length : 0;
 
 		byte[] lane;

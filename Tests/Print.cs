@@ -8,7 +8,7 @@ namespace Tests
 	{
 		public static void AsInfo(this string text, params object[] formatArgs)
 		{
-			if (IgnoreAll) return;
+			if (IgnoreAll || IgnoreInfo) return;
 
 			Console.WriteLine(text, formatArgs);
 		}
@@ -20,7 +20,7 @@ namespace Tests
 
 		public static void AsInnerInfo(this string text, params object[] formatArgs)
 		{
-			if (IgnoreAll) return;
+			if (IgnoreAll || IgnoreInfo) return;
 			
 			Console.WriteLine("    " + text, formatArgs);
 		}
@@ -46,5 +46,7 @@ namespace Tests
 		}
 
 		public static bool IgnoreAll = false;
+		public static bool IgnoreInfo = false;
+
 	}
 }

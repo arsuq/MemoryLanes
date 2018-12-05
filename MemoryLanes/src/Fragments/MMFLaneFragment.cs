@@ -6,7 +6,7 @@ namespace System
 	/// <summary>
 	/// Represents a fragment of a memory mapped file.
 	/// </summary>
-	public class MMFFragment : MemoryLaneFragment
+	public class MMFFragment : MemoryFragment
 	{
 		public MMFFragment() { }
 
@@ -83,15 +83,20 @@ namespace System
 			}
 		}
 
-		public override void Dispose()
+		public override void Dispose() => destroy();
+
+		void destroy(bool isGC = false)
 		{
 			if (destructor != null)
 			{
 				destructor();
 				destructor = null;
 				mmva = null;
+				if (!isGC) GC.SuppressFinalize(this);
 			}
 		}
+
+		~MMFFragment() => destroy(true);
 
 		/// <summary>
 		/// The byte offset in the MMF where the fragment starts.

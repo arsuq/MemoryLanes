@@ -7,6 +7,15 @@ namespace Tests
 	{
 		static void Main(string[] args)
 		{
+			//SocketLoad(args);
+			ParkingUnmanagedStructs.Run();
+
+			Console.WriteLine("Done. Press <Enter> to close.");
+			Console.ReadLine();
+		}
+
+		static void SocketLoad(string[] args)
+		{
 			if (args == null || args.Length < 1)
 			{
 				Console.WriteLine("Args: mode, number of messages, message count, random size ");
@@ -14,8 +23,6 @@ namespace Tests
 				Console.WriteLine("Example: -c 200 1024 -r");
 				return;
 			}
-
-			Print.IgnoreAll = false;
 
 			try
 			{
@@ -33,9 +40,6 @@ namespace Tests
 				}
 			}
 			catch (Exception ex) { Console.WriteLine(ex.Message); }
-
-			Console.WriteLine("Done. Press <Enter> to close.");
-			Console.ReadLine();
 		}
 	}
 }

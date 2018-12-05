@@ -22,6 +22,7 @@ namespace Tests.SocketLoad
 		public async Task ReceiveLoop()
 		{
 			Console.WriteLine("Started.");
+			Print.IgnoreInfo = true;
 
 			var data = new List<byte>();
 			server.Listen(100);

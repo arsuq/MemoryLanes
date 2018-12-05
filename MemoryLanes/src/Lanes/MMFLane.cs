@@ -39,9 +39,9 @@ namespace System
 					if (mmva != null) mmva.Dispose();
 					if (mmf != null) mmf.Dispose();
 					if (!string.IsNullOrEmpty(FileID) && File.Exists(FileID)) File.Delete(FileID);
-					if (!isGC) GC.SuppressFinalize(this);
 				}
 				catch { }
+				if (!isGC) GC.SuppressFinalize(this);
 				isDisposed = true;
 			}
 		}

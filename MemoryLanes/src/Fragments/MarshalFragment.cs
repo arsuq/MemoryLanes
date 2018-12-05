@@ -3,11 +3,14 @@ using System.Runtime.CompilerServices;
 
 namespace System
 {
-	public class MarshalFragment : MemoryLaneFragment
+	/// <summary>
+	/// Represents a slice of a MemoryLane allocated via Marshal.AllocHGlobal
+	/// </summary>
+	public class MarshalLaneFragment : MemoryFragment
 	{
-		public MarshalFragment() { }
+		public MarshalLaneFragment() { }
 
-		public MarshalFragment(int startIdx, int length, IntPtr lane, Action dtor)
+		public MarshalLaneFragment(int startIdx, int length, IntPtr lane, Action dtor)
 		{
 			if (startIdx < 0 || length < 0) throw new ArgumentOutOfRangeException("startIdx or length");
 			if (dtor == null) throw new NullReferenceException("dtor");
@@ -81,23 +84,27 @@ namespace System
 			return new Span<byte>(p, Length);
 		}
 
+		public override void Dispose() => destroy();
 
-		public override void Dispose()
+		void destroy(bool isGC = false)
 		{
 			if (destructor != null)
 			{
 				destructor();
 				destructor = null;
 				lanePtr = IntPtr.Zero;
+				if (!isGC) GC.SuppressFinalize(this);
 			}
 		}
+
+		~MarshalLaneFragment() => destroy(true);
 
 		/// <summary>
 		/// The beginning position within the MarshalLane
 		/// </summary>
 		public readonly int StartIdx;
 		/// <summary>
-		/// The end position in the lane
+		/// The length of the fragment. 
 		/// </summary>
 		protected readonly int length;
 

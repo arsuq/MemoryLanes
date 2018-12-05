@@ -12,13 +12,13 @@ namespace System
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryCreateFragment(int size, ref MarshalFragment frag)
+		public bool TryCreateFragment(int size, ref MarshalLaneFragment frag)
 		{
 			var fr = new FragmentRange();
 
 			if (Alloc(size, ref fr))
 			{
-				frag = new MarshalFragment(fr.Offset, fr.Length, lanePtr, () => free());
+				frag = new MarshalLaneFragment(fr.Offset, fr.Length, lanePtr, () => free());
 				return true;
 			}
 			else return false;
