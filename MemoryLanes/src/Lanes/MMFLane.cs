@@ -4,7 +4,7 @@ using System.Runtime.CompilerServices;
 
 namespace System
 {
-	public sealed class MMFLane : MemoryLane
+	public class MMFLane : MemoryLane
 	{
 		public MMFLane(int capacity, string filename = null) : base(capacity)
 		{

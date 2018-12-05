@@ -3,8 +3,10 @@ using System.Runtime.CompilerServices;
 
 namespace System
 {
-	public struct MarshalFragment : IMemoryLaneFragment
+	public class MarshalFragment : MemoryLaneFragment
 	{
+		public MarshalFragment() { }
+
 		public MarshalFragment(int startIdx, int length, IntPtr lane, Action dtor)
 		{
 			if (startIdx < 0 || length < 0) throw new ArgumentOutOfRangeException("startIdx or length");
@@ -12,7 +14,7 @@ namespace System
 			if (lane == null) throw new NullReferenceException("lane");
 
 			StartIdx = startIdx;
-			Length = length;
+			this.length = length;
 			destructor = dtor;
 			lanePtr = lane;
 		}
@@ -25,7 +27,7 @@ namespace System
 		/// <param name="length">How many bytes from the source to take.</param>
 		/// <returns>The offset + length</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int Write(byte[] data, int offset, int length)
+		public override int Write(byte[] data, int offset, int length)
 		{
 			if (data == null) throw new ArgumentNullException("data");
 			if (length < 0 || length > data.Length) throw new ArgumentOutOfRangeException("length");
@@ -51,7 +53,7 @@ namespace System
 		/// <exception cref="System.ArgumentNullException">If destination is null.</exception>
 		/// <exception cref="System.ArgumentOutOfRangeException">For offset and destOffset.</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int Read(byte[] destination, int offset, int destOffset = 0)
+		public override int Read(byte[] destination, int offset, int destOffset = 0)
 		{
 			if (destination == null) throw new ArgumentNullException("destination");
 			if (offset < 0 || offset >= Length) throw new ArgumentOutOfRangeException("offset");
@@ -72,7 +74,7 @@ namespace System
 		/// Creates a Span from a raw pointer marking the beginning of the fragment window.
 		/// </summary>
 		/// <returns>A Span structure</returns>
-		public unsafe Span<byte> Span()
+		public override unsafe Span<byte> Span()
 		{
 			byte* p = (byte*)lanePtr;
 			p += StartIdx;
@@ -80,7 +82,7 @@ namespace System
 		}
 
 
-		public void Dispose()
+		public override void Dispose()
 		{
 			if (destructor != null)
 			{
@@ -97,9 +99,9 @@ namespace System
 		/// <summary>
 		/// The end position in the lane
 		/// </summary>
-		public readonly int Length;
+		protected readonly int length;
 
-		int IMemoryLaneFragment.Length => Length;
+		public override int Length => length;
 
 		Action destructor;
 		IntPtr lanePtr;

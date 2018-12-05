@@ -2,7 +2,7 @@ using System.Runtime.CompilerServices;
 
 namespace System
 {
-	public sealed class LOHLane : MemoryLane
+	public class LOHLane : MemoryLane
 	{
 		public LOHLane(int capacity) : base(capacity)
 		{

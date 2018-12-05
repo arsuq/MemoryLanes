@@ -6,12 +6,14 @@ namespace System
 	/// <summary>
 	/// Represents a fragment of a memory mapped file.
 	/// </summary>
-	public struct MMFFragment : IMemoryLaneFragment
+	public class MMFFragment : MemoryLaneFragment
 	{
+		public MMFFragment() { }
+
 		public MMFFragment(long startIdx, int length, MemoryMappedViewAccessor va, Action dtor)
 		{
 			StartIdx = startIdx;
-			Length = length;
+			this.length = length;
 			destructor = dtor;
 			mmva = va;
 		}
@@ -26,7 +28,7 @@ namespace System
 		/// <exception cref="System.ArgumentNullException">If data is null.</exception>
 		/// <exception cref="System.ArgumentOutOfRangeException">If offset and length are out of range.</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int Write(byte[] data, int offset, int length)
+		public override int Write(byte[] data, int offset, int length)
 		{
 			if (data == null) throw new ArgumentNullException("data");
 			if (offset < 0 || offset > Length) throw new ArgumentOutOfRangeException("offset");
@@ -49,7 +51,7 @@ namespace System
 		/// <exception cref="System.ArgumentNullException">If destination is null.</exception>
 		/// <exception cref="System.ArgumentOutOfRangeException">For offset and destOffset.</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int Read(byte[] destination, int offset, int destOffset = 0)
+		public override int Read(byte[] destination, int offset, int destOffset = 0)
 		{
 			if (destination == null) throw new ArgumentNullException("destination");
 			if (offset < 0 || offset >= Length) throw new ArgumentOutOfRangeException("offset");
@@ -66,7 +68,7 @@ namespace System
 		/// MemoryMappedViewAccessor window.
 		/// </summary>
 		/// <returns>A Span structure</returns>
-		public unsafe Span<byte> Span()
+		public override unsafe Span<byte> Span()
 		{
 			byte* p = null;
 			try
@@ -81,7 +83,7 @@ namespace System
 			}
 		}
 
-		public void Dispose()
+		public override void Dispose()
 		{
 			if (destructor != null)
 			{
@@ -98,9 +100,9 @@ namespace System
 		/// <summary>
 		/// The length of the fragment. 
 		/// </summary>
-		public readonly int Length;
+		protected readonly int length;
 
-		int IMemoryLaneFragment.Length => Length;
+		public override int Length => Length;
 
 		Action destructor;
 		MemoryMappedViewAccessor mmva;

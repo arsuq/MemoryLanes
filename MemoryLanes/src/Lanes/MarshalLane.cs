@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 
 namespace System
 {
-	public sealed class MarshalLane : MemoryLane
+	public class MarshalLane : MemoryLane
 	{
 		public MarshalLane(int capacity) : base(capacity)
 		{

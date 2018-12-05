@@ -4,10 +4,10 @@ namespace System
 {
 	public interface IHighwayAlloc : IDisposable
 	{
-		IMemoryLaneFragment BoxAlloc(int size);
+		MemoryLaneFragment AllocFragment(int size);
 	}
 
-	public delegate bool FragmentCtor<L, F>(L ml, int size, ref F f) where L : MemoryLane where F : struct, IMemoryLaneFragment;
+	public delegate bool FragmentCtor<L, F>(L ml, int size, ref F f) where L : MemoryLane where F : MemoryLaneFragment, new();
 	public delegate L LaneCtor<L>(int size) where L : MemoryLane;
 
 	/// <summary>
@@ -15,7 +15,7 @@ namespace System
 	/// </summary>
 	/// <typeparam name="L"></typeparam>
 	/// <typeparam name="F"></typeparam>
-	public class MemoryCarriage<L, F> : IHighwayAlloc, IDisposable where L : MemoryLane where F : struct, IMemoryLaneFragment
+	public class MemoryCarriage<L, F> : IHighwayAlloc, IDisposable where L : MemoryLane where F : MemoryLaneFragment, new()
 	{
 		public MemoryCarriage(FragmentCtor<L, F> fc, LaneCtor<L> lc, MemoryLaneSettings stg)
 		{
@@ -109,7 +109,7 @@ namespace System
 			return frag;
 		}
 
-		public IMemoryLaneFragment BoxAlloc(int size) => Alloc(size);
+		public MemoryLaneFragment AllocFragment(int size) => Alloc(size);
 
 		public void Dispose() => destroy();
 

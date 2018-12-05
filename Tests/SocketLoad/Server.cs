@@ -103,7 +103,7 @@ namespace Tests.SocketLoad
 							break;
 						}
 
-						using (var frag = hw.BoxAlloc(frameLen))
+						using (var frag = hw.AllocFragment(frameLen))
 						{
 							Print.AsInfo("Frame length:{0}", frameLen);
 

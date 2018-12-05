@@ -3,8 +3,10 @@ using System.Runtime.CompilerServices;
 
 namespace System
 {
-	public struct LOHFragment : IMemoryLaneFragment
+	public class LOHFragment : MemoryLaneFragment
 	{
+		public LOHFragment() { }
+
 		public LOHFragment(Memory<byte> m, Action dtor)
 		{
 			if (dtor == null) throw new NullReferenceException("dtor");
@@ -21,7 +23,7 @@ namespace System
 		/// <exception cref="System.ArgumentNullException">If data is null.</exception>
 		/// <exception cref="System.ArgumentOutOfRangeException">If offset and length are out of range.</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int Write(byte[] data, int offset, int length)
+		public override int Write(byte[] data, int offset, int length)
 		{
 			if (data == null) throw new ArgumentNullException("data");
 			if (length < 0 || length > data.Length) throw new ArgumentOutOfRangeException("length");
@@ -46,7 +48,7 @@ namespace System
 		/// <exception cref="System.ArgumentNullException">If destination is null.</exception>
 		/// <exception cref="System.ArgumentOutOfRangeException">For offset and destOffset.</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int Read(byte[] destination, int offset, int destOffset = 0)
+		public override int Read(byte[] destination, int offset, int destOffset = 0)
 		{
 			if (destination == null) throw new ArgumentNullException("destination");
 			if (offset < 0 || offset >= Memory.Length) throw new ArgumentOutOfRangeException("offset");
@@ -63,7 +65,7 @@ namespace System
 			return offset + readLength;
 		}
 
-		public void Dispose()
+		public override void Dispose()
 		{
 			if (destructor != null)
 			{
@@ -74,8 +76,8 @@ namespace System
 		}
 
 		public Memory<byte> Memory;
-		public Span<byte> Span() => Memory.Span;
-		public int Length => Memory.Length;
+		public override Span<byte> Span() => Memory.Span;
+		public override int Length => Memory.Length;
 
 		Action destructor;
 	}

@@ -4,11 +4,6 @@
         <name>MemoryLanes</name>
     </assembly>
     <members>
-        <member name="T:System.IMemoryLaneFragment">
-            <summary>
-            Represents the boxed interface of a fragment structure.
-            </summary>
-        </member>
         <member name="M:System.LOHFragment.Write(System.Byte[],System.Int32,System.Int32)">
             <summary>Writes the bytes in data into the heap fragment.</summary>
             <param name="data">The bytes to be written</param>
@@ -63,7 +58,7 @@
             The beginning position within the MarshalLane
             </summary>
         </member>
-        <member name="F:System.MarshalFragment.Length">
+        <member name="F:System.MarshalFragment.length">
             <summary>
             The end position in the lane
             </summary>
@@ -108,7 +103,7 @@
             The byte offset in the MMF where the fragment starts.
             </summary>
         </member>
-        <member name="F:System.MMFFragment.Length">
+        <member name="F:System.MMFFragment.length">
             <summary>
             The length of the fragment. 
             </summary>
