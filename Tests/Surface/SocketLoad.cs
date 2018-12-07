@@ -1,9 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using Tests.Surface;
+using TestRunner;
+using Tests.SocketLoad;
 
-namespace Tests.SocketLoad
+namespace Tests.Surface
 {
 	using ArgMap = IDictionary<string, List<string>>;
 
@@ -14,6 +15,10 @@ namespace Tests.SocketLoad
 			"Args: -mode: <s> or <c>, if <c> -mc: message count, -ms: message size, -r: randomize size" + Environment.NewLine +
 			"Example client: -mode c -mc 200 -ms 1024 -r" + Environment.NewLine +
 			"Example server: -mode s";
+
+		public bool RequireArgs => true;
+		public string FailureMessage => string.Empty;
+		public bool? Passed => passed;
 
 		public Task Run(ArgMap args)
 		{
@@ -31,5 +36,7 @@ namespace Tests.SocketLoad
 			}
 			else throw new ArgumentException("The SocketLoad -mode can only be <s> or <c>");
 		}
+
+		bool? passed;
 	}
 }
