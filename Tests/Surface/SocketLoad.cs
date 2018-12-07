@@ -10,7 +10,7 @@ namespace Tests.Surface
 
 	public class SocketLoad : ITestSurface
 	{
-		public string Info() =>
+		public string Info =>
 			"Runs as either a server - accepting messages or a client - producing them. " + Environment.NewLine +
 			"Args: -mode: <s> or <c>, if <c> -mc: message count, -ms: message size, -r: randomize size" + Environment.NewLine +
 			"Example client: -mode c -mc 200 -ms 1024 -r" + Environment.NewLine +

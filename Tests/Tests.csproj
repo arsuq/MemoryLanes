@@ -15,17 +15,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\TestRunner\TestRunner.csproj" />
     <ProjectReference Include="..\MemoryLanes\MemoryLanes.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <Folder Include="Surface\Sessions\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="TestRunner">
-      <HintPath>..\..\TestRunner\bin\Debug\netstandard2.0\TestRunner.dll</HintPath>
-    </Reference>
   </ItemGroup>
 
 </Project>

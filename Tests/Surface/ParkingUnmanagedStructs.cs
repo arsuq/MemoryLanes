@@ -15,7 +15,7 @@ namespace Tests.Surface
 
 	public class ParkingUnmanagedStructs : ITestSurface
 	{
-		public string Info() => @"Tests allocation of structs on the unmanaged heap.";
+		public string Info => @"Tests allocation of structs on the unmanaged heap.";
 
 		public bool RequireArgs => false;
 		public string FailureMessage => string.Empty;

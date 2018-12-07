@@ -9,11 +9,11 @@ The common testing functionality is placed in the Internals folder.
 To run a specific test surface:
 
 ``` 
-> dotnet ./Tests.dll -SurfaceClassName -args param1 param2
+> dotnet Tests.dll -SurfaceClassName -args param1 param2
 ```
 
 Run everything:
 
 ```
-> dotnet ./Tests.dll -all
+> dotnet Tests.dll -all
 ```

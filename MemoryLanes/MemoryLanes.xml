@@ -77,9 +77,13 @@
             <summary>
             Represents a slice of unmanaged memory. 
             This object is not part of a MemoryLane and its lifetime does not affect other MemoryFragment instances.
-            Use the MarshalParkingSlot for large and/or long living data, which would fragment the memory lanes (prevent resetting), 
-            or burden the GC and the managed heap if allocated there.
+            Use the MarshalParkingSlot for large and/or long living data, which would fragment the memory lanes 
+            (prevent resetting), or burden the GC and the managed heap if allocated there.
             </summary>
+            <remarks>
+            This class has multiple accessors with different meaning and one should be careful not to mix the Read/Writes 
+            with Span() and the Store/Load/Reserve methods.
+            </remarks>
         </member>
         <member name="M:System.MarshalParkingSlot.Write(System.Byte[],System.Int32,System.Int32)">
             <summary>
@@ -109,6 +113,14 @@
             </summary>
             <typeparam name="T">Unmanaged structure type</typeparam>
             <param name="str">The value</param>
+            <returns></returns>
+        </member>
+        <member name="M:System.MarshalParkingSlot.Reserve``1(System.MarshalParkingSlot@)">
+            <summary>
+            Returns a pointer to a structure, allocated in unmanaged memory.
+            </summary>
+            <typeparam name="T">A ref-free type.</typeparam>
+            <param name="mps">The pointer holder.</param>
             <returns></returns>
         </member>
         <member name="M:System.MarshalParkingSlot.Load``1">

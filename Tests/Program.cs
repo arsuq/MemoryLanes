@@ -1,6 +1,5 @@
 ﻿using System;
 using TestRunner;
-using Tests.SocketLoad;
 
 namespace Tests
 {
@@ -8,9 +7,9 @@ namespace Tests
 	{
 		static void Main(string[] args)
 		{
-			new Runner().Run(args);
+			new Runner().Run("MemoryLanes", args);
 
-			Console.WriteLine("Done. Press <Enter> to close.");
+			Print.AsSystemTrace("Done. Press <Enter> to close.");
 			Console.ReadLine();
 		}
 	}
