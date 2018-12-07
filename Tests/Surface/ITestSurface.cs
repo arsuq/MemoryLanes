@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Tests.Surface
 {
@@ -6,7 +7,7 @@ namespace Tests.Surface
 
 	public interface ITestSurface
 	{
-		void Run(ArgMap args);
+		Task Run(ArgMap args);
 		string Info();
 	}
 }

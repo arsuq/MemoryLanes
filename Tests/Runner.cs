@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using Tests.Surface;
 using System.Linq;
 using Tests.Internals.Utils;
+using System.Threading.Tasks;
 
 namespace Tests
 {
@@ -39,7 +40,7 @@ namespace Tests
 								Print.AsHelp(test.Info());
 								Console.WriteLine();
 							}
-							else test.Run(argsMap);
+							else test.Run(argsMap).Wait();
 						}
 					}
 				}
