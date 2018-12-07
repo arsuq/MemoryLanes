@@ -18,6 +18,9 @@ namespace Tests.SocketLoad
 
 		public async Task Send(int msgCount, int size, bool randomSize, int sleepms = 0)
 		{
+			Print.AsInfo("SocketLoad client Send()");
+			Print.AsWarn("Do not close the client even if all data seems to be sent, this will tear down the connection");
+
 			var ns = client.GetStream();
 			var rdm = new Random();
 			var sendBuff = new Memory<byte>(new byte[size + 4]);
@@ -34,7 +37,7 @@ namespace Tests.SocketLoad
 					var hs = header.Span.ToArray();
 					Print.AsInfo("Frame length: {0}", len);
 					Print.AsInfo("Frame header bytes: {0}.{1}.{2}.{3}", hs[0], hs[1], hs[2], hs[3]);
-					Print.AsWarn("Header value double check: {0} ", BitConverter.ToInt32(hs, 0));
+					Print.AsInfo("Header value double check: {0} ", BitConverter.ToInt32(hs, 0));
 					if (sleepms > 0) await Task.Delay(sleepms);
 					await ns.WriteAsync(sendBuff.Slice(0, len + 4));
 				}

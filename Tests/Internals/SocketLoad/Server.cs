@@ -21,13 +21,14 @@ namespace Tests.SocketLoad
 
 		public async Task ReceiveLoop()
 		{
-			Console.WriteLine("Started.");
-			Print.IgnoreInfo = true;
+			Print.AsInfo("SocketLoad server started.");
 
 			var data = new List<byte>();
 			server.Listen(100);
 
 			var end = Task.Run(() => Console.ReadLine());
+
+			Print.AsWarn("The server will listen indefinitely, press <Enter> to stop accepting clients and quit.");
 
 			while (true)
 			{
@@ -134,13 +135,13 @@ namespace Tests.SocketLoad
 			}
 			catch (MemoryLaneException mex)
 			{
-				Console.WriteLine(mex.Message);
-				Console.WriteLine(mex.ErrorCode.ToString());
-				Console.WriteLine(mex.StackTrace);
+				Print.AsError(mex.Message);
+				Print.AsError(mex.ErrorCode.ToString());
+				Print.AsError(mex.StackTrace);
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine(ex.Message);
+				Print.AsError(ex.Message);
 			}
 		}
 
