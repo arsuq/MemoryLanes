@@ -6,11 +6,11 @@ namespace System
 	/// <summary>
 	/// Represents a fragment of a memory mapped file.
 	/// </summary>
-	public class MMFFragment : MemoryFragment
+	public class MappedFragment : MemoryFragment
 	{
-		public MMFFragment() { }
+		public MappedFragment() { }
 
-		public MMFFragment(long startIdx, int length, MemoryMappedViewAccessor va, Action dtor)
+		public MappedFragment(long startIdx, int length, MemoryMappedViewAccessor va, Action dtor)
 		{
 			StartIdx = startIdx;
 			this.length = length;
@@ -96,7 +96,7 @@ namespace System
 			}
 		}
 
-		~MMFFragment() => destroy(true);
+		~MappedFragment() => destroy(true);
 
 		/// <summary>
 		/// The byte offset in the MMF where the fragment starts.

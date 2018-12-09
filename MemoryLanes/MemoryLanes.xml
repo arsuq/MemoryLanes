@@ -4,12 +4,12 @@
         <name>MemoryLanes</name>
     </assembly>
     <members>
-        <member name="T:System.LOHFragment">
+        <member name="T:System.HeapFragment">
             <summary>
             Represents a slice of a heap allocated buffer
             </summary>
         </member>
-        <member name="M:System.LOHFragment.Write(System.Byte[],System.Int32,System.Int32)">
+        <member name="M:System.HeapFragment.Write(System.Byte[],System.Int32,System.Int32)">
             <summary>Writes the bytes in data into the heap fragment.</summary>
             <param name="data">The bytes to be written</param>
             <param name="offset">The writing position in the fragment window.</param>
@@ -18,7 +18,7 @@
             <exception cref="T:System.ArgumentNullException">If data is null.</exception>
             <exception cref="T:System.ArgumentOutOfRangeException">If offset and length are out of range.</exception>
         </member>
-        <member name="M:System.LOHFragment.Read(System.Byte[],System.Int32,System.Int32)">
+        <member name="M:System.HeapFragment.Read(System.Byte[],System.Int32,System.Int32)">
             <summary>
             Reads bytes from a MMF starting at offset and reading as long as <c>destination</c> is not filled up. 
             The writing starts at destOffset and ends either at destination.Length or at fragment.Length - offset.
@@ -29,6 +29,51 @@
             <returns>The new reading position = offset + the read bytes count.</returns>
             <exception cref="T:System.ArgumentNullException">If destination is null.</exception>
             <exception cref="T:System.ArgumentOutOfRangeException">For offset and destOffset.</exception>
+        </member>
+        <member name="T:System.MappedFragment">
+            <summary>
+            Represents a fragment of a memory mapped file.
+            </summary>
+        </member>
+        <member name="M:System.MappedFragment.Write(System.Byte[],System.Int32,System.Int32)">
+            <summary>Writes the bytes in data into the MMF.</summary>
+            <remarks>Note that the Read() and Write() methods are not synchronized with access trough Span().
+            Use either Read/Write or Span().</remarks>
+            <param name="data">The bytes to be written</param>
+            <param name="offset">The number of written bytes so far.</param>
+            <param name="length">The amount of bytes to take from data (takes from 0 to length).</param>
+            <returns>The total written bytes, i.e. offset + length.</returns>
+            <exception cref="T:System.ArgumentNullException">If data is null.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">If offset and length are out of range.</exception>
+        </member>
+        <member name="M:System.MappedFragment.Read(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Reads bytes from a MMF starting at offset and reading as long as <c>destination</c> is not filled up. 
+            The writing starts at destOffset and ends either at destination.Length or at fragment.Length - offset.
+            </summary>
+            <param name="destination">The buffer where the MMF data goes to.</param>
+            <param name="offset">The total read bytes so far.</param>
+            <param name="destOffset">Index in destination where the copying will begin at. By default is 0.</param>
+            <returns>The total bytes read from the MMF, i.e. the new offset.</returns>
+            <exception cref="T:System.ArgumentNullException">If destination is null.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">For offset and destOffset.</exception>
+        </member>
+        <member name="M:System.MappedFragment.Span">
+            <summary>
+            Creates a Span from a raw pointer which marks the beginning of the 
+            MemoryMappedViewAccessor window.
+            </summary>
+            <returns>A Span structure</returns>
+        </member>
+        <member name="F:System.MappedFragment.StartIdx">
+            <summary>
+            The byte offset in the MMF where the fragment starts.
+            </summary>
+        </member>
+        <member name="F:System.MappedFragment.length">
+            <summary>
+            The length of the fragment. 
+            </summary>
         </member>
         <member name="T:System.MarshalLaneFragment">
             <summary>
@@ -73,11 +118,11 @@
             The length of the fragment. 
             </summary>
         </member>
-        <member name="T:System.MarshalParkingSlot">
+        <member name="T:System.MarshalSlot">
             <summary>
             Represents a slice of unmanaged memory. 
             This object is not part of a MemoryLane and its lifetime does not affect other MemoryFragment instances.
-            Use the MarshalParkingSlot for large and/or long living data, which would fragment the memory lanes 
+            Use the MarshalSlot for large and/or long living data, which would fragment the memory lanes 
             (prevent resetting), or burden the GC and the managed heap if allocated there.
             </summary>
             <remarks>
@@ -85,7 +130,7 @@
             with Span() and the Store/Load/Reserve methods.
             </remarks>
         </member>
-        <member name="M:System.MarshalParkingSlot.Write(System.Byte[],System.Int32,System.Int32)">
+        <member name="M:System.MarshalSlot.Write(System.Byte[],System.Int32,System.Int32)">
             <summary>
             Writes the bytes in data (0-length) to the underlying native memory region starting at <c>offset</c> position.
             </summary>
@@ -94,7 +139,7 @@
             <param name="length">How many bytes from the source to take.</param>
             <returns>The offset + length</returns>
         </member>
-        <member name="M:System.MarshalParkingSlot.Read(System.Byte[],System.Int32,System.Int32)">
+        <member name="M:System.MarshalSlot.Read(System.Byte[],System.Int32,System.Int32)">
             <summary>
             Reads bytes from native memory starting at offset (within the fragment region) and reads until 
             <c>destination</c> is full or there is no more data.
@@ -107,7 +152,7 @@
             <exception cref="T:System.ArgumentNullException">If destination is null.</exception>
             <exception cref="T:System.ArgumentOutOfRangeException">For offset and destOffset.</exception>
         </member>
-        <member name="M:System.MarshalParkingSlot.Store``1(``0)">
+        <member name="M:System.MarshalSlot.Store``1(``0)">
             <summary>
             Store an unmanaged structure which has no managed references. 
             </summary>
@@ -115,7 +160,7 @@
             <param name="str">The value</param>
             <returns></returns>
         </member>
-        <member name="M:System.MarshalParkingSlot.Reserve``1(System.MarshalParkingSlot@)">
+        <member name="M:System.MarshalSlot.Reserve``1(System.MarshalSlot@)">
             <summary>
             Returns a pointer to a structure, allocated in unmanaged memory.
             </summary>
@@ -123,57 +168,12 @@
             <param name="mps">The pointer holder.</param>
             <returns></returns>
         </member>
-        <member name="M:System.MarshalParkingSlot.Load``1">
+        <member name="M:System.MarshalSlot.Load``1">
             <summary>
             Constructs previously stored unmanaged structure.
             </summary>
             <typeparam name="T">A reference free structure type</typeparam>
             <returns>The initialized structure</returns>
-        </member>
-        <member name="T:System.MMFFragment">
-            <summary>
-            Represents a fragment of a memory mapped file.
-            </summary>
-        </member>
-        <member name="M:System.MMFFragment.Write(System.Byte[],System.Int32,System.Int32)">
-            <summary>Writes the bytes in data into the MMF.</summary>
-            <remarks>Note that the Read() and Write() methods are not synchronized with access trough Span().
-            Use either Read/Write or Span().</remarks>
-            <param name="data">The bytes to be written</param>
-            <param name="offset">The number of written bytes so far.</param>
-            <param name="length">The amount of bytes to take from data (takes from 0 to length).</param>
-            <returns>The total written bytes, i.e. offset + length.</returns>
-            <exception cref="T:System.ArgumentNullException">If data is null.</exception>
-            <exception cref="T:System.ArgumentOutOfRangeException">If offset and length are out of range.</exception>
-        </member>
-        <member name="M:System.MMFFragment.Read(System.Byte[],System.Int32,System.Int32)">
-            <summary>
-            Reads bytes from a MMF starting at offset and reading as long as <c>destination</c> is not filled up. 
-            The writing starts at destOffset and ends either at destination.Length or at fragment.Length - offset.
-            </summary>
-            <param name="destination">The buffer where the MMF data goes to.</param>
-            <param name="offset">The total read bytes so far.</param>
-            <param name="destOffset">Index in destination where the copying will begin at. By default is 0.</param>
-            <returns>The total bytes read from the MMF, i.e. the new offset.</returns>
-            <exception cref="T:System.ArgumentNullException">If destination is null.</exception>
-            <exception cref="T:System.ArgumentOutOfRangeException">For offset and destOffset.</exception>
-        </member>
-        <member name="M:System.MMFFragment.Span">
-            <summary>
-            Creates a Span from a raw pointer which marks the beginning of the 
-            MemoryMappedViewAccessor window.
-            </summary>
-            <returns>A Span structure</returns>
-        </member>
-        <member name="F:System.MMFFragment.StartIdx">
-            <summary>
-            The byte offset in the MMF where the fragment starts.
-            </summary>
-        </member>
-        <member name="F:System.MMFFragment.length">
-            <summary>
-            The length of the fragment. 
-            </summary>
         </member>
         <member name="T:System.HeapHighway">
             <summary>

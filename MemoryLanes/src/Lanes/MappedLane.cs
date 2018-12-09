@@ -4,9 +4,9 @@ using System.Runtime.CompilerServices;
 
 namespace System
 {
-	public class MMFLane : MemoryLane
+	public class MappedLane : MemoryLane
 	{
-		public MMFLane(int capacity, string filename = null) : base(capacity)
+		public MappedLane(int capacity, string filename = null) : base(capacity)
 		{
 			laneCapacity = capacity;
 			if (string.IsNullOrEmpty(filename)) FileID = string.Format("MMF-{0}K-{1}", capacity / 1024, Guid.NewGuid().ToString().Substring(0, 8));
@@ -16,13 +16,13 @@ namespace System
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryCreateFragment(int size, ref MMFFragment frag)
+		public bool TryCreateFragment(int size, ref MappedFragment frag)
 		{
 			var fr = new FragmentRange();
 
 			if (Alloc(size, ref fr))
 			{
-				frag = new MMFFragment(fr.Offset, fr.Length, mmva, () => free());
+				frag = new MappedFragment(fr.Offset, fr.Length, mmva, () => free());
 				return true;
 			}
 			else return false;
@@ -46,7 +46,7 @@ namespace System
 			}
 		}
 
-		~MMFLane() => destroy(true);
+		~MappedLane() => destroy(true);
 
 		public override int LaneCapacity => laneCapacity;
 		public readonly string FileID;

@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Allocates memory lanes on the large object heap (if the length is > 80K).
 	/// </summary>
-	public class HeapHighway : MemoryCarriage<LOHLane, LOHFragment>
+	public class HeapHighway : MemoryCarriage<HeapLane, HeapFragment>
 	{
 		/// <summary>
 		/// Creates new lanes with the specified lengths and a default MemoryLaneSettings instance.
@@ -22,7 +22,7 @@
 			: base(FragMaker, LaneMaker, stg) => Create(lanes);
 
 
-		static bool FragMaker(LOHLane lane, int size, ref LOHFragment frag) => lane.TryCreateFragment(size, ref frag);
-		static LOHLane LaneMaker(int size) => new LOHLane(size);
+		static bool FragMaker(HeapLane lane, int size, ref HeapFragment frag) => lane.TryCreateFragment(size, ref frag);
+		static HeapLane LaneMaker(int size) => new HeapLane(size);
 	}
 }

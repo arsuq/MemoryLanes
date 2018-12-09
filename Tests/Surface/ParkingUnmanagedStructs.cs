@@ -15,7 +15,7 @@ namespace Tests.Surface
 
 	public class ParkingUnmanagedStructs : ITestSurface
 	{
-		public string Info => @"Tests allocation of structs on the unmanaged heap.";
+		public string Info => "Tests allocation of structs on the unmanaged heap.";
 
 		public bool RequireArgs => false;
 		public string FailureMessage => string.Empty;
@@ -33,21 +33,21 @@ namespace Tests.Surface
 				str.Int = int1;
 				str.Dbl = dbl1;
 
-				var mps = MarshalParkingSlot.Store(str);
+				var mps = MarshalSlot.Store(str);
 				Task.Run(() => useParkingSlot(mps));
 
-				var p2 = MarshalParkingSlot.Reserve<NoRefsStruct>(out MarshalParkingSlot mps2);
+				var p2 = MarshalSlot.Reserve<NoRefsStruct>(out MarshalSlot mps2);
 				p2->Int = int2;
 				p2->Dbl = dbl2;
 
 				Task.Run(() => useParkingSlot(mps2));
 
-				var mpsLarge = new MarshalParkingSlot(20000000);
+				var mpsLarge = new MarshalSlot(20000000);
 				mpsLarge.Span().Fill(7);
 			});
 		}
 
-		void useParkingSlot(MarshalParkingSlot mps)
+		void useParkingSlot(MarshalSlot mps)
 		{
 			var str = mps.Load<NoRefsStruct>();
 

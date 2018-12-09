@@ -6,11 +6,11 @@ namespace System
 	/// <summary>
 	/// Represents a slice of a heap allocated buffer
 	/// </summary>
-	public class LOHFragment : MemoryFragment
+	public class HeapFragment : MemoryFragment
 	{
-		public LOHFragment() { }
+		public HeapFragment() { }
 
-		public LOHFragment(Memory<byte> m, Action dtor)
+		public HeapFragment(Memory<byte> m, Action dtor)
 		{
 			if (dtor == null) throw new NullReferenceException("dtor");
 

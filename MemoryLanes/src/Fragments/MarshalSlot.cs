@@ -6,16 +6,16 @@ namespace System
 	/// <summary>
 	/// Represents a slice of unmanaged memory. 
 	/// This object is not part of a MemoryLane and its lifetime does not affect other MemoryFragment instances.
-	/// Use the MarshalParkingSlot for large and/or long living data, which would fragment the memory lanes 
+	/// Use the MarshalSlot for large and/or long living data, which would fragment the memory lanes 
 	/// (prevent resetting), or burden the GC and the managed heap if allocated there.
 	/// </summary>
 	/// <remarks>
 	/// This class has multiple accessors with different meaning and one should be careful not to mix the Read/Writes 
 	/// with Span() and the Store/Load/Reserve methods.
 	/// </remarks>
-	public class MarshalParkingSlot : MemoryFragment
+	public class MarshalSlot : MemoryFragment
 	{
-		public MarshalParkingSlot(int length)
+		public MarshalSlot(int length)
 		{
 			if (length < 0) throw new ArgumentOutOfRangeException("length");
 
@@ -88,9 +88,9 @@ namespace System
 		/// <typeparam name="T">Unmanaged structure type</typeparam>
 		/// <param name="str">The value</param>
 		/// <returns></returns>
-		public unsafe static MarshalParkingSlot Store<T>(T str) where T : unmanaged
+		public unsafe static MarshalSlot Store<T>(T str) where T : unmanaged
 		{
-			var mps = new MarshalParkingSlot(sizeof(T));
+			var mps = new MarshalSlot(sizeof(T));
 			var p = (T*)mps.slotPtr.ToPointer();
 			*p = str;
 			return mps;
@@ -102,9 +102,9 @@ namespace System
 		/// <typeparam name="T">A ref-free type.</typeparam>
 		/// <param name="mps">The pointer holder.</param>
 		/// <returns></returns>
-		public unsafe static T* Reserve<T>(out MarshalParkingSlot mps) where T : unmanaged
+		public unsafe static T* Reserve<T>(out MarshalSlot mps) where T : unmanaged
 		{
-			mps = new MarshalParkingSlot(sizeof(T));
+			mps = new MarshalSlot(sizeof(T));
 			var p = (T*)mps.slotPtr.ToPointer();
 			return p;
 		}
@@ -133,7 +133,7 @@ namespace System
 			}
 		}
 
-		~MarshalParkingSlot() => destroy(true);
+		~MarshalSlot() => destroy(true);
 
 		public override int Length => length;
 		readonly int length;

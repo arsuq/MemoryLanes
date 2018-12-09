@@ -3,7 +3,7 @@
 	/// <summary>
 	/// Allocates memory lanes as memory mapped files - one lane is one file.
 	/// </summary>
-	public class MappedHighway : MemoryCarriage<MMFLane, MMFFragment>
+	public class MappedHighway : MemoryCarriage<MappedLane, MappedFragment>
 	{
 		/// <summary>
 		/// Creates new lanes with the specified lengths and a default MemoryLaneSettings instance.
@@ -23,7 +23,7 @@
 		public MappedHighway(MemoryLaneSettings stg, params int[] lanes)
 			: base(FragMaker, LaneMaker, stg) => Create(lanes);
 
-		static bool FragMaker(MMFLane lane, int size, ref MMFFragment frag) => lane.TryCreateFragment(size, ref frag);
-		static MMFLane LaneMaker(int size) => new MMFLane(size);
+		static bool FragMaker(MappedLane lane, int size, ref MappedFragment frag) => lane.TryCreateFragment(size, ref frag);
+		static MappedLane LaneMaker(int size) => new MappedLane(size);
 	}
 }
