@@ -123,12 +123,19 @@
             Represents a slice of unmanaged memory. 
             This object is not part of a MemoryLane and its lifetime does not affect other MemoryFragment instances.
             Use the MarshalSlot for large and/or long living data, which would fragment the memory lanes 
-            (prevent resetting), or burden the GC and the managed heap if allocated there.
+            by preventing reset, or burden the GC and the managed heap if allocated there.
             </summary>
             <remarks>
             This class has multiple accessors with different meaning and one should be careful not to mix the Read/Writes 
             with Span() and the Store/Load/Reserve methods.
             </remarks>
+        </member>
+        <member name="M:System.MarshalSlot.Span(System.Boolean)">
+            <summary>
+            Take a Span of the whole range.
+            </summary>
+            <param name="format">Zero the bytes</param>
+            <returns>The Span</returns>
         </member>
         <member name="M:System.MarshalSlot.Write(System.Byte[],System.Int32,System.Int32)">
             <summary>
@@ -238,8 +245,8 @@
             <summary>
             The allocation/release behavior is generalized here.
             </summary>
-            <typeparam name="L"></typeparam>
-            <typeparam name="F"></typeparam>
+            <typeparam name="L">A Lane</typeparam>
+            <typeparam name="F">The corresponding fragment type</typeparam>
         </member>
         <member name="M:System.MemoryCarriage`2.Create(System.Int32)">
             <summary>

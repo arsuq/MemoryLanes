@@ -13,7 +13,6 @@ namespace System
 			SizeOutOfRange,
 			AllocFailure,
 			NewLaneAllocFail,
-			MappedFileRWOutOfBounds,
 			MaxLanesCountReached,
 			MaxTotalAllocBytesReached
 		}

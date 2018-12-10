@@ -1,6 +1,7 @@
 using System.IO;
 using System.IO.MemoryMappedFiles;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace System
 {
@@ -32,6 +33,8 @@ namespace System
 
 		void destroy(bool isGC = false)
 		{
+			Thread.MemoryBarrier();
+
 			if (!isDisposed)
 			{
 				try

@@ -14,8 +14,8 @@ namespace System
 	/// <summary>
 	/// The allocation/release behavior is generalized here.
 	/// </summary>
-	/// <typeparam name="L"></typeparam>
-	/// <typeparam name="F"></typeparam>
+	/// <typeparam name="L">A Lane</typeparam>
+	/// <typeparam name="F">The corresponding fragment type</typeparam>
 	public class MemoryCarriage<L, F> : IHighwayAlloc, IDisposable where L : MemoryLane where F : MemoryFragment, new()
 	{
 		public MemoryCarriage(FragmentCtor<L, F> fc, LaneCtor<L> lc, MemoryLaneSettings stg)

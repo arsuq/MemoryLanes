@@ -33,7 +33,7 @@ namespace System
 			Thread.MemoryBarrier();
 
 			// Quick fail
-			if (offset + size >= LaneCapacity || isClosed > 0) return result;
+			if (isDisposed || offset + size >= LaneCapacity || isClosed > 0) return result;
 
 			var tid = Thread.CurrentThread.ManagedThreadId;
 			var id = -1;
@@ -45,7 +45,7 @@ namespace System
 
 			var newoffset = offset + size;
 
-			if (isClosed < 1 && newoffset < LaneCapacity)
+			if (!isDisposed && isClosed < 1 && newoffset < LaneCapacity)
 			{
 				frag = new FragmentRange(offset, size);
 

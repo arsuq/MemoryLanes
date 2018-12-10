@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace System
 {
@@ -28,6 +29,8 @@ namespace System
 
 		void destroy(bool isGC)
 		{
+			Thread.MemoryBarrier();
+
 			if (!isDisposed)
 			{
 				Marshal.FreeHGlobal(lanePtr);

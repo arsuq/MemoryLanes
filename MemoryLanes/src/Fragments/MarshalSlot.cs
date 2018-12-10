@@ -7,7 +7,7 @@ namespace System
 	/// Represents a slice of unmanaged memory. 
 	/// This object is not part of a MemoryLane and its lifetime does not affect other MemoryFragment instances.
 	/// Use the MarshalSlot for large and/or long living data, which would fragment the memory lanes 
-	/// (prevent resetting), or burden the GC and the managed heap if allocated there.
+	/// by preventing reset, or burden the GC and the managed heap if allocated there.
 	/// </summary>
 	/// <remarks>
 	/// This class has multiple accessors with different meaning and one should be careful not to mix the Read/Writes 
@@ -23,6 +23,11 @@ namespace System
 			slotPtr = Marshal.AllocHGlobal(length);
 		}
 
+		/// <summary>
+		/// Take a Span of the whole range.
+		/// </summary>
+		/// <param name="format">Zero the bytes</param>
+		/// <returns>The Span</returns>
 		public unsafe Span<byte> Span(bool format = false)
 		{
 			var span = new Span<byte>((byte*)slotPtr, Length);
