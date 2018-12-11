@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading.Tasks;
 using TestRunner;
 using Tests.Internals;
@@ -31,6 +30,7 @@ namespace Tests.Surface
 			{
 				Count = 200,
 				Size = 18000,
+				InParallel = -1,
 				RandomizeAllocDelay = true,
 				RandomizeFragDisposal = true,
 				RandomizeLength = true,

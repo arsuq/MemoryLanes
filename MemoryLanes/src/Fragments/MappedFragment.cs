@@ -107,7 +107,7 @@ namespace System
 		/// </summary>
 		protected readonly int length;
 
-		public override int Length => Length;
+		public override int Length => length;
 
 		Action destructor;
 		MemoryMappedViewAccessor mmva;
