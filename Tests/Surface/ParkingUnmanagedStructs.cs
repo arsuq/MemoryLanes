@@ -20,6 +20,7 @@ namespace Tests.Surface
 		public bool RequireArgs => false;
 		public string FailureMessage => string.Empty;
 		public bool? Passed => passed;
+		public bool IsComplete { get; private set; }
 
 		public unsafe Task Run(ArgMap args)
 		{

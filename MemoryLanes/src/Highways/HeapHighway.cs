@@ -6,6 +6,11 @@
 	public class HeapHighway : MemoryCarriage<HeapLane, HeapFragment>
 	{
 		/// <summary>
+		/// Creates a 2 lane highway with lengths 8MB and 4MB
+		/// </summary>
+		public HeapHighway() : this(8_000_000, 4_000_000) { }
+
+		/// <summary>
 		/// Creates new lanes with the specified lengths and a default MemoryLaneSettings instance.
 		/// </summary>
 		/// <param name="lanes">The initial layout.</param>

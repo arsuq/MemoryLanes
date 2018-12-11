@@ -29,18 +29,15 @@ namespace System
 		public bool Alloc(int size, ref FragmentRange frag)
 		{
 			var result = false;
+			var isLocked = false;
 
 			Thread.MemoryBarrier();
 
 			// Quick fail
 			if (isDisposed || offset + size >= LaneCapacity || isClosed > 0) return result;
 
-			var tid = Thread.CurrentThread.ManagedThreadId;
-			var id = -1;
-
 			// Wait, allocations are serialized
-			while (id != tid) id = Interlocked.CompareExchange(ref allocThreadId, tid, 0);
-
+			spinLock.Enter(ref isLocked);
 			Thread.MemoryBarrier();
 
 			var newoffset = offset + size;
@@ -56,7 +53,7 @@ namespace System
 				result = true;
 			}
 
-			Interlocked.Exchange(ref allocThreadId, 0);
+			if (isLocked) spinLock.Exit();
 
 			return result;
 		}
@@ -73,14 +70,13 @@ namespace System
 		/// </remarks>
 		protected void force(bool close, bool reset = false)
 		{
-			var tid = Thread.CurrentThread.ManagedThreadId;
-			var id = -1;
-
-			while (id != tid) id = Interlocked.CompareExchange(ref allocThreadId, tid, 0);
+			bool isLocked = false;
+			spinLock.Enter(ref isLocked);
 
 			Interlocked.Exchange(ref isClosed, close ? 1 : 0);
 			if (reset) Interlocked.Exchange(ref offset, 0);
-			Interlocked.Exchange(ref allocThreadId, 0);
+
+			if (isLocked) spinLock.Exit();
 		}
 
 		public abstract int LaneCapacity { get; }
@@ -94,11 +90,11 @@ namespace System
 		public bool IsClosed => Thread.VolatileRead(ref isClosed) > 0;
 
 		protected bool isDisposed;
-		protected int allocThreadId;
 		protected int allocations;
 		protected int offset;
 		protected long lastAllocTick;
 
+		SpinLock spinLock = new SpinLock();
 		int isClosed;
 	}
 }

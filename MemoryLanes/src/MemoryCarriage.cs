@@ -6,6 +6,8 @@ namespace System
 	public interface IHighwayAlloc : IDisposable
 	{
 		MemoryFragment AllocFragment(int size);
+		int GetTotalActiveFragments();
+		int GetTotalCapacity();
 	}
 
 	public delegate bool FragmentCtor<L, F>(L ml, int size, ref F f) where L : MemoryLane where F : MemoryFragment, new();
@@ -115,6 +117,31 @@ namespace System
 		public MemoryFragment AllocFragment(int size) => Alloc(size);
 
 		public void Dispose() => destroy();
+
+		/// <summary>
+		/// Returns an aggregate of all active fragments in all lanes.
+		/// </summary>
+		/// <returns>The number of active fragments</returns>
+		public int GetTotalActiveFragments()
+		{
+			// It's fine not to lock because the lanes could only increase
+			var lc = Lanes.Count;
+			var c = 0;
+			for (int i = 0; i < lc; i++) c += Lanes[i].Allocations;
+			return c;
+		}
+
+		/// <summary>
+		/// Sums the lengths of all lanes.
+		/// </summary>
+		/// <returns>The total preallocated space for the highway.</returns>
+		public int GetTotalCapacity()
+		{
+			var lc = Lanes.Count;
+			var cap = 0;
+			for (int i = 0; i < lc; i++) cap += Lanes[i].LaneCapacity;
+			return cap;
+		}
 
 		L CreateLane(int capacity)
 		{

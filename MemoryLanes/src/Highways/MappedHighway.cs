@@ -6,6 +6,11 @@
 	public class MappedHighway : MemoryCarriage<MappedLane, MappedFragment>
 	{
 		/// <summary>
+		/// Creates a 2 lane highway with lengths 8MB and 4MB
+		/// </summary>
+		public MappedHighway() : this(8_000_000, 4_000_000) { }
+
+		/// <summary>
 		/// Creates new lanes with the specified lengths and a default MemoryLaneSettings instance.
 		/// Note that every lane is one memory mapped file.
 		/// </summary>
