@@ -33,8 +33,10 @@ namespace System
 
 			Thread.MemoryBarrier();
 
+			var CAP = LaneCapacity;
+
 			// Quick fail
-			if (isDisposed || offset + size >= LaneCapacity || isClosed > 0) return result;
+			if (isDisposed || offset + size >= CAP || isClosed > 0) return result;
 
 			// Wait, allocations are serialized
 			spinLock.Enter(ref isLocked);
@@ -42,7 +44,7 @@ namespace System
 
 			var newoffset = offset + size;
 
-			if (!isDisposed && isClosed < 1 && newoffset < LaneCapacity)
+			if (!isDisposed && isClosed < 1 && newoffset < CAP)
 			{
 				frag = new FragmentRange(offset, size);
 

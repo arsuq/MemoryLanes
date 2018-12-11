@@ -15,7 +15,6 @@ namespace Tests.Internals
 		public bool RandomizeLength = true;
 		public bool RandomizeFragDisposal = true;
 		public bool RandomizeAllocDelay = true;
-
 	}
 
 	static class HighwayExt
@@ -28,17 +27,17 @@ namespace Tests.Internals
 			Parallel.For(0, args.Count, new ParallelOptions() { MaxDegreeOfParallelism = args.InParallel }, (i) =>
 			 {
 				 var size = args.RandomizeLength ? rdm.Next(1, args.Size) : args.Size;
-				 var allocDelayMS = args.RandomizeAllocDelay ? rdm.Next(0, args.AllocDelayMS) : 200;
-				 var dispDelayMS = args.RandomizeFragDisposal ? rdm.Next(0, args.FragmentDisposeAfterMS) : 200;
+				 var allocDelayMS = args.RandomizeAllocDelay ? rdm.Next(0, args.AllocDelayMS) : args.AllocDelayMS;
+				 var dispDelayMS = args.RandomizeFragDisposal ? rdm.Next(0, args.FragmentDisposeAfterMS) : args.FragmentDisposeAfterMS;
 
-				 Task.Delay(allocDelayMS);
+				 Thread.Sleep(allocDelayMS);
 
 				 var frag = hw.Alloc(size);
 				 Print.Trace("    alloc {0,8} bytes on {1} thread: {2} ", ConsoleColor.Magenta, null, size, hwType, Thread.CurrentThread.ManagedThreadId);
 
 				 Task.Run(() =>
 				 {
-					 Task.Delay(dispDelayMS);
+					 Thread.Sleep(dispDelayMS);
 					 Print.Trace("    free  {0,8} bytes on {1} thread: {2} ", ConsoleColor.Green, null, frag.Length, hwType, Thread.CurrentThread.ManagedThreadId);
 					 frag.Dispose();
 				 }).Wait();

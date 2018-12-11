@@ -6,14 +6,9 @@ using Tests.Internals;
 
 namespace Tests.Surface
 {
-	public class ExpectedAllocation : ITestSurface
+	public class BeyondCapacity : ITestSurface
 	{
-		public string Info => FormatText.JoinLines(
-			"Test normal allocation, i.e. without reaching the MaxLaneCount or MaxTotalBytes limits.",
-			"Flags: -store",
-			"Arguments: one or many [mh = managed heap, mmf = memory mapped file, nh = native heap]," +
-			"Optional Flags: -count = fragments count, -size = fragment size, which will be randomized" +
-			"Example: -ExpectedAllocation -store mh nh mmf");
+		public string Info => "Test allocation outside the highway capacity.";
 
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
@@ -31,23 +26,23 @@ namespace Tests.Surface
 
 			var allocArgs = new AllocTestArgs()
 			{
-				Count = 20,
-				Size = 180000,
+				Count = 5,
+				Size = 5000_000,
 				InParallel = -1,
 				RandomizeAllocDelay = true,
 				RandomizeFragDisposal = false,
-				RandomizeLength = true,
+				RandomizeLength = false,
 				AllocDelayMS = 0,
-				FragmentDisposeAfterMS = 500
+				FragmentDisposeAfterMS = 2000 // long enough
 			};
 
 			if (args.ContainsKey("-count")) allocArgs.Count = int.Parse(args["-count"][0]);
 			if (args.ContainsKey("-size")) allocArgs.Count = int.Parse(args["-size"][0]);
 
-			if (allocArgs.Count * allocArgs.Size > 12_000_000)
+			if (allocArgs.Count * allocArgs.Size < 12_000_000)
 			{
 				Passed = false;
-				FailureMessage = "The default highway capacity is not enough if all fragments live forever.";
+				FailureMessage = "The default highway capacity can handle all fragments. Should test out of the capacity bounds.";
 				return;
 			}
 
@@ -59,6 +54,13 @@ namespace Tests.Surface
 					{
 						Passed = false;
 						FailureMessage = "The HeapHighway has active fragments after the AllocAndWait()";
+						return;
+					}
+					if (hw.GetLanesCount() < 3)
+					{
+						Passed = false;
+						FailureMessage = "The HeapHighway has less than 3 lanes. ";
+						return;
 					}
 				}
 
@@ -70,6 +72,13 @@ namespace Tests.Surface
 					{
 						Passed = false;
 						FailureMessage = "The MarshalHighway has active fragments after the AllocAndWait()";
+						return;
+					}
+					if (hw.GetLanesCount() < 3)
+					{
+						Passed = false;
+						FailureMessage = "The HeapHighway has less than 3 lanes. ";
+						return;
 					}
 				}
 
@@ -81,6 +90,13 @@ namespace Tests.Surface
 					{
 						Passed = false;
 						FailureMessage = "The MappedHighway has active fragments after the AllocAndWait()";
+						return;
+					}
+					if (hw.GetLanesCount() < 3)
+					{
+						Passed = false;
+						FailureMessage = "The HeapHighway has less than 3 lanes. ";
+						return;
 					}
 				}
 
