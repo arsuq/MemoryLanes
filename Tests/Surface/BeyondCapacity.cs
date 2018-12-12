@@ -33,7 +33,7 @@ namespace Tests.Surface
 				RandomizeFragDisposal = false,
 				RandomizeLength = false,
 				AllocDelayMS = 0,
-				FragmentDisposeAfterMS = 2000 // long enough
+				FragmentDisposeAfterMS = 4000 // long enough
 			};
 
 			if (args.ContainsKey("-count")) allocArgs.Count = int.Parse(args["-count"][0]);

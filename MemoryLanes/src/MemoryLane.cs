@@ -67,16 +67,27 @@ namespace System
 				Interlocked.Exchange(ref offset, 0);
 		}
 
+		/// <summary>
+		/// Resets the offset and allocations of the lane or closes the lane or all at once (one lock).
+		/// </summary>
 		/// <remarks>
-		/// The derived implementations should decide whether to expose this
+		/// Resetting the offset may lead to unpredictable behavior if you attempt to read or write
+		/// with any active fragments. Do this only in case of leaked fragments which are
+		/// unreachable and possible GCed but never properly disposed, thus still counted in lane's Allocations.
 		/// </remarks>
-		protected void force(bool close, bool reset = false)
+		/// <param name="close">True to close the lane.</param>
+		/// <param name="reset">True to reset the offset and the allocations to 0.</param>
+		public virtual void Force(bool close, bool reset = false)
 		{
 			bool isLocked = false;
 			spinLock.Enter(ref isLocked);
 
 			Interlocked.Exchange(ref isClosed, close ? 1 : 0);
-			if (reset) Interlocked.Exchange(ref offset, 0);
+			if (reset)
+			{
+				Interlocked.Exchange(ref offset, 0);
+				Interlocked.Exchange(ref allocations, 0);
+			}
 
 			if (isLocked) spinLock.Exit();
 		}

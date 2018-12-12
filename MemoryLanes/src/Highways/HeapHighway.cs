@@ -30,6 +30,7 @@
 		public HeapHighway(MemoryLaneSettings stg)
 			: base(FragMaker, LaneMaker, stg) => Create(DEF_HEAP_LANES);
 
+
 		static bool FragMaker(HeapLane lane, int size, ref HeapFragment frag) => lane.TryCreateFragment(size, ref frag);
 		static HeapLane LaneMaker(int size) => new HeapLane(size);
 

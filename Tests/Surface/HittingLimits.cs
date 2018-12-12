@@ -35,10 +35,7 @@ namespace Tests.Surface
 				AllocDelayMS = 0,
 				FragmentDisposeAfterMS = 2000 // keep them alive
 			};
-
-			if (args.ContainsKey("-count")) allocArgs.Count = int.Parse(args["-count"][0]);
-			if (args.ContainsKey("-size")) allocArgs.Count = int.Parse(args["-size"][0]);
-
+			
 			if (allocArgs.Count * allocArgs.Size < 12_000_000)
 			{
 				Passed = false;

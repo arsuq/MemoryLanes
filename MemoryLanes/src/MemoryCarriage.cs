@@ -9,6 +9,8 @@ namespace System
 		int GetTotalActiveFragments();
 		int GetTotalCapacity();
 		int GetLanesCount();
+		long LastAnyLaneAllocTick { get; }
+		IReadOnlyList<MemoryLane> GetLanes();
 	}
 
 	public delegate bool FragmentCtor<L, F>(L ml, int size, ref F f) where L : MemoryLane where F : MemoryFragment, new();
@@ -149,6 +151,12 @@ namespace System
 		/// </summary>
 		/// <returns>The number of preallocated lanes.</returns>
 		public int GetLanesCount() => Lanes.Count;
+
+		/// <summary>
+		/// Get the lanes.
+		/// </summary>
+		/// <returns>A read only list of MemoryLane objects.</returns>
+		public IReadOnlyList<MemoryLane> GetLanes() => Lanes;
 
 		L CreateLane(int capacity)
 		{

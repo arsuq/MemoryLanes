@@ -71,6 +71,23 @@ public interface IHighway : IDisposable
 }
 ```
 
+### Reliable disposal
+
+> Applies to v1.0 
+
+The current version does not implement reliable automatic fragment disposal. The reason is that 
+it would involve more centralized storage and tracking, leading to more contention. One could easily
+add such functionality by inheriting the corresponding Fragment with the desired destructor logic.
+With the current API one could track ghost fragments by using the following metrics:
+
+- **LastAnyLaneAllocTick** in *MemoryCarriage* or casted as *IHighway*, this is the last allocation on any lane
+- **LastAllocTick**, **Allocations** and **Offset** in the MemoryLane abstract class
+- the **OnMaxLaneReached** and **OnMaxTotalBytesReached** callbacks as an alerting mechanism
+
+For example if the LastAllocTick on a given lane is *dt* ms behind LastAnyLaneAllocTick, the 
+Offset indicates that there is not enough space and the Allocations remain the same in multiple checks,
+one may decide to force reset the lane if the *dt* is considered enough for the particular scenario.
+
 <br>
 
 ## Usage scenarios
