@@ -3,7 +3,7 @@ using System.Threading;
 
 namespace System
 {
-	public interface IHighwayAlloc : IDisposable
+	public interface IHighway : IDisposable
 	{
 		MemoryFragment AllocFragment(int size);
 		int GetTotalActiveFragments();
@@ -19,7 +19,7 @@ namespace System
 	/// </summary>
 	/// <typeparam name="L">A Lane</typeparam>
 	/// <typeparam name="F">The corresponding fragment type</typeparam>
-	public class MemoryCarriage<L, F> : IHighwayAlloc, IDisposable where L : MemoryLane where F : MemoryFragment, new()
+	public class MemoryCarriage<L, F> : IHighway, IDisposable where L : MemoryLane where F : MemoryFragment, new()
 	{
 		public MemoryCarriage(FragmentCtor<L, F> fc, LaneCtor<L> lc, MemoryLaneSettings stg)
 		{
@@ -68,7 +68,7 @@ namespace System
 		/// MemoryLaneSettings.MIN_CAPACITY - MemoryLaneSettings.MAX_CAPACITY interval.
 		/// </exception>
 		/// <exception cref="System.ArgumentNullException">When the laneSizes is either null or has zero items.</exception>
-		public void Create(int[] laneSizes)
+		public void Create(params int[] laneSizes)
 		{
 			if (laneSizes == null || laneSizes.Length < 1) throw new ArgumentNullException("laneSizes");
 
@@ -155,7 +155,7 @@ namespace System
 			var ignore = false;
 			var lanesTotalLength = 0;
 
-			if (Lanes.Count + 1 >= settings.MaxLanesCount)
+			if (Lanes.Count + 1 > settings.MaxLanesCount)
 			{
 				if (settings.OnMaxLaneReached != null) ignore = settings.OnMaxLaneReached();
 				if (!ignore) throw new MemoryLaneException(MemoryLaneException.Code.MaxLanesCountReached);

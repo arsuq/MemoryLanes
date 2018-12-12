@@ -8,7 +8,7 @@ namespace Tests.Surface
 {
 	public class BeyondCapacity : ITestSurface
 	{
-		public string Info => "Test allocation outside the highway capacity.";
+		public string Info => "Tests allocation outside the highway capacity.";
 
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }

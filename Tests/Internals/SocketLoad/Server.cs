@@ -57,7 +57,7 @@ namespace Tests.SocketLoad
 			{
 				Print.AsInfo("New client" + Environment.NewLine);
 
-				IHighwayAlloc hw = null;
+				IHighway hw = null;
 				var lanes = new int[] { 1025, 2048 };
 
 				switch (at)

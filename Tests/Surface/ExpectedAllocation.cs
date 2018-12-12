@@ -9,7 +9,7 @@ namespace Tests.Surface
 	public class ExpectedAllocation : ITestSurface
 	{
 		public string Info => FormatText.JoinLines(
-			"Test normal allocation, i.e. without reaching the MaxLaneCount or MaxTotalBytes limits.",
+			"Tests the trivial allocation, i.e. without reaching the MaxLaneCount or MaxTotalBytes limits.",
 			"Flags: -store",
 			"Arguments: one or many [mh = managed heap, mmf = memory mapped file, nh = native heap]," +
 			"Optional Flags: -count = fragments count, -size = fragment size, which will be randomized" +

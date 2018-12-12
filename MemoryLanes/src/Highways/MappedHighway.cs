@@ -8,7 +8,7 @@
 		/// <summary>
 		/// Creates a 2 lane highway with lengths 8MB and 4MB
 		/// </summary>
-		public MappedHighway() : this(8_000_000, 4_000_000) { }
+		public MappedHighway() : this(DEF_MMF_LANES) { }
 
 		/// <summary>
 		/// Creates new lanes with the specified lengths and a default MemoryLaneSettings instance.
@@ -28,7 +28,12 @@
 		public MappedHighway(MemoryLaneSettings stg, params int[] lanes)
 			: base(FragMaker, LaneMaker, stg) => Create(lanes);
 
+		public MappedHighway(MemoryLaneSettings stg)
+			: base(FragMaker, LaneMaker, stg) => Create(DEF_MMF_LANES);
+
 		static bool FragMaker(MappedLane lane, int size, ref MappedFragment frag) => lane.TryCreateFragment(size, ref frag);
 		static MappedLane LaneMaker(int size) => new MappedLane(size);
+
+		static int[] DEF_MMF_LANES = new int[] { 8_000_000, 4_000_000 };
 	}
 }

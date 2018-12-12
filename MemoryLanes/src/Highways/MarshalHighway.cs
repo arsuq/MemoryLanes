@@ -8,7 +8,7 @@
 		/// <summary>
 		/// Creates a 2 lane highway with lengths 8MB and 4MB
 		/// </summary>
-		public MarshalHighway() : this(8_000_000, 4_000_000) { }
+		public MarshalHighway() : this(DEF_NHEAP_LANES) { }
 
 		/// <summary>
 		/// Creates new lanes with the specified lengths and a default MemoryLaneSettings instance.
@@ -26,7 +26,12 @@
 		public MarshalHighway(MemoryLaneSettings stg, params int[] lanes)
 			: base(FragMaker, LaneMaker, stg) => Create(lanes);
 
+		public MarshalHighway(MemoryLaneSettings stg)
+			: base(FragMaker, LaneMaker, stg) => Create(DEF_NHEAP_LANES);
+
 		static bool FragMaker(MarshalLane lane, int size, ref MarshalLaneFragment frag) => lane.TryCreateFragment(size, ref frag);
 		static MarshalLane LaneMaker(int size) => new MarshalLane(size);
+
+		static int[] DEF_NHEAP_LANES = new int[] { 8_000_000, 4_000_000 };
 	}
 }

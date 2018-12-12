@@ -19,8 +19,4 @@
     <ProjectReference Include="..\MemoryLanes\MemoryLanes.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Surface\Sessions\" />
-  </ItemGroup>
-
 </Project>

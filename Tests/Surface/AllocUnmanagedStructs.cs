@@ -13,20 +13,20 @@ namespace Tests.Surface
 		public double Dbl;
 	}
 
-	public class ParkingUnmanagedStructs : ITestSurface
+	public class AllocUnmanagedStructs : ITestSurface
 	{
 		public string Info => "Tests allocation of structs on the unmanaged heap.";
 
 		public bool RequireArgs => false;
 		public string FailureMessage => string.Empty;
-		public bool? Passed => passed;
+		public bool? Passed { get; private set; }
 		public bool IsComplete { get; private set; }
 
 		public unsafe Task Run(ArgMap args)
 		{
 			return Task.Run(() =>
 			{
-				passed = true;
+				Passed = true;
 
 				var p = stackalloc NoRefsStruct[1];
 				var str = p[0];
@@ -55,13 +55,12 @@ namespace Tests.Surface
 			Print.AsInfo("Int: {0}, Dbl: {1}", str.Int, str.Dbl);
 
 			if ((str.Int != int1 && str.Int != int2) ||
-				(str.Dbl != dbl1 && str.Dbl != dbl2)) passed = false;
+				(str.Dbl != dbl1 && str.Dbl != dbl2)) Passed = false;
 		}
 
 		int int1 = 323;
 		int int2 = 423323;
 		double dbl1 = 34562.4345;
 		double dbl2 = 234123423.2342345;
-		bool? passed;
 	}
 }

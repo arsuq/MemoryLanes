@@ -19,33 +19,29 @@ namespace Tests.Internals
 
 	static class HighwayExt
 	{
-		static void AllocImpl<L, F>(this MemoryCarriage<L, F> hw, AllocTestArgs args) where L : MemoryLane where F : MemoryFragment, new()
+		public static void AllocAndWait(this IHighway hw, AllocTestArgs args)
 		{
 			var rdm = new Random();
 			var hwType = hw.GetType().Name;
 
 			Parallel.For(0, args.Count, new ParallelOptions() { MaxDegreeOfParallelism = args.InParallel }, (i) =>
-			 {
-				 var size = args.RandomizeLength ? rdm.Next(1, args.Size) : args.Size;
-				 var allocDelayMS = args.RandomizeAllocDelay ? rdm.Next(0, args.AllocDelayMS) : args.AllocDelayMS;
-				 var dispDelayMS = args.RandomizeFragDisposal ? rdm.Next(0, args.FragmentDisposeAfterMS) : args.FragmentDisposeAfterMS;
+			{
+				var size = args.RandomizeLength ? rdm.Next(1, args.Size) : args.Size;
+				var allocDelayMS = args.RandomizeAllocDelay ? rdm.Next(0, args.AllocDelayMS) : args.AllocDelayMS;
+				var dispDelayMS = args.RandomizeFragDisposal ? rdm.Next(0, args.FragmentDisposeAfterMS) : args.FragmentDisposeAfterMS;
 
-				 Thread.Sleep(allocDelayMS);
+				Thread.Sleep(allocDelayMS);
 
-				 var frag = hw.Alloc(size);
-				 Print.Trace("    alloc {0,8} bytes on {1} thread: {2} ", ConsoleColor.Magenta, null, size, hwType, Thread.CurrentThread.ManagedThreadId);
+				var frag = hw.AllocFragment(size);
+				Print.Trace("    alloc {0,8} bytes on {1} thread: {2} ", ConsoleColor.Magenta, null, size, hwType, Thread.CurrentThread.ManagedThreadId);
 
-				 Task.Run(() =>
-				 {
-					 Thread.Sleep(dispDelayMS);
-					 Print.Trace("    free  {0,8} bytes on {1} thread: {2} ", ConsoleColor.Green, null, frag.Length, hwType, Thread.CurrentThread.ManagedThreadId);
-					 frag.Dispose();
-				 }).Wait();
-			 });
+				Task.Run(() =>
+				{
+					Thread.Sleep(dispDelayMS);
+					Print.Trace("    free  {0,8} bytes on {1} thread: {2} ", ConsoleColor.Green, null, frag.Length, hwType, Thread.CurrentThread.ManagedThreadId);
+					frag.Dispose();
+				}).Wait();
+			});
 		}
-
-		public static void AllocAndWait(this HeapHighway hw, AllocTestArgs args) => AllocImpl(hw, args);
-		public static void AllocAndWait(this MarshalHighway hw, AllocTestArgs args) => AllocImpl(hw, args);
-		public static void AllocAndWait(this MappedHighway hw, AllocTestArgs args) => AllocImpl(hw, args);
 	}
 }
