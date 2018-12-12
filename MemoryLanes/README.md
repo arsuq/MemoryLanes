@@ -21,7 +21,7 @@ number of bytes is blocked as long as the lane has enough free space.
 A **MemoryFragment** is an object created by the MemoryLane allocation function. It
 holds the starting offset and the length of the buffer slice as well as a
 special destructor, injected by the Lane, which is triggered when the fragment is 
-disposed. There is a common API for reading and writing to the underlying
+disposed. There is a common API for reading from and writing to the underlying
 memory for all fragment types as well as a Span accessor.
 
 ```csharp
@@ -44,7 +44,7 @@ which means that the lifetime of the oldest fragment determines the reset time o
 ![](MemoryLanes.png)
 
 
-Because of the zero ref-count dependency for cleanup, using the lanes directly is not ideal.
+Due to the unpredictable fragment disposal time, using the lanes directly is not ideal.
 A **MemoryCarriage** is a multi-lane allocator which is responsible for:
 
 * allocating the requested slice on any lane, starting from the oldest to the newest 
@@ -55,9 +55,21 @@ Depending on the actual memory storage location
 one could use one of the following MemoryCarriage implementations:
 
 * A **HeapHighway** - allocates memory on the managed heap, specifically on the Large Object Heap
-if the initial capacities are greater that 80K, which is true by default (2 * 8MB lanes)
+if the initial capacities are greater that 80K, which is true by default (2 lanes - 8MB and 4MB)
 * A **MarshalHighway** - allocates a buffer on the native heap using the Marshal.AllocHGlobal()
 * A **MappedHighway** - uses a memory mapped file as a storage   
+
+or cast them to an **IHigway** interface:
+
+```csharp
+public interface IHighway : IDisposable
+{
+	MemoryFragment AllocFragment(int size);
+	int GetTotalActiveFragments();
+	int GetTotalCapacity();
+	int GetLanesCount();
+}
+```
 
 <br>
 
@@ -66,8 +78,8 @@ if the initial capacities are greater that 80K, which is true by default (2 * 8M
 The original purpose for the lanes is message assembling in socket communication, which
 involves fast allocation and deallocation of memory. In most cases the received bytes are 
 immediately converted into a managed heap object and then discarded. With proper framing
-one could redirect to a heap highway for small messages and to a mapped highway when
-working with tens or hundreds of megabytes of data. 
+one could make use of the different storage locations by redirecting to a heap highway 
+for small messages and to a mapped highway when working with tens or hundreds of megabytes of data. 
 
 ### Consistent fragment lifetime
 
@@ -82,8 +94,9 @@ the first lane allowing it to reset.
 In network communication there is no delivery guarantee so the two lanes initial layout would be too optimistic
 regarding the fragment disposal behavior. Sometimes even small messages can be delivered 
 in snail pace due to connectivity problems. In such cases having a dedicated highway per client 
-is one option to reduce the probability of having a pinned lane, another is having a highway with multiple 
-short lanes, expecting long living fragments and infrequent resets.
+is one option for reducing the probability of having a pinned lane. Another possible solution is using a highway with multiple 
+short lanes, expecting long living fragments and infrequent resets, that way the amount of locked
+bytes is constrained to whatever value that seems optimal.
 
 ![](UnpredictableFragmentLifetime.png)
 
@@ -121,7 +134,7 @@ public class MemoryLaneSettings
 
 One may notice that the buffer lengths are limited to Int32.MaxValue everywhere 
 in this API, so one couldn't use a MappedHighway with 4GB memory mapped file.
-The reason is having a consistency with Memory<T> and Span<T> implementations.
+The reason is having a consistency with the Memory<T> and Span<T> implementations.
 
 
 ## Summary
