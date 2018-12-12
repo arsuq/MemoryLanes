@@ -187,6 +187,11 @@
             Allocates memory lanes on the large object heap (if the length is > 80K).
             </summary>
         </member>
+        <member name="M:System.HeapHighway.#ctor">
+            <summary>
+            Creates a 2 lane highway with lengths 8MB and 4MB
+            </summary>
+        </member>
         <member name="M:System.HeapHighway.#ctor(System.Int32[])">
             <summary>
             Creates new lanes with the specified lengths and a default MemoryLaneSettings instance.
@@ -204,6 +209,11 @@
         <member name="T:System.MappedHighway">
             <summary>
             Allocates memory lanes as memory mapped files - one lane is one file.
+            </summary>
+        </member>
+        <member name="M:System.MappedHighway.#ctor">
+            <summary>
+            Creates a 2 lane highway with lengths 8MB and 4MB
             </summary>
         </member>
         <member name="M:System.MappedHighway.#ctor(System.Int32[])">
@@ -225,6 +235,11 @@
         <member name="T:System.MarshalHighway">
             <summary>
             Allocates memory lanes via Marshal.AllocHGlobal
+            </summary>
+        </member>
+        <member name="M:System.MarshalHighway.#ctor">
+            <summary>
+            Creates a 2 lane highway with lengths 8MB and 4MB
             </summary>
         </member>
         <member name="M:System.MarshalHighway.#ctor(System.Int32[])">
@@ -295,15 +310,78 @@
             One should never see this one!
             </exception>
         </member>
+        <member name="M:System.MemoryCarriage`2.GetTotalActiveFragments">
+            <summary>
+            Returns an aggregate of all active fragments in all lanes.
+            </summary>
+            <returns>The number of active fragments</returns>
+        </member>
+        <member name="M:System.MemoryCarriage`2.GetTotalCapacity">
+            <summary>
+            Sums the lengths of all lanes.
+            </summary>
+            <returns>The total preallocated space for the highway.</returns>
+        </member>
+        <member name="M:System.MemoryCarriage`2.GetLanesCount">
+            <summary>
+            Gets the Lanes count.
+            </summary>
+            <returns>The number of preallocated lanes.</returns>
+        </member>
+        <member name="M:System.MemoryCarriage`2.GetLanes">
+            <summary>
+            Get the lanes.
+            </summary>
+            <returns>A read only list of MemoryLane objects.</returns>
+        </member>
         <member name="P:System.MemoryCarriage`2.LastAnyLaneAllocTick">
             <summary>
             Use to detect bad disposal behavior. 
             </summary>
         </member>
-        <member name="M:System.MemoryLane.force(System.Boolean,System.Boolean)">
+        <member name="M:System.MemoryLane.Force(System.Boolean,System.Boolean)">
+            <summary>
+            Resets the offset and allocations of the lane or closes the lane or all at once (one lock).
+            </summary>
             <remarks>
-            The derived implementations should decide whether to expose this
+            Resetting the offset may lead to unpredictable behavior if you attempt to read or write
+            with any active fragments. Do this only in case of leaked fragments which are
+            unreachable and possible GCed but never properly disposed, thus still counted in lane's Allocations.
             </remarks>
+            <param name="close">True to close the lane.</param>
+            <param name="reset">True to reset the offset and the allocations to 0.</param>
+        </member>
+        <member name="F:System.MemoryLaneSettings.OnMaxLaneReached">
+            <summary>
+            A function handler which will be invoked if the MaxLanesCount threshold is reached.
+            The MemoryCarriage would expect a boolean response indicating whether to continue
+            with the allocation or to throw an exception (default behavior).
+            </summary>
+            <exception cref="T:System.MemoryLaneException">Code.MaxLanesCountReached</exception>
+        </member>
+        <member name="F:System.MemoryLaneSettings.OnMaxTotalBytesReached">
+            <summary>
+            A handler for the case of allocating more than MaxTotalAllocatedBytes in all lanes.
+            If there is a function and it returns true the MemoryCarriage will continue as if 
+            there is no limit, otherwise throws.
+            </summary>
+            <exception cref="T:System.MemoryLaneException">Code.MaxTotalAllocBytesReached</exception>
+        </member>
+        <member name="F:System.MemoryLaneSettings.DefaultCapacity">
+            <summary>
+            If the allocator fail to find a free slice in any lane, 
+            a new one will be created with DefaultCapacity bytes in length.
+            </summary>
+        </member>
+        <member name="F:System.MemoryLaneSettings.MaxLanesCount">
+            <summary>
+            Can be used with the OnMaxLaneReached handler as an alerting mechanism.
+            </summary>
+        </member>
+        <member name="F:System.MemoryLaneSettings.MaxTotalAllocatedBytes">
+            <summary>
+            This is the aggregated capacity in all lanes, not the actual active fragments.
+            </summary>
         </member>
     </members>
 </doc>
