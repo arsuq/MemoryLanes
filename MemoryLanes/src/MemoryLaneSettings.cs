@@ -47,6 +47,8 @@ namespace System
 		public const int MIN_CAPACITY = 1023;
 		public const int MAX_CAPACITY = 2_000_000_000;
 
+		public int NoWaitLapsBeforeNewLane = 40;
+
 		/// <summary>
 		/// If the allocator fail to find a free slice in any lane, 
 		/// a new one will be created with DefaultCapacity bytes in length.

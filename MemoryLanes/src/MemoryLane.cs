@@ -26,36 +26,35 @@ namespace System
 				throw new MemoryLaneException(MemoryLaneException.Code.SizeOutOfRange);
 		}
 
-		public bool Alloc(int size, ref FragmentRange frag)
+		public bool Alloc(int size, ref FragmentRange frag, int awaitMS = -1)
 		{
 			var result = false;
 			var isLocked = false;
-
-			Thread.MemoryBarrier();
-
 			var CAP = LaneCapacity;
 
 			// Quick fail
-			if (isDisposed || offset + size >= CAP || isClosed > 0) return result;
+			if (isDisposed || Offset + size >= CAP || IsClosed) return result;
 
 			// Wait, allocations are serialized
-			spinLock.Enter(ref isLocked);
-			Thread.MemoryBarrier();
+			spinLock.TryEnter(awaitMS, ref isLocked);
 
-			var newoffset = offset + size;
-
-			if (!isDisposed && isClosed < 1 && newoffset < CAP)
+			if (isLocked)
 			{
-				frag = new FragmentRange(offset, size);
+				var newoffset = Offset + size;
 
-				Interlocked.Exchange(ref offset, newoffset);
-				Interlocked.Increment(ref allocations);
-				Interlocked.Exchange(ref lastAllocTick, DateTime.Now.Ticks);
+				if (!IsClosed && newoffset < CAP)
+				{
+					frag = new FragmentRange(offset, size);
 
-				result = true;
+					Interlocked.Exchange(ref offset, newoffset);
+					Interlocked.Increment(ref allocations);
+					Interlocked.Exchange(ref lastAllocTick, DateTime.Now.Ticks);
+
+					result = true;
+				}
+
+				spinLock.Exit();
 			}
-
-			if (isLocked) spinLock.Exit();
 
 			return result;
 		}
@@ -101,6 +100,8 @@ namespace System
 		public int Allocations => Thread.VolatileRead(ref allocations);
 		public long LastAllocTick => Thread.VolatileRead(ref lastAllocTick);
 		public bool IsClosed => Thread.VolatileRead(ref isClosed) > 0;
+
+		public int ALLOC_AWAIT_MS = 10;
 
 		protected bool isDisposed;
 		protected int allocations;

@@ -6,7 +6,7 @@ namespace System
 {
 	public interface IHighway : IDisposable
 	{
-		MemoryFragment AllocFragment(int size);
+		MemoryFragment AllocFragment(int size, int awaitMS = -1);
 		int GetTotalActiveFragments();
 		int GetTotalCapacity();
 		int GetLanesCount();
@@ -15,7 +15,7 @@ namespace System
 		MemoryLane this[int index] { get; }
 	}
 
-	public delegate bool FragmentCtor<L, F>(L ml, int size, ref F f) where L : MemoryLane where F : MemoryFragment, new();
+	public delegate bool FragmentCtor<L, F>(L ml, int size, ref F f, int awaitMS) where L : MemoryLane where F : MemoryFragment, new();
 	public delegate L LaneCtor<L>(int size) where L : MemoryLane;
 
 	/// <summary>
@@ -93,7 +93,7 @@ namespace System
 		/// Code.NewLaneAllocFail: after an unsuccessful attempt to allocate a fragment in a dedicated new lane.
 		/// One should never see this one!
 		/// </exception>
-		public F Alloc(int size)
+		public F Alloc(int size, int awaitMS)
 		{
 			if (Lanes == null || Lanes.Count < 1) throw new MemoryLaneException(MemoryLaneException.Code.NotInitialized);
 			if (size < 0 || size > MemoryLaneSettings.MAX_CAPACITY) throw new ArgumentOutOfRangeException("size");
@@ -101,19 +101,21 @@ namespace System
 			var frag = new F();
 
 			// Start from the oldest lane
-			for (var i = 0; i <= Lanes.AppendPos; i++)
-			{
-				var lane = Lanes[i];
-				if (lane != null && fragCtor(lane, size, ref frag))
-					return frag;
-			}
-
+			// If nowait - cycle around a few times before making a new lane
+			var LAPS = awaitMS > -1 ? settings.NoWaitLapsBeforeNewLane : 1;
+			for (var laps = 0; laps < LAPS; laps++)
+				for (var i = 0; i <= Lanes.AppendPos; i++)
+				{
+					var lane = Lanes[i];
+					if (lane != null && fragCtor(lane, size, ref frag, awaitMS))
+						return frag;
+				}
 
 			// No luck, create a new lane
 			var cap = size > settings.DefaultCapacity ? size : settings.DefaultCapacity;
 			var ml = CreateLane(cap);
 
-			if (!fragCtor(ml, size, ref frag))
+			if (!fragCtor(ml, size, ref frag, awaitMS))
 				throw new MemoryLaneException(
 					MemoryLaneException.Code.NewLaneAllocFail,
 					string.Format("Failed to allocate {0} bytes on a dedicated lane.", size));
@@ -123,7 +125,7 @@ namespace System
 			return frag;
 		}
 
-		public MemoryFragment AllocFragment(int size) => Alloc(size);
+		public MemoryFragment AllocFragment(int size, int awaitMS) => Alloc(size, awaitMS);
 
 		public void Dispose() => destroy();
 

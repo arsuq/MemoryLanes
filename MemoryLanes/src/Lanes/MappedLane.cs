@@ -17,11 +17,11 @@ namespace System
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryCreateFragment(int size, ref MappedFragment frag)
+		public bool TryCreateFragment(int size, ref MappedFragment frag, int awaitMS = -1)
 		{
 			var fr = new FragmentRange();
 
-			if (Alloc(size, ref fr))
+			if (Alloc(size, ref fr, awaitMS))
 			{
 				frag = new MappedFragment(fr.Offset, fr.Length, mmva, () => free());
 				return true;

@@ -31,7 +31,9 @@
 		public MappedHighway(MemoryLaneSettings stg)
 			: base(FragMaker, LaneMaker, stg) => Create(DEF_MMF_LANES);
 
-		static bool FragMaker(MappedLane lane, int size, ref MappedFragment frag) => lane.TryCreateFragment(size, ref frag);
+		static bool FragMaker(MappedLane lane, int size, ref MappedFragment frag, int awaitMS) => 
+			lane.TryCreateFragment(size, ref frag, awaitMS);
+
 		static MappedLane LaneMaker(int size) => new MappedLane(size);
 
 		static int[] DEF_MMF_LANES = new int[] { 8_000_000, 4_000_000 };

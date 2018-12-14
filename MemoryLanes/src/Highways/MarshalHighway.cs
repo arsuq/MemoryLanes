@@ -29,7 +29,9 @@
 		public MarshalHighway(MemoryLaneSettings stg)
 			: base(FragMaker, LaneMaker, stg) => Create(DEF_NHEAP_LANES);
 
-		static bool FragMaker(MarshalLane lane, int size, ref MarshalLaneFragment frag) => lane.TryCreateFragment(size, ref frag);
+		static bool FragMaker(MarshalLane lane, int size, ref MarshalLaneFragment frag, int awaitMS) =>
+			lane.TryCreateFragment(size, ref frag, awaitMS);
+
 		static MarshalLane LaneMaker(int size) => new MarshalLane(size);
 
 		static int[] DEF_NHEAP_LANES = new int[] { 8_000_000, 4_000_000 };

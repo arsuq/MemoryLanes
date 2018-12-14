@@ -10,11 +10,11 @@ namespace System
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryCreateFragment(int size, ref HeapFragment frag)
+		public bool TryCreateFragment(int size, ref HeapFragment frag, int awaitMS = -1)
 		{
 			var fr = new FragmentRange();
 
-			if (Alloc(size, ref fr))
+			if (Alloc(size, ref fr, awaitMS))
 			{
 				var mem = new Memory<byte>(lane, fr.Offset, fr.Length);
 				frag = new HeapFragment(mem, () => free());

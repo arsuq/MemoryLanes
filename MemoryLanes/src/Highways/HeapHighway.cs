@@ -31,7 +31,9 @@
 			: base(FragMaker, LaneMaker, stg) => Create(DEF_HEAP_LANES);
 
 
-		static bool FragMaker(HeapLane lane, int size, ref HeapFragment frag) => lane.TryCreateFragment(size, ref frag);
+		static bool FragMaker(HeapLane lane, int size, ref HeapFragment frag, int awaitMS) => 
+			lane.TryCreateFragment(size, ref frag, awaitMS);
+
 		static HeapLane LaneMaker(int size) => new HeapLane(size);
 
 		static int[] DEF_HEAP_LANES = new int[] { 8_000_000, 4_000_000 };
