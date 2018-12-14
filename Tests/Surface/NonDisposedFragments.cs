@@ -64,7 +64,7 @@ namespace Tests.Surface
 							}
 
 							Print.Trace("    Forcing reset.. ", ConsoleColor.Magenta, null, hwName, af);
-							var lane0 = hw.GetLanes()[0];
+							var lane0 = hw[0];
 							lane0.Force(false, true);
 							af = hw.GetTotalActiveFragments();
 
