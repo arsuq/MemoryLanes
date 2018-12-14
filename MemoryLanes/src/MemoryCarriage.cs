@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
 
@@ -9,8 +10,9 @@ namespace System
 		int GetTotalActiveFragments();
 		int GetTotalCapacity();
 		int GetLanesCount();
-		long LastAnyLaneAllocTick { get; }
+		long LastAllocTickAnyLane { get; }
 		IReadOnlyList<MemoryLane> GetLanes();
+		MemoryLane this[int index] { get; }
 	}
 
 	public delegate bool FragmentCtor<L, F>(L ml, int size, ref F f) where L : MemoryLane where F : MemoryFragment, new();
@@ -99,9 +101,13 @@ namespace System
 			var frag = new F();
 
 			// Start from the oldest lane
-			for (var i = 0; i < Lanes.Count; i++)
-				if (fragCtor(Lanes[i], size, ref frag))
+			for (var i = 0; i <= Lanes.AppendPos; i++)
+			{
+				var lane = Lanes[i];
+				if (lane != null && fragCtor(lane, size, ref frag))
 					return frag;
+			}
+
 
 			// No luck, create a new lane
 			var cap = size > settings.DefaultCapacity ? size : settings.DefaultCapacity;
@@ -112,7 +118,7 @@ namespace System
 					MemoryLaneException.Code.NewLaneAllocFail,
 					string.Format("Failed to allocate {0} bytes on a dedicated lane.", size));
 
-			Interlocked.Exchange(ref lastAnyLaneAllocTick, DateTime.Now.Ticks);
+			Interlocked.Exchange(ref lastAllocTickAnyLane, DateTime.Now.Ticks);
 
 			return frag;
 		}
@@ -153,10 +159,27 @@ namespace System
 		public int GetLanesCount() => Lanes.Count;
 
 		/// <summary>
-		/// Get the lanes.
+		/// Creates a new List instance with the selection of all non null cells in the underlying array.
+		/// This is a relatively expensive operation, depending on the array length and the AppendPos value, so
+		/// you may consider using the indexer instead.
 		/// </summary>
 		/// <returns>A read only list of MemoryLane objects.</returns>
-		public IReadOnlyList<MemoryLane> GetLanes() => Lanes;
+		public IReadOnlyList<MemoryLane> GetLanes() => new List<MemoryLane>(Lanes.Items());
+
+		/// <summary>
+		/// Get a specific lane.
+		/// Use this method instead of GetLanes() which 
+		/// </summary>
+		/// <param name="index"></param>
+		/// <returns></returns>
+		public MemoryLane this[int index]
+		{
+			get
+			{
+				if (index < 0 || index > Lanes.Capacity) throw new ArgumentOutOfRangeException("index");
+				return Lanes[index];
+			}
+		}
 
 		L CreateLane(int capacity)
 		{
@@ -169,7 +192,8 @@ namespace System
 				if (!ignore) throw new MemoryLaneException(MemoryLaneException.Code.MaxLanesCountReached);
 			}
 
-			foreach (var l in Lanes) lanesTotalLength += l.LaneCapacity;
+			foreach (var l in Lanes.Items())
+				lanesTotalLength += l.LaneCapacity;
 
 			if (lanesTotalLength > settings.MaxTotalAllocatedBytes)
 			{
@@ -179,7 +203,8 @@ namespace System
 			}
 
 			var ml = laneCtor(capacity);
-			Lanes.Add(ml);
+
+			Lanes.Append(ml);
 
 			return ml;
 		}
@@ -191,7 +216,7 @@ namespace System
 				try
 				{
 					if (Lanes != null && Lanes.Count > 0)
-						foreach (var lane in Lanes)
+						foreach (var lane in Lanes.Items())
 							lane.Dispose();
 				}
 				catch { }
@@ -206,12 +231,12 @@ namespace System
 		/// <summary>
 		/// Use to detect bad disposal behavior. 
 		/// </summary>
-		public long LastAnyLaneAllocTick => Thread.VolatileRead(ref lastAnyLaneAllocTick);
-		long lastAnyLaneAllocTick;
+		public long LastAllocTickAnyLane => Thread.VolatileRead(ref lastAllocTickAnyLane);
+		long lastAllocTickAnyLane;
 
 		LaneCtor<L> laneCtor;
 		FragmentCtor<L, F> fragCtor;
-		List<L> Lanes = new List<L>();
+		ConcurrentFixedArray<L> Lanes = new ConcurrentFixedArray<L>(MemoryLaneSettings.MAX_COUNT);
 		bool isDisposed;
 	}
 }

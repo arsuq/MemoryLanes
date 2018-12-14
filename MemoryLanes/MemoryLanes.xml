@@ -334,7 +334,7 @@
             </summary>
             <returns>A read only list of MemoryLane objects.</returns>
         </member>
-        <member name="P:System.MemoryCarriage`2.LastAnyLaneAllocTick">
+        <member name="P:System.MemoryCarriage`2.LastAllocTickAnyLane">
             <summary>
             Use to detect bad disposal behavior. 
             </summary>

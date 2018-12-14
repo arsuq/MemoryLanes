@@ -41,8 +41,9 @@ namespace Tests.Surface
 					var hw = kp.Value;
 					using (hw)
 					{
-						var lane1 = hw.GetLanes()[1];
-						var lane2 = hw.GetLanes()[2];
+						var L = hw.GetLanes();
+						var lane1 = L[1];
+						var lane2 = L[2];
 						lane1.Force(true);
 
 						F.Add(hw.AllocFragment(1500));
