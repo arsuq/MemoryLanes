@@ -33,12 +33,12 @@ namespace Tests.Surface
 			{
 				Count = 20,
 				Size = 180000,
-				InParallel = -1,
+				InParallel = 10,
 				RandomizeAllocDelay = true,
-				RandomizeFragDisposal = false,
+				RandomizeFragDisposal = true,
 				RandomizeLength = true,
 				AllocDelayMS = 0,
-				FragmentDisposeAfterMS = 500
+				FragmentDisposeAfterMS = 60
 			};
 
 			if (args.ContainsKey("-count")) allocArgs.Count = int.Parse(args["-count"][0]);
@@ -50,6 +50,8 @@ namespace Tests.Surface
 				FailureMessage = "The default highway capacity is not enough if all fragments live forever.";
 				return;
 			}
+
+			Print.Trace(allocArgs.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
 
 			if (opt.Contains("mh"))
 				using (var hw = new HeapHighway())

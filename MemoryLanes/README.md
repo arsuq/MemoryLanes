@@ -64,7 +64,7 @@ or cast them to an **IHigway** interface:
 ```csharp
 public interface IHighway : IDisposable
 {
-	MemoryFragment AllocFragment(int size);
+	MemoryFragment AllocFragment(int size, int awaitMS = -1);
 	int GetTotalActiveFragments();
 	int GetTotalCapacity();
 	int GetLanesCount();

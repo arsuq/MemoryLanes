@@ -28,7 +28,7 @@ namespace Tests.Surface
 			{
 				Count = 5,
 				Size = 5000_000,
-				InParallel = -1,
+				InParallel = 4,
 				RandomizeAllocDelay = true,
 				RandomizeFragDisposal = false,
 				RandomizeLength = false,
@@ -45,6 +45,8 @@ namespace Tests.Surface
 				FailureMessage = "The default highway capacity can handle all fragments. Should test out of the capacity bounds.";
 				return;
 			}
+
+			Print.Trace(allocArgs.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
 
 			if (opt.Contains("mh"))
 				using (var hw = new HeapHighway())

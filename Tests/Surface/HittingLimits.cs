@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using TestRunner;
 using Tests.Internals;
@@ -28,20 +29,23 @@ namespace Tests.Surface
 			{
 				Count = 5,
 				Size = 5000_000,
-				InParallel = -1,
+				InParallel = 2,
 				RandomizeAllocDelay = true,
 				RandomizeFragDisposal = false,
 				RandomizeLength = false,
+				AwaitFragmentDisposal = true,
 				AllocDelayMS = 0,
 				FragmentDisposeAfterMS = 2000 // keep them alive
 			};
-			
+
 			if (allocArgs.Count * allocArgs.Size < 12_000_000)
 			{
 				Passed = false;
 				FailureMessage = "The default highway capacity can handle all fragments. Should test out of the capacity bounds.";
 				return;
 			}
+
+			Print.Trace(allocArgs.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
 
 			var stg_ignore = new MemoryLaneSettings(8_000_000, 2, 10_000_000);
 			var stg_throw = new MemoryLaneSettings(8_000_000, 2, 10_000_000);
@@ -75,6 +79,7 @@ namespace Tests.Surface
 				if (opt.Contains(kp.Key))
 				{
 					var hw = kp.Value;
+					var hwName = hw.GetType().Name;
 					using (hw)
 					{
 						hw.AllocAndWait(allocArgs);
@@ -87,7 +92,7 @@ namespace Tests.Surface
 						if (hw.GetLanesCount() < 3)
 						{
 							Passed = false;
-							FailureMessage = string.Format("The {0} has less than 3 lanes. ", hw.GetType().Name);
+							FailureMessage = string.Format("The {0} has less than 3 lanes. ", hwName);
 							return;
 						}
 					}
@@ -104,6 +109,8 @@ namespace Tests.Surface
 						try { hw.AllocAndWait(allocArgs); }
 						catch (AggregateException aggr)
 						{
+							Interlocked.Exchange(ref allocArgs.Trace, 0);
+
 							foreach (var ex in aggr.Flatten().InnerExceptions)
 							{
 								var mex = ex as MemoryLaneException;
@@ -145,7 +152,6 @@ namespace Tests.Surface
 						}
 					}
 				}
-
 
 			if (!Passed.HasValue) Passed = true;
 			IsComplete = true;

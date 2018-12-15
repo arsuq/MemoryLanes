@@ -84,6 +84,7 @@ namespace System
 		/// Allocates a generic fragment with a specified length.
 		/// </summary>
 		/// <param name="size">The number of bytes to allocate.</param>
+		/// <param name="awaitMS">The lane lock await in milliseconds, by default awaits forever (-1)</param>
 		/// <returns>The fragment structure.</returns>
 		/// <exception cref="System.ArgumentOutOfRangeException">
 		/// If size is negative or greater than MemoryLaneSettings.MAX_CAPACITY.
@@ -93,7 +94,7 @@ namespace System
 		/// Code.NewLaneAllocFail: after an unsuccessful attempt to allocate a fragment in a dedicated new lane.
 		/// One should never see this one!
 		/// </exception>
-		public F Alloc(int size, int awaitMS)
+		public F Alloc(int size, int awaitMS = -1)
 		{
 			if (Lanes == null || Lanes.Count < 1) throw new MemoryLaneException(MemoryLaneException.Code.NotInitialized);
 			if (size < 0 || size > MemoryLaneSettings.MAX_CAPACITY) throw new ArgumentOutOfRangeException("size");
@@ -101,7 +102,7 @@ namespace System
 			var frag = new F();
 
 			// Start from the oldest lane
-			// If nowait - cycle around a few times before making a new lane
+			// If awaitMS > -1 cycle around a few times before making a new lane
 			var LAPS = awaitMS > -1 ? settings.NoWaitLapsBeforeNewLane : 1;
 			for (var laps = 0; laps < LAPS; laps++)
 				for (var i = 0; i <= Lanes.AppendPos; i++)
@@ -111,20 +112,33 @@ namespace System
 						return frag;
 				}
 
-			// No luck, create a new lane
-			var cap = size > settings.DefaultCapacity ? size : settings.DefaultCapacity;
-			var ml = CreateLane(cap);
+			// No luck, create a new lane and do not publish it before getting a fragment
+			var nextCapacity = settings.NextCapacity(Lanes.Count);
+			var cap = size > nextCapacity ? size : nextCapacity;
+			var ml = CreateLane(cap, true);
 
 			if (!fragCtor(ml, size, ref frag, awaitMS))
 				throw new MemoryLaneException(
 					MemoryLaneException.Code.NewLaneAllocFail,
 					string.Format("Failed to allocate {0} bytes on a dedicated lane.", size));
 
+			Lanes.Append(ml);
+
 			Interlocked.Exchange(ref lastAllocTickAnyLane, DateTime.Now.Ticks);
 
 			return frag;
 		}
 
+
+		/// <summary>
+		/// Allocates a memory fragment on any of the existing lanes or on a new one.
+		/// By default the allocation awaits other allocations on the same lane, pass awaitMS > 0 in
+		/// order to skip a lane. Note however than the MemoryLaneSettings.NoWaitLapsBeforeNewLane controls
+		/// how many cycles around all lanes should be made before allocating a new lane.
+		/// </summary>
+		/// <param name="size">The desired buffer length.</param>
+		/// <param name="awaitMS">By default the allocation awaits other allocations on the same lane.</param>
+		/// <returns></returns>
 		public MemoryFragment AllocFragment(int size, int awaitMS) => Alloc(size, awaitMS);
 
 		public void Dispose() => destroy();
@@ -183,7 +197,7 @@ namespace System
 			}
 		}
 
-		L CreateLane(int capacity)
+		L CreateLane(int capacity, bool hidden = false)
 		{
 			var ignore = false;
 			var lanesTotalLength = 0;
@@ -206,7 +220,7 @@ namespace System
 
 			var ml = laneCtor(capacity);
 
-			Lanes.Append(ml);
+			if (!hidden) Lanes.Append(ml);
 
 			return ml;
 		}

@@ -25,6 +25,8 @@ namespace System
 			else throw new MemoryLaneException(
 				MemoryLaneException.Code.MissingOrInvalidArgument,
 				"Invalid total bytes value.");
+
+			NextCapacity = (i) => DefaultCapacity;
 		}
 
 		/// <summary>
@@ -43,11 +45,22 @@ namespace System
 		/// <exception cref="MemoryLaneException">Code.MaxTotalAllocBytesReached</exception>
 		public Func<bool> OnMaxTotalBytesReached;
 
+		/// <summary>
+		/// If set, the function may specify different than the default capacity based on 
+		/// the current number of lanes. By default always returns the DefaultCapacity value.
+		/// </summary>
+		public Func<int, int> NextCapacity;
+
 		public const int MAX_COUNT = 5000;
 		public const int MIN_CAPACITY = 1023;
 		public const int MAX_CAPACITY = 2_000_000_000;
 
-		public int NoWaitLapsBeforeNewLane = 40;
+		/// <summary>
+		/// Controls how many full cycles around all lanes should be made and fail to enter the 
+		/// lock with the specified awaitMS before creating a new lane.
+		/// Default value = 10.
+		/// </summary>
+		public int NoWaitLapsBeforeNewLane = 10;
 
 		/// <summary>
 		/// If the allocator fail to find a free slice in any lane, 
