@@ -74,6 +74,8 @@ namespace Tests.Surface
 						Print.AsInnerInfo(
 								"{0}: Total lanes count: {1} Total active fragments: {2}",
 								hwName, hw.GetLanesCount(), hw.GetTotalActiveFragments());
+
+						Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
 					}
 				}
 

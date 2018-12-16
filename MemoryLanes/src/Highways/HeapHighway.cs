@@ -15,7 +15,7 @@
 		/// </summary>
 		/// <param name="lanes">The initial layout.</param>
 		public HeapHighway(params int[] lanes)
-			: base(FragMaker, LaneMaker, new MemoryLaneSettings()) => Create(lanes);
+			: base(new MemoryLaneSettings()) => Create(lanes);
 
 		/// <summary>
 		/// Creates new lanes with the specified lengths and settings.
@@ -24,17 +24,16 @@
 		/// <param name="stg">Generic settings for all MemoryCarriage derivatives.</param>
 		/// <param name="lanes">The initial setup.</param>
 		public HeapHighway(MemoryLaneSettings stg, params int[] lanes)
-			: base(FragMaker, LaneMaker, stg) => Create(lanes);
+			: base(stg) => Create(lanes);
 
 
 		public HeapHighway(MemoryLaneSettings stg)
-			: base(FragMaker, LaneMaker, stg) => Create(DEF_HEAP_LANES);
+			: base(stg) => Create(DEF_HEAP_LANES);
 
+		protected override bool createFragment(HeapLane ml, int size, ref HeapFragment f, int awaitMS) =>
+			ml.TryCreateFragment(size, ref f, awaitMS);
 
-		static bool FragMaker(HeapLane lane, int size, ref HeapFragment frag, int awaitMS) => 
-			lane.TryCreateFragment(size, ref frag, awaitMS);
-
-		static HeapLane LaneMaker(int size) => new HeapLane(size);
+		protected override HeapLane createLane(int size) => new HeapLane(size);
 
 		static int[] DEF_HEAP_LANES = new int[] { 8_000_000, 4_000_000 };
 	}

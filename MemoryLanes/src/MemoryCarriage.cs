@@ -13,25 +13,19 @@ namespace System
 		long LastAllocTickAnyLane { get; }
 		IReadOnlyList<MemoryLane> GetLanes();
 		MemoryLane this[int index] { get; }
+		string FullTrace(int leftSpaces);
 	}
-
-	public delegate bool FragmentCtor<L, F>(L ml, int size, ref F f, int awaitMS) where L : MemoryLane where F : MemoryFragment, new();
-	public delegate L LaneCtor<L>(int size) where L : MemoryLane;
 
 	/// <summary>
 	/// The allocation/release behavior is generalized here.
 	/// </summary>
 	/// <typeparam name="L">A Lane</typeparam>
 	/// <typeparam name="F">The corresponding fragment type</typeparam>
-	public class MemoryCarriage<L, F> : IHighway, IDisposable where L : MemoryLane where F : MemoryFragment, new()
+	public abstract class MemoryCarriage<L, F> : IHighway, IDisposable where L : MemoryLane where F : MemoryFragment, new()
 	{
-		public MemoryCarriage(FragmentCtor<L, F> fc, LaneCtor<L> lc, MemoryLaneSettings stg)
+		public MemoryCarriage(MemoryLaneSettings stg)
 		{
-			if (stg == null || fc == null || lc == null) throw new ArgumentNullException();
-
-			settings = stg;
-			fragCtor = fc;
-			laneCtor = lc;
+			settings = stg ?? throw new ArgumentNullException();
 
 			AppDomain.CurrentDomain.ProcessExit += (s, e) => destroy();
 		}
@@ -55,7 +49,7 @@ namespace System
 			if (count < 1 || count > MemoryLaneSettings.MAX_COUNT) throw new ArgumentOutOfRangeException("count");
 
 			for (int i = 0; i < count; i++)
-				CreateLane(settings.DefaultCapacity);
+				allocLane(settings.DefaultCapacity);
 		}
 
 		/// <summary>
@@ -77,7 +71,7 @@ namespace System
 			if (laneSizes == null || laneSizes.Length < 1) throw new ArgumentNullException("laneSizes");
 
 			foreach (var ls in laneSizes)
-				CreateLane(ls);
+				allocLane(ls);
 		}
 
 		/// <summary>
@@ -108,16 +102,20 @@ namespace System
 				for (var i = 0; i <= Lanes.AppendPos; i++)
 				{
 					var lane = Lanes[i];
-					if (lane != null && fragCtor(lane, size, ref frag, awaitMS))
+					if (lane != null && createFragment(lane, size, ref frag, awaitMS))
+					{
+
+						Interlocked.Exchange(ref lastAllocTickAnyLane, DateTime.Now.Ticks);
 						return frag;
+					}
 				}
 
 			// No luck, create a new lane and do not publish it before getting a fragment
 			var nextCapacity = settings.NextCapacity(Lanes.Count);
 			var cap = size > nextCapacity ? size : nextCapacity;
-			var ml = CreateLane(cap, true);
+			var ml = allocLane(cap, true);
 
-			if (!fragCtor(ml, size, ref frag, awaitMS))
+			if (!createFragment(ml, size, ref frag, awaitMS))
 				throw new MemoryLaneException(
 					MemoryLaneException.Code.NewLaneAllocFail,
 					string.Format("Failed to allocate {0} bytes on a dedicated lane.", size));
@@ -128,7 +126,6 @@ namespace System
 
 			return frag;
 		}
-
 
 		/// <summary>
 		/// Allocates a memory fragment on any of the existing lanes or on a new one.
@@ -197,7 +194,34 @@ namespace System
 			}
 		}
 
-		L CreateLane(int capacity, bool hidden = false)
+		public virtual string FullTrace(int padLeft = 0)
+		{
+			var pad = string.Empty;
+			if (padLeft > 0)
+			{
+				var lp = new char[padLeft];
+				for (int k = 0; k < lp.Length; k++) lp[k] = ' ';
+				pad = new string(lp);
+			}
+
+			var lc = Lanes.Count;
+			var lines = new string[lc + 3];
+			var i = 0;
+
+			lines[i++] = $"{pad}{this.GetType().Name}";
+			lines[i++] = $"{pad}Total lanes: {lc}";
+			lines[i++] = $"{pad}Now - Last alloc tick: {DateTime.Now.Ticks - LastAllocTickAnyLane}";
+
+			foreach (var l in Lanes.Items())
+				lines[i++] = pad + l.FullTrace();
+
+			return string.Join(Environment.NewLine, lines);
+		}
+
+		protected abstract bool createFragment(L ml, int size, ref F f, int awaitMS);
+		protected abstract L createLane(int size);
+
+		L allocLane(int capacity, bool hidden = false)
 		{
 			var ignore = false;
 			var lanesTotalLength = 0;
@@ -218,7 +242,7 @@ namespace System
 				if (!ignore) throw new MemoryLaneException(MemoryLaneException.Code.MaxTotalAllocBytesReached);
 			}
 
-			var ml = laneCtor(capacity);
+			var ml = createLane(capacity);
 
 			if (!hidden) Lanes.Append(ml);
 
@@ -250,8 +274,6 @@ namespace System
 		public long LastAllocTickAnyLane => Thread.VolatileRead(ref lastAllocTickAnyLane);
 		long lastAllocTickAnyLane;
 
-		LaneCtor<L> laneCtor;
-		FragmentCtor<L, F> fragCtor;
 		ConcurrentFixedArray<L> Lanes = new ConcurrentFixedArray<L>(MemoryLaneSettings.MAX_COUNT);
 		bool isDisposed;
 	}

@@ -64,6 +64,7 @@ namespace Tests.Surface
 						FailureMessage = "The HeapHighway has less than 3 lanes. ";
 						return;
 					}
+					Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
 				}
 
 			if (opt.Contains("nh"))
@@ -82,6 +83,7 @@ namespace Tests.Surface
 						FailureMessage = "The HeapHighway has less than 3 lanes. ";
 						return;
 					}
+					Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
 				}
 
 			if (opt.Contains("mmf"))
@@ -100,6 +102,7 @@ namespace Tests.Surface
 						FailureMessage = "The HeapHighway has less than 3 lanes. ";
 						return;
 					}
+					Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
 				}
 
 			if (!Passed.HasValue) Passed = true;

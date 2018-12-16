@@ -16,7 +16,7 @@
 		/// </summary>
 		/// <param name="lanes">The initial layout.</param>
 		public MappedHighway(params int[] lanes)
-			: base(FragMaker, LaneMaker, new MemoryLaneSettings()) => Create(lanes);
+			: base(new MemoryLaneSettings()) => Create(lanes);
 
 		/// <summary>
 		/// Creates new lanes with the specified lengths and settings.
@@ -26,15 +26,15 @@
 		/// <param name="stg">Generic settings for all MemoryCarriage derivatives.</param>
 		/// <param name="lanes">The initial setup.</param>
 		public MappedHighway(MemoryLaneSettings stg, params int[] lanes)
-			: base(FragMaker, LaneMaker, stg) => Create(lanes);
+			: base(stg) => Create(lanes);
 
 		public MappedHighway(MemoryLaneSettings stg)
-			: base(FragMaker, LaneMaker, stg) => Create(DEF_MMF_LANES);
+			: base(stg) => Create(DEF_MMF_LANES);
 
-		static bool FragMaker(MappedLane lane, int size, ref MappedFragment frag, int awaitMS) => 
-			lane.TryCreateFragment(size, ref frag, awaitMS);
+		protected override bool createFragment(MappedLane ml, int size, ref MappedFragment f, int awaitMS) =>
+			ml.TryCreateFragment(size, ref f, awaitMS);
 
-		static MappedLane LaneMaker(int size) => new MappedLane(size);
+		protected override MappedLane createLane(int size) => new MappedLane(size);
 
 		static int[] DEF_MMF_LANES = new int[] { 8_000_000, 4_000_000 };
 	}

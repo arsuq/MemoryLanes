@@ -87,6 +87,8 @@ namespace Tests.Surface
 						{
 							foreach (var f in F) f.Dispose();
 						}
+
+						Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
 					}
 				}
 			}

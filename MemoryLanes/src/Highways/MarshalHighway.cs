@@ -15,7 +15,7 @@
 		/// </summary>
 		/// <param name="lanes">The initial layout.</param>
 		public MarshalHighway(params int[] lanes)
-			: base(FragMaker, LaneMaker, new MemoryLaneSettings()) => Create(lanes);
+			: base(new MemoryLaneSettings()) => Create(lanes);
 
 		/// <summary>
 		/// Creates new lanes with the specified lengths and settings.
@@ -24,15 +24,15 @@
 		/// <param name="stg">Generic settings for all MemoryCarriage derivatives.</param>
 		/// <param name="lanes">The initial setup.</param>
 		public MarshalHighway(MemoryLaneSettings stg, params int[] lanes)
-			: base(FragMaker, LaneMaker, stg) => Create(lanes);
+			: base(stg) => Create(lanes);
 
 		public MarshalHighway(MemoryLaneSettings stg)
-			: base(FragMaker, LaneMaker, stg) => Create(DEF_NHEAP_LANES);
+			: base(stg) => Create(DEF_NHEAP_LANES);
 
-		static bool FragMaker(MarshalLane lane, int size, ref MarshalLaneFragment frag, int awaitMS) =>
-			lane.TryCreateFragment(size, ref frag, awaitMS);
+		protected override bool createFragment(MarshalLane ml, int size, ref MarshalLaneFragment f, int awaitMS) =>
+			ml.TryCreateFragment(size, ref f, awaitMS);
 
-		static MarshalLane LaneMaker(int size) => new MarshalLane(size);
+		protected override MarshalLane createLane(int size) => new MarshalLane(size);
 
 		static int[] DEF_NHEAP_LANES = new int[] { 8_000_000, 4_000_000 };
 	}

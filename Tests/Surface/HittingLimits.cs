@@ -95,6 +95,7 @@ namespace Tests.Surface
 							FailureMessage = string.Format("The {0} has less than 3 lanes. ", hwName);
 							return;
 						}
+						Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
 					}
 				}
 
@@ -150,6 +151,8 @@ namespace Tests.Surface
 							FailureMessage = string.Format("The {0} has more than 3 lanes, should have failed. ", hw.GetType().Name);
 							return;
 						}
+
+						Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
 					}
 				}
 

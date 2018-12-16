@@ -83,6 +83,8 @@ namespace Tests.Surface
 							FailureMessage = string.Format("{0}: the active fragments count is wrong, should be 1.", hwName);
 							return;
 						}
+
+						Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
 					}
 				}
 			}

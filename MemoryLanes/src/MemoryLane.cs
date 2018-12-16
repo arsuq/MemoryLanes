@@ -91,6 +91,13 @@ namespace System
 			if (isLocked) spinLock.Exit();
 		}
 
+		/// <summary>
+		/// Traces the Allocations, Capacity, Offset, LasrtAllocTick and IsClosed properties.
+		/// </summary>
+		/// <returns>A formatted string: [@offset/cap #allocations LA:lastAllocTick on/off]</returns>
+		public virtual string FullTrace() =>
+			$"[@{Offset}/{LaneCapacity} #{Allocations} T{DateTime.Now.Ticks - LastAllocTick} {(IsClosed ? "off" : "on")}]";
+
 		public abstract int LaneCapacity { get; }
 		public abstract void Dispose();
 
