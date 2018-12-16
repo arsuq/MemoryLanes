@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using TestRunner;
@@ -9,7 +8,10 @@ namespace Tests.Surface
 {
 	public class AtomicSpan : ITestSurface
 	{
-		public string Info => "Test concurrent access over the same memory fragment.";
+		public string Info =>
+			"Tests concurrent access over the same memory fragment casted as integer slice." +
+			"This test is not about MemoryLanes, but rather about interpretation " +
+			"of byte segments to different structure layouts;";
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
 		public bool IsComplete { get; private set; }
@@ -22,16 +24,17 @@ namespace Tests.Surface
 
 			using (var hw = new HeapHighway(2000))
 			{
-				// Alloc 21 ints
+				// Alloc +1 ints, the last cell will be concurrently read/written by each task. 
+				// When the task id is successfully stored, the task is allowed to update its on cell.
 				var frag = hw.Alloc((IN_PARALLEL + 1) * 4);
 
 				// Launch multiple tasks
 				for (int i = 0; i < IN_PARALLEL; i++)
 					T[i] = Task.Factory.StartNew((idx) =>
 					{
-						var intSpan = MemoryMarshal.Cast<byte, int>(frag.Span());
+						var intSpan = frag.ToSpan<int>();
 						int pos = (int)idx;
-						var laps = 1; // > 0 just to be sure when checking
+						var laps = 0;
 
 						// Await with terrible cache flushing
 						while (Interlocked.CompareExchange(ref intSpan[IN_PARALLEL], pos, 0) != 0)
@@ -49,7 +52,7 @@ namespace Tests.Surface
 				Task.WaitAll(T);
 
 				// Check if all tasks have updated their corresponding cell
-				var theSpan = MemoryMarshal.Cast<byte, int>(frag.Span());
+				var theSpan = frag.ToSpan<int>();
 				for (int i = 0; i < theSpan.Length - 1; i++)
 					if (theSpan[i] < 0)
 					{

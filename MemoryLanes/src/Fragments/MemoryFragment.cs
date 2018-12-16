@@ -1,4 +1,6 @@
-﻿namespace System
+﻿using System.Runtime.InteropServices;
+
+namespace System
 {
 	public abstract class MemoryFragment : IDisposable
 	{
@@ -7,5 +9,8 @@
 		public abstract Span<byte> Span();
 		public abstract int Length { get; }
 		public abstract void Dispose();
+
+		public Span<T> ToSpan<T>() where T : struct =>
+			MemoryMarshal.Cast<byte, T>(Span());
 	}
 }

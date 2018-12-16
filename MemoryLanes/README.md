@@ -1,4 +1,4 @@
-# Memory Lanes
+Memory Lanes
 
 > v1.0
 
@@ -13,12 +13,12 @@ which could be stored on one of three locations:
 
 A **MemoryLane** represents a buffer which is already allocated and can be sliced
 on demand in a thread stack manner, i.e. reserving ranges in one direction only.
-Consequently the slicing is instantaneous (just a few atomic operations) because there 
-is no search involved and additionally there is no memory fragmentation as the exact
-number of bytes is blocked as long as the lane has enough free space. 
+Consequently the slicing is just a few atomic operations, there is no search involved 
+and no memory fragmentation as the exact number of bytes is blocked, as long as 
+the lane has enough free space. 
 
 
-A **MemoryFragment** is an object created by the MemoryLane allocation function. It
+A **MemoryFragment** is a GC heap object created by the MemoryLane allocation function. It
 holds the starting offset and the length of the buffer slice as well as a
 special destructor, injected by the Lane, which is triggered when the fragment is 
 disposed. There is a common API for reading from and writing to the underlying
@@ -34,6 +34,16 @@ public abstract class MemoryFragment : IDisposable
 	public abstract void Dispose();
 }
 ```
+
+ At first it might seem that the fragment should be a structure. It's not for these reasons:
+
+- it's very likely that the fragments will be boxed anyway (async)
+- it's natural to share fragments among threads
+- one could subclass a fragment
+- make use of a finalizer, since there are unmanaged resources 
+- in a future version a reliable disposal implementation would most likely 
+  use some form of ref counting
+
 
 Similar to the thread stack deallocation, the MemoryLane cleanup is just an
 offset reset, however that could only happen when there are
@@ -83,7 +93,7 @@ it would involve more centralized storage and tracking, leading to more contenti
 add such functionality by inheriting the corresponding Fragment with the desired destructor logic.
 With the current API one could track ghost fragments by using the following metrics:
 
-- **LastAllocTickAnyLane** in *MemoryCarriage* or casted as *IHighway*, this is the last allocation on any lane
+- **LastAllocTickAnyLane** in *MemoryCarriage* or casted as *IMemoryHighway*, this is the last allocation on any lane
 - **LastAllocTick**, **Allocations** and **Offset** in the MemoryLane abstract class
 - the **OnMaxLaneReached** and **OnMaxTotalBytesReached** callbacks as an alerting mechanism
 
@@ -116,7 +126,7 @@ regarding the fragment disposal behavior. Sometimes even small messages can be d
 in snail pace due to connectivity problems. In such cases having a dedicated highway per client 
 is one option for reducing the probability of having a pinned lane. Another possible solution is using a highway with multiple 
 short lanes, expecting long living fragments and infrequent resets, that way the amount of locked
-bytes is constrained to whatever value that seems optimal.
+bytes is constrained to a value that seems reasonable.
 
 ![](UnpredictableFragmentLifetime.png)
 
