@@ -4,7 +4,7 @@ using System.Threading;
 
 namespace System
 {
-	public interface IHighway : IDisposable
+	public interface IMemoryHighway : IDisposable
 	{
 		MemoryFragment AllocFragment(int size, int awaitMS = -1);
 		int GetTotalActiveFragments();
@@ -21,7 +21,7 @@ namespace System
 	/// </summary>
 	/// <typeparam name="L">A Lane</typeparam>
 	/// <typeparam name="F">The corresponding fragment type</typeparam>
-	public abstract class MemoryCarriage<L, F> : IHighway, IDisposable where L : MemoryLane where F : MemoryFragment, new()
+	public abstract class MemoryCarriage<L, F> : IMemoryHighway, IDisposable where L : MemoryLane where F : MemoryFragment, new()
 	{
 		public MemoryCarriage(MemoryLaneSettings stg)
 		{

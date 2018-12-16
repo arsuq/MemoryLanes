@@ -59,10 +59,10 @@ if the initial capacities are greater that 80K, which is true by default (2 lane
 * A **MarshalHighway** - allocates a buffer on the native heap using the Marshal.AllocHGlobal()
 * A **MappedHighway** - uses a memory mapped file as a storage   
 
-or cast them to an **IHigway** interface:
+or cast them to an **IMemoryHighway** interface:
 
 ```csharp
-public interface IHighway : IDisposable
+public interface IMemoryHighway : IDisposable
 {
 	MemoryFragment AllocFragment(int size, int awaitMS = -1);
 	int GetTotalActiveFragments();

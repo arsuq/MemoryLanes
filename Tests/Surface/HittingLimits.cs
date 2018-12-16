@@ -62,13 +62,13 @@ namespace Tests.Surface
 				return true;
 			};
 
-			var iH = new Dictionary<string, IHighway>();
+			var iH = new Dictionary<string, IMemoryHighway>();
 
 			iH.Add("mh", new HeapHighway(stg_ignore));
 			iH.Add("nh", new MarshalHighway(stg_ignore));
 			iH.Add("mmf", new MappedHighway(stg_ignore));
 
-			var dH = new Dictionary<string, IHighway>();
+			var dH = new Dictionary<string, IMemoryHighway>();
 
 			dH.Add("mh", new HeapHighway(stg_throw));
 			dH.Add("nh", new MarshalHighway(stg_throw));

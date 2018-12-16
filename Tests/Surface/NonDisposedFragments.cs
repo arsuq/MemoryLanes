@@ -25,7 +25,7 @@ namespace Tests.Surface
 			opt.AssertNothingButTheseArgs("mh", "mmf", "nh");
 
 			var stg = new MemoryLaneSettings(4000, 8, 10000);
-			var iH = new Dictionary<string, IHighway>();
+			var iH = new Dictionary<string, IMemoryHighway>();
 
 			iH.Add("mh", new HeapHighway(stg, 4000));
 			iH.Add("nh", new MarshalHighway(stg, 4000));

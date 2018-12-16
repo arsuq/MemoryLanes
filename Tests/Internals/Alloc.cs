@@ -36,7 +36,7 @@ namespace Tests.Internals
 
 	static class HighwayExt
 	{
-		public static void AllocAndWait(this IHighway hw, AllocTestArgs args)
+		public static void AllocAndWait(this IMemoryHighway hw, AllocTestArgs args)
 		{
 			var rdm = new Random();
 			var hwType = hw.GetType().Name;
