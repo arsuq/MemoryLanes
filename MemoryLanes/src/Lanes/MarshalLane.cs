@@ -29,12 +29,10 @@ namespace System
 
 		void destroy(bool isGC)
 		{
-			Thread.MemoryBarrier();
-
-			if (!isDisposed)
+			if (!Volatile.Read(ref isDisposed))
 			{
 				Marshal.FreeHGlobal(lanePtr);
-				isDisposed = true;
+				Volatile.Write(ref isDisposed, true);
 				lanePtr = IntPtr.Zero;
 				if (!isGC) GC.SuppressFinalize(this);
 			}

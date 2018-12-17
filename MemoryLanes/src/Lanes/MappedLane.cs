@@ -33,9 +33,7 @@ namespace System
 
 		void destroy(bool isGC = false)
 		{
-			Thread.MemoryBarrier();
-
-			if (!isDisposed)
+			if (!Volatile.Read(ref isDisposed))
 			{
 				try
 				{
@@ -45,7 +43,7 @@ namespace System
 				}
 				catch { }
 				if (!isGC) GC.SuppressFinalize(this);
-				isDisposed = true;
+				Volatile.Write(ref isDisposed, true);
 			}
 		}
 

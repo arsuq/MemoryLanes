@@ -83,20 +83,18 @@ namespace System
 			}
 		}
 
-		public override void Dispose() => destroy();
-
-		void destroy(bool isGC = false)
+		/// <summary>
+		/// Does not implement a finalizer because the resource is held by the lane.
+		/// </summary>
+		public override void Dispose()
 		{
 			if (destructor != null)
 			{
 				destructor();
 				destructor = null;
 				mmva = null;
-				if (!isGC) GC.SuppressFinalize(this);
 			}
 		}
-
-		~MappedFragment() => destroy(true);
 
 		/// <summary>
 		/// The byte offset in the MMF where the fragment starts.

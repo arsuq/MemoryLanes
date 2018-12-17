@@ -27,7 +27,8 @@ namespace System
 		{
 			settings = stg ?? throw new ArgumentNullException();
 
-			AppDomain.CurrentDomain.ProcessExit += (s, e) => destroy();
+			if (settings.RegisterForProcessExitCleanup)
+				AppDomain.CurrentDomain.ProcessExit += (s, e) => destroy();
 		}
 
 		/// <summary>
@@ -138,7 +139,7 @@ namespace System
 		/// <returns></returns>
 		public MemoryFragment AllocFragment(int size, int awaitMS) => Alloc(size, awaitMS);
 
-		public void Dispose() => destroy();
+		public virtual void Dispose() => destroy();
 
 		/// <summary>
 		/// Returns an aggregate of all active fragments in all lanes.
@@ -184,8 +185,8 @@ namespace System
 		/// Use this method instead of GetLanes() which 
 		/// </summary>
 		/// <param name="index"></param>
-		/// <returns></returns>
-		public MemoryLane this[int index]
+		/// <returns>The Lane</returns>
+		public L this[int index]
 		{
 			get
 			{
@@ -193,6 +194,8 @@ namespace System
 				return Lanes[index];
 			}
 		}
+
+		MemoryLane IMemoryHighway.this[int index] => this[index];
 
 		public virtual string FullTrace(int padLeft = 0)
 		{
@@ -251,7 +254,7 @@ namespace System
 
 		void destroy(bool isGC = false)
 		{
-			if (!isDisposed)
+			if (!Volatile.Read(ref isDisposed))
 			{
 				try
 				{
@@ -260,8 +263,8 @@ namespace System
 							lane.Dispose();
 				}
 				catch { }
-				if (isGC) GC.SuppressFinalize(this);
-				isDisposed = true;
+				if (!isGC) GC.SuppressFinalize(this);
+				Volatile.Write(ref isDisposed, true);
 			}
 		}
 
@@ -272,6 +275,7 @@ namespace System
 		/// Use to detect bad disposal behavior. 
 		/// </summary>
 		public long LastAllocTickAnyLane => Thread.VolatileRead(ref lastAllocTickAnyLane);
+
 		long lastAllocTickAnyLane;
 
 		ConcurrentFixedArray<L> Lanes = new ConcurrentFixedArray<L>(MemoryLaneSettings.MAX_COUNT);

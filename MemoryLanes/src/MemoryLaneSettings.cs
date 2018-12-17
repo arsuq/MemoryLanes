@@ -75,5 +75,10 @@ namespace System
 		/// This is the aggregated capacity in all lanes, not the actual active fragments.
 		/// </summary>
 		public readonly long MaxTotalAllocatedBytes;
+
+		/// <summary>
+		/// Will trigger a Dispose() before process exits. True by default.
+		/// </summary>
+		public bool RegisterForProcessExitCleanup = true;
 	}
 }

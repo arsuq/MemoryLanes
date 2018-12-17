@@ -127,18 +127,18 @@ namespace System
 		}
 
 		public override Span<byte> Span() => Span(false);
-		public override void Dispose() => destroy();
 
-		void destroy(bool isGC = false)
+		/// <summary>
+		/// Does not implement a finalizer!
+		/// </summary>
+		public override void Dispose()
 		{
 			if (slotPtr != IntPtr.Zero)
 			{
 				Marshal.FreeHGlobal(slotPtr);
-				if (!isGC) GC.SuppressFinalize(this);
+				slotPtr = IntPtr.Zero;
 			}
 		}
-
-		~MarshalSlot() => destroy(true);
 
 		public override int Length => length;
 		readonly int length;

@@ -51,13 +51,13 @@ namespace Tests.Surface
 
 				Task.WaitAll(T);
 
-				// Check if all tasks have updated their corresponding cell
+				// Check if all tasks have updated their corresponding cells
 				var theSpan = frag.ToSpan<int>();
 				for (int i = 0; i < theSpan.Length - 1; i++)
 					if (theSpan[i] < 0)
 					{
 						Passed = false;
-						FailureMessage = $"The Task {i} haven't touched its cell.";
+						FailureMessage = $"The Task {i} hasn't touched its cell.";
 						break;
 					}
 					else Print.AsInnerInfo($"{i}: {theSpan[i]} laps");

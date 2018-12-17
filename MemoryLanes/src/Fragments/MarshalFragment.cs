@@ -84,20 +84,18 @@ namespace System
 			return new Span<byte>(p, Length);
 		}
 
-		public override void Dispose() => destroy();
-
-		void destroy(bool isGC = false)
+		/// <summary>
+		/// Does not implement a finalizer because the resource is held by the lane.
+		/// </summary>
+		public override void Dispose()
 		{
 			if (destructor != null)
 			{
 				destructor();
 				destructor = null;
 				lanePtr = IntPtr.Zero;
-				if (!isGC) GC.SuppressFinalize(this);
 			}
 		}
-
-		~MarshalLaneFragment() => destroy(true);
 
 		/// <summary>
 		/// The beginning position within the MarshalLane
