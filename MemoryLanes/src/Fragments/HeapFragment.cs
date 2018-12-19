@@ -8,14 +8,13 @@ namespace System
 	/// </summary>
 	public class HeapFragment : MemoryFragment
 	{
-		public HeapFragment() { }
-
-		public HeapFragment(Memory<byte> m, Action dtor)
+		public HeapFragment(Memory<byte> m, long laneCycle, Func<long, bool> dtor)
 		{
 			if (dtor == null) throw new NullReferenceException("dtor");
 
 			Memory = m;
 			destructor = dtor;
+			this.laneCycle = laneCycle;
 		}
 
 		/// <summary>Writes the bytes in data into the heap fragment.</summary>
@@ -72,7 +71,7 @@ namespace System
 		{
 			if (destructor != null)
 			{
-				destructor();
+				destructor(laneCycle);
 				destructor = null;
 				Memory = null;
 			}
@@ -81,7 +80,9 @@ namespace System
 		public Memory<byte> Memory;
 		public override Span<byte> Span() => Memory.Span;
 		public override int Length => Memory.Length;
+		public override long LaneCycle => laneCycle;
 
-		Action destructor;
+		readonly long laneCycle;
+		Func<long, bool> destructor;
 	}
 }

@@ -8,6 +8,7 @@ namespace System
 		public abstract int Read(byte[] destination, int offset, int destOffset = 0);
 		public abstract Span<byte> Span();
 		public abstract int Length { get; }
+		public abstract long LaneCycle { get; }
 		public abstract void Dispose();
 
 		public Span<T> ToSpan<T>() where T : struct =>

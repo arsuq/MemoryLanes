@@ -21,7 +21,7 @@ namespace System
 	/// </summary>
 	/// <typeparam name="L">A Lane</typeparam>
 	/// <typeparam name="F">The corresponding fragment type</typeparam>
-	public abstract class MemoryCarriage<L, F> : IMemoryHighway, IDisposable where L : MemoryLane where F : MemoryFragment, new()
+	public abstract class MemoryCarriage<L, F> : IMemoryHighway, IDisposable where L : MemoryLane where F : MemoryFragment
 	{
 		public MemoryCarriage(MemoryLaneSettings stg)
 		{
@@ -94,7 +94,7 @@ namespace System
 			if (Lanes == null || Lanes.Count < 1) throw new MemoryLaneException(MemoryLaneException.Code.NotInitialized);
 			if (size < 0 || size > MemoryLaneSettings.MAX_CAPACITY) throw new ArgumentOutOfRangeException("size");
 
-			var frag = new F();
+			F frag = null;
 
 			// Start from the oldest lane
 			// If awaitMS > -1 cycle around a few times before making a new lane

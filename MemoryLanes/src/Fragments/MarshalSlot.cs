@@ -141,6 +141,8 @@ namespace System
 		}
 
 		public override int Length => length;
+		public override long LaneCycle => 0;
+
 		readonly int length;
 		IntPtr slotPtr;
 	}

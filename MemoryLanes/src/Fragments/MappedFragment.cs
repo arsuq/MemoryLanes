@@ -8,14 +8,13 @@ namespace System
 	/// </summary>
 	public class MappedFragment : MemoryFragment
 	{
-		public MappedFragment() { }
-
-		public MappedFragment(long startIdx, int length, MemoryMappedViewAccessor va, Action dtor)
+		public MappedFragment(long startIdx, int length, MemoryMappedViewAccessor va, long laneCycle, Func<long, bool> dtor)
 		{
 			StartIdx = startIdx;
 			this.length = length;
 			destructor = dtor;
 			mmva = va;
+			this.laneCycle = laneCycle;
 		}
 
 		/// <summary>Writes the bytes in data into the MMF.</summary>
@@ -90,7 +89,7 @@ namespace System
 		{
 			if (destructor != null)
 			{
-				destructor();
+				destructor(laneCycle);
 				destructor = null;
 				mmva = null;
 			}
@@ -106,8 +105,10 @@ namespace System
 		protected readonly int length;
 
 		public override int Length => length;
+		public override long LaneCycle => laneCycle;
 
-		Action destructor;
+		readonly long laneCycle;
+		Func<long, bool> destructor;
 		MemoryMappedViewAccessor mmva;
 	}
 }

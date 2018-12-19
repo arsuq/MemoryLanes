@@ -8,9 +8,8 @@ namespace System
 	/// </summary>
 	public class MarshalLaneFragment : MemoryFragment
 	{
-		public MarshalLaneFragment() { }
 
-		public MarshalLaneFragment(int startIdx, int length, IntPtr lane, Action dtor)
+		public MarshalLaneFragment(int startIdx, int length, IntPtr lane, long laneCycle, Func<long, bool> dtor)
 		{
 			if (startIdx < 0 || length < 0) throw new ArgumentOutOfRangeException("startIdx or length");
 			if (dtor == null) throw new NullReferenceException("dtor");
@@ -20,6 +19,7 @@ namespace System
 			this.length = length;
 			destructor = dtor;
 			lanePtr = lane;
+			this.laneCycle = laneCycle;
 		}
 
 		/// <summary>
@@ -91,7 +91,7 @@ namespace System
 		{
 			if (destructor != null)
 			{
-				destructor();
+				destructor(laneCycle);
 				destructor = null;
 				lanePtr = IntPtr.Zero;
 			}
@@ -107,8 +107,10 @@ namespace System
 		protected readonly int length;
 
 		public override int Length => length;
+		public override long LaneCycle => laneCycle;
 
-		Action destructor;
+		readonly long laneCycle;
+		Func<long,bool> destructor;
 		IntPtr lanePtr;
 	}
 }

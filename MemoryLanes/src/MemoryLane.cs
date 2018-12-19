@@ -36,7 +36,7 @@ namespace System
 			if (isDisposed || Offset + size >= CAP || IsClosed) return result;
 
 			// Wait, allocations are serialized
-			spinLock.TryEnter(awaitMS, ref isLocked);
+			allocGate.TryEnter(awaitMS, ref isLocked);
 
 			if (isLocked)
 			{
@@ -53,20 +53,53 @@ namespace System
 					result = true;
 				}
 
-				spinLock.Exit();
+				allocGate.Exit();
 			}
 
 			return result;
 		}
 
-		public void ResetOne()
+		/// <summary>
+		/// Decrements the Allocations counter if the passed LaneCycle matches the current LaneCycle value. 
+		/// When the Allocations reach 0 the offset is reset and the LaneCycle incremented.
+		/// </summary>
+		/// <remarks>
+		/// This methods is exposed for consumers implementing a reliable disposal by
+		/// tracking the fragments with WeakReferenes and could detect lost non disposed fragments,
+		/// which keep a lane from resetting. 
+		/// </remarks>
+		/// <param name="cycle">The laneCycle at the time of the fragment creation.</param>
+		/// <returns>True if decrements one.</returns>
+		public bool ResetOne(long cycle)
 		{
-			// If all fragments are disposed, reset the offset to 0.
-			if (Interlocked.Decrement(ref allocations) < 1)
-				Interlocked.Exchange(ref offset, 0);
+			bool isLocked = false;
+			bool result = false;
 
-			// Over resetting protection
-			Interlocked.CompareExchange(ref allocations, 0, -1);
+			resetGate.Enter(ref isLocked);
+
+			if (isLocked)
+			{
+				// Enter only if it's the correct lane cycle and there are allocations
+				if (LaneCycle == cycle || Allocations > 0)
+				{
+					var allocs = Interlocked.Decrement(ref allocations);
+
+					// If all fragments are disposed, reset the offset to 0 and change the laneCycle.
+					if (allocs == 0)
+					{
+						Interlocked.Exchange(ref offset, 0);
+						Interlocked.Increment(ref laneCycle);
+
+						result = true;
+					}
+					else if (allocs > 0) result = true;
+					else throw new MemoryLaneException(MemoryLaneException.Code.LaneNegativeReset);
+				}
+
+				resetGate.Exit();
+			}
+
+			return result;
 		}
 
 		/// <summary>
@@ -82,7 +115,7 @@ namespace System
 		public void Force(bool close, bool reset = false)
 		{
 			bool isLocked = false;
-			spinLock.Enter(ref isLocked);
+			allocGate.Enter(ref isLocked);
 
 			Interlocked.Exchange(ref isClosed, close ? 1 : 0);
 			if (reset)
@@ -91,7 +124,7 @@ namespace System
 				Interlocked.Exchange(ref allocations, 0);
 			}
 
-			if (isLocked) spinLock.Exit();
+			if (isLocked) allocGate.Exit();
 		}
 
 		/// <summary>
@@ -106,10 +139,11 @@ namespace System
 
 		// Use Offset, Allocations and LastAllocTick to determine bad disposing behavior 
 
-		public int Offset => Thread.VolatileRead(ref offset);
-		public int Allocations => Thread.VolatileRead(ref allocations);
-		public long LastAllocTick => Thread.VolatileRead(ref lastAllocTick);
-		public bool IsClosed => Thread.VolatileRead(ref isClosed) > 0;
+		public int Offset => Volatile.Read(ref offset);
+		public int Allocations => Volatile.Read(ref allocations);
+		public long LastAllocTick => Volatile.Read(ref lastAllocTick);
+		public bool IsClosed => Volatile.Read(ref isClosed) > 0;
+		public long LaneCycle => Volatile.Read(ref laneCycle);
 
 		public int ALLOC_AWAIT_MS = 10;
 
@@ -117,8 +151,10 @@ namespace System
 		protected int allocations;
 		protected int offset;
 		protected long lastAllocTick;
+		protected long laneCycle;
 
-		SpinLock spinLock = new SpinLock();
+		SpinLock allocGate = new SpinLock();
+		SpinLock resetGate = new SpinLock();
 		int isClosed;
 	}
 }

@@ -17,7 +17,7 @@ namespace System
 			if (Alloc(size, ref fr, awaitMS))
 			{
 				var mem = new Memory<byte>(lane, fr.Offset, fr.Length);
-				frag = new HeapFragment(mem, () => ResetOne());
+				frag = new HeapFragment(mem, LaneCycle, ResetOne);
 				return true;
 			}
 			else return false;
