@@ -59,11 +59,14 @@ namespace System
 			return result;
 		}
 
-		protected void free()
+		public void ResetOne()
 		{
-			// If all fragments are disposed, reset the offset to 0
+			// If all fragments are disposed, reset the offset to 0.
 			if (Interlocked.Decrement(ref allocations) < 1)
 				Interlocked.Exchange(ref offset, 0);
+
+			// Over resetting protection
+			Interlocked.CompareExchange(ref allocations, 0, -1);
 		}
 
 		/// <summary>
@@ -72,11 +75,11 @@ namespace System
 		/// <remarks>
 		/// Resetting the offset may lead to unpredictable behavior if you attempt to read or write
 		/// with any active fragments. Do this only in case of leaked fragments which are
-		/// unreachable and possible GCed but never properly disposed, thus still counted in lane's Allocations.
+		/// unreachable and possibly GCed, but never properly disposed and still counted in lane's Allocations.
 		/// </remarks>
 		/// <param name="close">True to close the lane.</param>
 		/// <param name="reset">True to reset the offset and the allocations to 0.</param>
-		public virtual void Force(bool close, bool reset = false)
+		public void Force(bool close, bool reset = false)
 		{
 			bool isLocked = false;
 			spinLock.Enter(ref isLocked);

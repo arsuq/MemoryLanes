@@ -23,7 +23,7 @@ namespace System
 
 			if (Alloc(size, ref fr, awaitMS))
 			{
-				frag = new MappedFragment(fr.Offset, fr.Length, mmva, () => free());
+				frag = new MappedFragment(fr.Offset, fr.Length, mmva, () => ResetOne());
 				return true;
 			}
 			else return false;

@@ -4,7 +4,6 @@ using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
 using TestRunner;
-using Tests.Internals;
 
 namespace Tests.Surface
 {
