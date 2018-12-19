@@ -15,7 +15,10 @@ namespace System
 			NewLaneAllocFail,
 			MaxLanesCountReached,
 			MaxTotalAllocBytesReached,
-			LaneNegativeReset
+			LaneNegativeReset,
+			AttemptToAccessWrongLaneCycle,
+			AttemptToAccessDisposedLane,
+			AttemptToAccessClosedLane
 		}
 
 		public MemoryLaneException() { }

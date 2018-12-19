@@ -19,7 +19,7 @@ namespace System
 
 			if (Alloc(size, ref fr, awaitMS))
 			{
-				frag = new MarshalLaneFragment(fr.Offset, fr.Length, lanePtr, LaneCycle, ResetOne);
+				frag = new MarshalLaneFragment(fr.Offset, fr.Length, lanePtr, this);
 				return true;
 			}
 			else return false;

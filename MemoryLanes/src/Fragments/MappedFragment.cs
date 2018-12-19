@@ -8,13 +8,11 @@ namespace System
 	/// </summary>
 	public class MappedFragment : MemoryFragment
 	{
-		public MappedFragment(long startIdx, int length, MemoryMappedViewAccessor va, long laneCycle, Func<long, bool> dtor)
+		public MappedFragment(long startIdx, int length, MemoryMappedViewAccessor va, MappedLane lane) : base(lane)
 		{
 			StartIdx = startIdx;
 			this.length = length;
-			destructor = dtor;
 			mmva = va;
-			this.laneCycle = laneCycle;
 		}
 
 		/// <summary>Writes the bytes in data into the MMF.</summary>
@@ -26,9 +24,14 @@ namespace System
 		/// <returns>The total written bytes, i.e. offset + length.</returns>
 		/// <exception cref="System.ArgumentNullException">If data is null.</exception>
 		/// <exception cref="System.ArgumentOutOfRangeException">If offset and length are out of range.</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks is on: 
+		/// AttemptToAccessWrongLaneCycle, AttemptToAccessDisposedLane, AttemptToAccessClosedLane
+		/// </exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override int Write(byte[] data, int offset, int length)
 		{
+			laneCheck();
+
 			if (data == null) throw new ArgumentNullException("data");
 			if (offset < 0 || offset > Length) throw new ArgumentOutOfRangeException("offset");
 			if (length < 0 || length > Length || length > data.Length) throw new ArgumentOutOfRangeException("length");
@@ -49,9 +52,14 @@ namespace System
 		/// <returns>The total bytes read from the MMF, i.e. the new offset.</returns>
 		/// <exception cref="System.ArgumentNullException">If destination is null.</exception>
 		/// <exception cref="System.ArgumentOutOfRangeException">For offset and destOffset.</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks is on: 
+		/// AttemptToAccessWrongLaneCycle, AttemptToAccessDisposedLane, AttemptToAccessClosedLane
+		/// </exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override int Read(byte[] destination, int offset, int destOffset = 0)
 		{
+			laneCheck();
+
 			if (destination == null) throw new ArgumentNullException("destination");
 			if (offset < 0 || offset >= Length) throw new ArgumentOutOfRangeException("offset");
 			if (destOffset < 0 || destOffset > destination.Length) throw new ArgumentOutOfRangeException("destOffset");
@@ -67,8 +75,13 @@ namespace System
 		/// MemoryMappedViewAccessor window.
 		/// </summary>
 		/// <returns>A Span structure</returns>
+		///  <exception cref="System.MemoryLaneException">If UseAccessChecks is on: 
+		/// AttemptToAccessWrongLaneCycle, AttemptToAccessDisposedLane, AttemptToAccessClosedLane
+		/// </exception>
 		public override unsafe Span<byte> Span()
 		{
+			laneCheck();
+
 			byte* p = null;
 			try
 			{
@@ -87,14 +100,24 @@ namespace System
 		/// </summary>
 		public override void Dispose()
 		{
-			if (destructor != null)
+			if (!isDisposed)
 			{
-				destructor(laneCycle);
-				destructor = null;
+				lane?.ResetOne(laneCycle);
+				lane = null;
 				mmva = null;
+				isDisposed = true;
 			}
 		}
 
+		/// <summary>
+		/// Guards against accessing a disposed, closed or reset lane.
+		/// The default is true.
+		/// </summary>
+		public bool UseAccessChecks
+		{
+			get => useAccessChecks;
+			set { useAccessChecks = value; }
+		}
 		/// <summary>
 		/// The byte offset in the MMF where the fragment starts.
 		/// </summary>
@@ -105,10 +128,7 @@ namespace System
 		protected readonly int length;
 
 		public override int Length => length;
-		public override long LaneCycle => laneCycle;
 
-		readonly long laneCycle;
-		Func<long, bool> destructor;
 		MemoryMappedViewAccessor mmva;
 	}
 }

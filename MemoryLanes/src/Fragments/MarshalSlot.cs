@@ -133,15 +133,18 @@ namespace System
 		/// </summary>
 		public override void Dispose()
 		{
-			if (slotPtr != IntPtr.Zero)
+			if (!isDisposed)
 			{
-				Marshal.FreeHGlobal(slotPtr);
-				slotPtr = IntPtr.Zero;
+				if (slotPtr != IntPtr.Zero)
+				{
+					Marshal.FreeHGlobal(slotPtr);
+					slotPtr = IntPtr.Zero;
+				}
+				isDisposed = true;
 			}
 		}
 
 		public override int Length => length;
-		public override long LaneCycle => 0;
 
 		readonly int length;
 		IntPtr slotPtr;

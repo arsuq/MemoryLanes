@@ -8,13 +8,9 @@ namespace System
 	/// </summary>
 	public class HeapFragment : MemoryFragment
 	{
-		public HeapFragment(Memory<byte> m, long laneCycle, Func<long, bool> dtor)
+		public HeapFragment(Memory<byte> m, HeapLane lane) : base(lane)
 		{
-			if (dtor == null) throw new NullReferenceException("dtor");
-
 			Memory = m;
-			destructor = dtor;
-			this.laneCycle = laneCycle;
 		}
 
 		/// <summary>Writes the bytes in data into the heap fragment.</summary>
@@ -24,9 +20,14 @@ namespace System
 		/// <returns>The new offset, i.e. <c>offset + length</c>.</returns>
 		/// <exception cref="System.ArgumentNullException">If data is null.</exception>
 		/// <exception cref="System.ArgumentOutOfRangeException">If offset and length are out of range.</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks is on: 
+		/// AttemptToAccessWrongLaneCycle, AttemptToAccessDisposedLane, AttemptToAccessClosedLane
+		/// </exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override int Write(byte[] data, int offset, int length)
 		{
+			laneCheck();
+
 			if (data == null) throw new ArgumentNullException("data");
 			if (length < 0 || length > data.Length) throw new ArgumentOutOfRangeException("length");
 			if (offset < 0 || offset + length > Memory.Length) throw new ArgumentOutOfRangeException("offset");
@@ -49,9 +50,14 @@ namespace System
 		/// <returns>The new reading position = offset + the read bytes count.</returns>
 		/// <exception cref="System.ArgumentNullException">If destination is null.</exception>
 		/// <exception cref="System.ArgumentOutOfRangeException">For offset and destOffset.</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks is on: 
+		/// AttemptToAccessWrongLaneCycle, AttemptToAccessDisposedLane, AttemptToAccessClosedLane
+		/// </exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override int Read(byte[] destination, int offset, int destOffset = 0)
 		{
+			laneCheck();
+
 			if (destination == null) throw new ArgumentNullException("destination");
 			if (offset < 0 || offset >= Memory.Length) throw new ArgumentOutOfRangeException("offset");
 			if (destOffset < 0 || destOffset >= destination.Length) throw new ArgumentOutOfRangeException("destOffset");
@@ -69,20 +75,35 @@ namespace System
 
 		public override void Dispose()
 		{
-			if (destructor != null)
+			if (!isDisposed)
 			{
-				destructor(laneCycle);
-				destructor = null;
+				lane?.ResetOne(laneCycle);
+				lane = null;
 				Memory = null;
+				isDisposed = true;
 			}
 		}
 
-		public Memory<byte> Memory;
-		public override Span<byte> Span() => Memory.Span;
-		public override int Length => Memory.Length;
-		public override long LaneCycle => laneCycle;
+		/// <summary>
+		/// Guards against accessing a disposed, closed or reset lane.
+		/// The default is true.
+		/// </summary>
+		public bool UseAccessChecks
+		{
+			get => useAccessChecks;
+			set { useAccessChecks = value; }
+		}
 
-		readonly long laneCycle;
-		Func<long, bool> destructor;
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks is on: 
+		/// AttemptToAccessWrongLaneCycle, AttemptToAccessDisposedLane, AttemptToAccessClosedLane
+		/// </exception>
+		public override Span<byte> Span()
+		{
+			laneCheck();
+			return Memory.Span;
+		}
+
+		public Memory<byte> Memory;
+		public override int Length => Memory.Length;
 	}
 }

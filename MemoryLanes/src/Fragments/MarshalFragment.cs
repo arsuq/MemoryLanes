@@ -8,18 +8,14 @@ namespace System
 	/// </summary>
 	public class MarshalLaneFragment : MemoryFragment
 	{
-
-		public MarshalLaneFragment(int startIdx, int length, IntPtr lane, long laneCycle, Func<long, bool> dtor)
+		public MarshalLaneFragment(int startIdx, int length, IntPtr lPtr, MarshalLane lane) : base(lane)
 		{
 			if (startIdx < 0 || length < 0) throw new ArgumentOutOfRangeException("startIdx or length");
-			if (dtor == null) throw new NullReferenceException("dtor");
-			if (lane == null) throw new NullReferenceException("lane");
+			if (lPtr == null) throw new ArgumentOutOfRangeException("plane");
 
-			StartIdx = startIdx;
 			this.length = length;
-			destructor = dtor;
-			lanePtr = lane;
-			this.laneCycle = laneCycle;
+			StartIdx = startIdx;
+			lanePtr = lPtr;
 		}
 
 		/// <summary>
@@ -29,9 +25,18 @@ namespace System
 		/// <param name="offset">The writing position in the native fragment</param>
 		/// <param name="length">How many bytes from the source to take.</param>
 		/// <returns>The offset + length</returns>
+		/// <exception cref="System.ArgumentNullException">data</exception>
+		/// <exception cref="System.ArgumentOutOfRangeException">For offset and length.</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks is on: 
+		/// AttemptToAccessWrongLaneCycle,
+		/// AttemptToAccessDisposedLane,
+		/// AttemptToAccessClosedLane
+		/// </exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override int Write(byte[] data, int offset, int length)
 		{
+			laneCheck();
+
 			if (data == null) throw new ArgumentNullException("data");
 			if (length < 0 || length > data.Length) throw new ArgumentOutOfRangeException("length");
 			if (offset < 0 || offset + length > Length) throw new ArgumentOutOfRangeException("offset");
@@ -55,9 +60,16 @@ namespace System
 		/// <returns>The total bytes read, i.e. the new offset.</returns>
 		/// <exception cref="System.ArgumentNullException">If destination is null.</exception>
 		/// <exception cref="System.ArgumentOutOfRangeException">For offset and destOffset.</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks is on: 
+		/// AttemptToAccessWrongLaneCycle,
+		/// AttemptToAccessDisposedLane,
+		/// AttemptToAccessClosedLane
+		/// </exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override int Read(byte[] destination, int offset, int destOffset = 0)
 		{
+			laneCheck();
+
 			if (destination == null) throw new ArgumentNullException("destination");
 			if (offset < 0 || offset >= Length) throw new ArgumentOutOfRangeException("offset");
 			if (destOffset < 0 || destOffset >= destination.Length) throw new ArgumentOutOfRangeException("destOffset");
@@ -77,8 +89,15 @@ namespace System
 		/// Creates a Span from a raw pointer marking the beginning of the fragment window.
 		/// </summary>
 		/// <returns>A Span structure</returns>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks is on: 
+		/// AttemptToAccessWrongLaneCycle,
+		/// AttemptToAccessDisposedLane,
+		/// AttemptToAccessClosedLane
+		/// </exception>
 		public override unsafe Span<byte> Span()
 		{
+			laneCheck();
+
 			byte* p = (byte*)lanePtr;
 			p += StartIdx;
 			return new Span<byte>(p, Length);
@@ -89,28 +108,35 @@ namespace System
 		/// </summary>
 		public override void Dispose()
 		{
-			if (destructor != null)
+			if (!isDisposed)
 			{
-				destructor(laneCycle);
-				destructor = null;
+				lane?.ResetOne(laneCycle);
+				lane = null;
 				lanePtr = IntPtr.Zero;
+				isDisposed = true;
 			}
 		}
 
 		/// <summary>
+		/// Guards against accessing a disposed, closed or reset lane.
+		/// The default is true.
+		/// </summary>
+		public bool UseAccessChecks
+		{
+			get => useAccessChecks;
+			set { useAccessChecks = value; }
+		}
+		/// <summary>
 		/// The beginning position within the MarshalLane
 		/// </summary>
 		public readonly int StartIdx;
+		public override int Length => length;
+
 		/// <summary>
 		/// The length of the fragment. 
 		/// </summary>
 		protected readonly int length;
-
-		public override int Length => length;
-		public override long LaneCycle => laneCycle;
-
-		readonly long laneCycle;
-		Func<long,bool> destructor;
+		
 		IntPtr lanePtr;
 	}
 }

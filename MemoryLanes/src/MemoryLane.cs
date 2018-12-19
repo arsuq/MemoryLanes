@@ -143,7 +143,8 @@ namespace System
 		public int Allocations => Volatile.Read(ref allocations);
 		public long LastAllocTick => Volatile.Read(ref lastAllocTick);
 		public bool IsClosed => Volatile.Read(ref isClosed) > 0;
-		public long LaneCycle => Volatile.Read(ref laneCycle);
+		public int LaneCycle => Volatile.Read(ref laneCycle);
+		public bool IsDisposed => Volatile.Read(ref isDisposed);
 
 		public int ALLOC_AWAIT_MS = 10;
 
@@ -151,7 +152,7 @@ namespace System
 		protected int allocations;
 		protected int offset;
 		protected long lastAllocTick;
-		protected long laneCycle;
+		protected int laneCycle;
 
 		SpinLock allocGate = new SpinLock();
 		SpinLock resetGate = new SpinLock();
