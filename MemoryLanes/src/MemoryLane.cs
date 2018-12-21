@@ -81,7 +81,9 @@ namespace System
 
 			if (isLocked)
 			{
-				var newoffset = Offset + size;
+				// Volatile read
+				var oldoffset = Offset;
+				var newoffset = oldoffset + size;
 
 				if (!IsClosed && newoffset < CAP)
 				{
@@ -89,7 +91,7 @@ namespace System
 					Interlocked.Increment(ref allocations);
 					Interlocked.Exchange(ref lastAllocTick, DateTime.Now.Ticks);
 
-					frag = new FragmentRange(offset, size, allocations);
+					frag = new FragmentRange(oldoffset, size, allocations);
 
 					result = true;
 				}

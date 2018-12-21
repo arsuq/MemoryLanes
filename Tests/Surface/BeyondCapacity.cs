@@ -39,7 +39,9 @@ namespace Tests.Surface
 			if (args.ContainsKey("-count")) allocArgs.Count = int.Parse(args["-count"][0]);
 			if (args.ContainsKey("-size")) allocArgs.Count = int.Parse(args["-size"][0]);
 
-			if (allocArgs.Count * allocArgs.Size < 12_000_000)
+			var defHwCap = MemoryLaneSettings.DEF_LANE_CAPACITY * 1.5;
+
+			if (allocArgs.Count * allocArgs.Size < defHwCap)
 			{
 				Passed = false;
 				FailureMessage = "The default highway capacity can handle all fragments. Should test out of the capacity bounds.";

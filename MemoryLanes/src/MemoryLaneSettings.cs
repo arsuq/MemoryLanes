@@ -7,7 +7,7 @@ namespace System
 			: this(defLaneCapacity, maxLanesCount, defLaneCapacity * maxLanesCount, dm) { }
 
 		public MemoryLaneSettings(
-			int defLaneCapacity = 8_000_000,
+			int defLaneCapacity = DEF_LANE_CAPACITY,
 			int maxLanesCount = MAX_COUNT,
 			long maxTotalBytes = MAX_CAPACITY,
 			MemoryLane.DisposalMode dm = MemoryLane.DisposalMode.IDispose)
@@ -59,6 +59,8 @@ namespace System
 		public const int MAX_COUNT = 5000;
 		public const int MIN_CAPACITY = 1023;
 		public const int MAX_CAPACITY = 2_000_000_000;
+		public const int DEF_LANE_CAPACITY = 8_000_000;
+
 
 		/// <summary>
 		/// Controls how many full cycles around all lanes should be made and fail to enter the 
