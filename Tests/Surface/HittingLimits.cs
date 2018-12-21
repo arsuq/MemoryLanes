@@ -13,7 +13,7 @@ namespace Tests.Surface
 
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
-		public bool RequireArgs => false;
+		public bool RequiresArgs => false;
 		public bool IsComplete { get; private set; }
 
 		public async Task Run(IDictionary<string, List<string>> args)

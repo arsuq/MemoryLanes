@@ -34,7 +34,7 @@
 		protected override bool createFragment(MappedLane ml, int size, ref MappedFragment f, int awaitMS) =>
 			ml.TryCreateFragment(size, ref f, awaitMS);
 
-		protected override MappedLane createLane(int size) => new MappedLane(size);
+		protected override MappedLane createLane(int size) => new MappedLane(size, null, settings.Disposal);
 
 		static int[] DEF_MMF_LANES = new int[] { 8_000_000, 4_000_000 };
 	}

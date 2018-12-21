@@ -44,10 +44,10 @@ namespace System
 		/// Code.SizeOutOfRange: when at least one of the lengths is outside the 
 		/// MemoryLaneSettings.MIN_CAPACITY - MemoryLaneSettings.MAX_CAPACITY interval.
 		/// </exception>
-		/// <exception cref="System.ArgumentOutOfRangeException">If count is outside the 1-MemoryLaneSettings.MAX_COUNT interval </exception>
+		/// <exception cref="System.ArgumentOutOfRangeException">If notNullsCount is outside the 1-MemoryLaneSettings.MAX_COUNT interval </exception>
 		public void Create(int count)
 		{
-			if (count < 1 || count > MemoryLaneSettings.MAX_COUNT) throw new ArgumentOutOfRangeException("count");
+			if (count < 1 || count > MemoryLaneSettings.MAX_COUNT) throw new ArgumentOutOfRangeException("notNullsCount");
 
 			for (int i = 0; i < count; i++)
 				allocLane(settings.DefaultCapacity);
@@ -167,7 +167,7 @@ namespace System
 		}
 
 		/// <summary>
-		/// Gets the Lanes count.
+		/// Gets the Lanes notNullsCount.
 		/// </summary>
 		/// <returns>The number of preallocated lanes.</returns>
 		public int GetLanesCount() => Lanes.Count;

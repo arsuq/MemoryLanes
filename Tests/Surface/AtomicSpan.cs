@@ -15,7 +15,7 @@ namespace Tests.Surface
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
 		public bool IsComplete { get; private set; }
-		public bool RequireArgs => false;
+		public bool RequiresArgs => false;
 
 		public Task Run(IDictionary<string, List<string>> args)
 		{

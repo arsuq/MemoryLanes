@@ -3,10 +3,14 @@ namespace System
 {
 	public class MemoryLaneSettings
 	{
+		public MemoryLaneSettings(int defLaneCapacity, int maxLanesCount, MemoryLane.DisposalMode dm)
+			: this(defLaneCapacity, maxLanesCount, defLaneCapacity * maxLanesCount, dm) { }
+
 		public MemoryLaneSettings(
 			int defLaneCapacity = 8_000_000,
 			int maxLanesCount = MAX_COUNT,
-			long maxTotalBytes = 2_000_000_000)
+			long maxTotalBytes = MAX_CAPACITY,
+			MemoryLane.DisposalMode dm = MemoryLane.DisposalMode.IDispose)
 		{
 			if (defLaneCapacity > MIN_CAPACITY && defLaneCapacity < MAX_CAPACITY)
 				DefaultCapacity = defLaneCapacity;
@@ -18,7 +22,7 @@ namespace System
 				MaxLanesCount = maxLanesCount;
 			else throw new MemoryLaneException(
 				MemoryLaneException.Code.MissingOrInvalidArgument,
-				"Invalid lane count.");
+				"Invalid lane notNullsCount.");
 
 			if (maxTotalBytes > MIN_CAPACITY)
 				MaxTotalAllocatedBytes = maxTotalBytes;
@@ -27,6 +31,7 @@ namespace System
 				"Invalid total bytes value.");
 
 			NextCapacity = (i) => DefaultCapacity;
+			Disposal = dm;
 		}
 
 		/// <summary>
@@ -80,5 +85,10 @@ namespace System
 		/// Will trigger a Dispose() before process exits. True by default.
 		/// </summary>
 		public bool RegisterForProcessExitCleanup = true;
+
+		/// <summary>
+		/// Specifies the disposal mode.
+		/// </summary>
+		public readonly MemoryLane.DisposalMode Disposal;
 	}
 }

@@ -1,29 +1,70 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
 
 namespace System
 {
-	public struct FragmentRange
-	{
-		public FragmentRange(int offset, int length)
-		{
-			Offset = offset;
-			Length = length;
-		}
-
-		public int EndOffset => Offset + Length;
-
-		// Should be long, but Memory<T> uses int for now
-		public int Offset;
-		public int Length;
-	}
-
 	public abstract class MemoryLane : IDisposable
 	{
-		public MemoryLane(int capacity)
+		public struct FragmentRange
+		{
+			public FragmentRange(int offset, int length, int allocation)
+			{
+				Offset = offset;
+				Length = length;
+				Allocation = allocation;
+			}
+
+			public int EndOffset => Offset + Length;
+
+			// Should be long, but Memory<T> uses int for now
+			public int Offset;
+			public int Length;
+			public int Allocation;
+		}
+
+		struct FragTracker
+		{
+			public FragTracker(MemoryFragment f)
+			{
+				FragmentRef = new WeakReference<MemoryFragment>(f, false);
+				LaneCycle = f.LaneCycle;
+			}
+
+			public readonly WeakReference<MemoryFragment> FragmentRef;
+			public readonly int LaneCycle;
+		}
+
+		/// <summary>
+		/// Determines the way lanes deal with fragment deallocation.
+		/// </summary>
+		public enum DisposalMode : int
+		{
+			/// <summary>
+			/// If the consumer forgets to call dispose on a fragment,
+			/// the lane will never reset unless forced.
+			/// </summary>
+			IDispose = 0,
+			/// <summary>
+			/// The lane will track all fragments into a special collection
+			/// of weak refs, so when the GC collects the non-disposed fragments
+			/// the lane can deallocate the correct amount and reset.
+			/// </summary>
+			Reliable = 1,
+			/// <summary>
+			/// The fragment's dispose will do nothing. The only way to decrease 
+			/// the Allocations in a lane is by calling ResetOne(). All synchronization
+			/// and coordination is a consumer's responsibility. 
+			/// </summary>
+			ResetOnly = 2,
+		}
+
+		public MemoryLane(int capacity, DisposalMode dm)
 		{
 			if (capacity < MemoryLaneSettings.MIN_CAPACITY || capacity > MemoryLaneSettings.MAX_CAPACITY)
 				throw new MemoryLaneException(MemoryLaneException.Code.SizeOutOfRange);
+
+			Disposal = dm;
 		}
 
 		public bool Alloc(int size, ref FragmentRange frag, int awaitMS = -1)
@@ -44,11 +85,11 @@ namespace System
 
 				if (!IsClosed && newoffset < CAP)
 				{
-					frag = new FragmentRange(offset, size);
-
 					Interlocked.Exchange(ref offset, newoffset);
 					Interlocked.Increment(ref allocations);
 					Interlocked.Exchange(ref lastAllocTick, DateTime.Now.Ticks);
+
+					frag = new FragmentRange(offset, size, allocations);
 
 					result = true;
 				}
@@ -70,7 +111,74 @@ namespace System
 		/// </remarks>
 		/// <param name="cycle">The laneCycle at the time of the fragment creation.</param>
 		/// <returns>True if decrements one.</returns>
-		public bool ResetOne(long cycle)
+		/// <exception cref="System.MemoryLaneException">IncorrectDisposalMode if the Disposal is not ResetOnly.</exception>
+		public bool ResetOne(int cycle)
+		{
+			if (Disposal != DisposalMode.ResetOnly)
+				throw new MemoryLaneException(MemoryLaneException.Code.IncorrectDisposalMode);
+
+			return resetOne(cycle);
+		}
+
+		/// <summary>
+		/// Triggers deallocation of ghost fragments, i.e. never disposed and GC collected. 
+		/// If the fragments are still alive, this method will not free their slots. 
+		/// </summary>
+		/// <returns>The number of deallocations.</returns>
+		public int FreeGhosts()
+		{
+			int freed = 0;
+
+			lock (trackLock)
+			{
+				var gone = new List<FragTracker>();
+
+				foreach (var t in Tracker)
+				{
+					// It's gone 
+					if (!t.FragmentRef.TryGetTarget(out MemoryFragment f) || f == null)
+					{
+						// Save one reset spinLock wait if it's the wrong lane
+						if (t.LaneCycle == LaneCycle)
+						{
+							resetOne(f.LaneCycle);
+							gone.Add(t);
+						}
+					}
+					else if (t.LaneCycle != LaneCycle)
+					{
+
+					}
+				}
+
+				if (gone.Count > 0)
+					foreach (var t in gone)
+						if (Tracker.Remove(t)) freed++;
+			}
+
+			return freed;
+		}
+
+		/// <summary>
+		/// Free is called from the fragment's Dispose method.
+		/// If the lane DisposalMode is not IDispose this method does nothing.
+		/// </summary>
+		/// <param name="cycle">The lane cycle given to the fragment at creation time.</param>
+		protected void free(int cycle, int allocation)
+		{
+			if (Disposal == DisposalMode.IDispose)
+				resetOne(cycle);
+		}
+
+		protected void track(MemoryFragment f)
+		{
+			lock (trackLock)
+			{
+				Tracker.Add(new FragTracker(f));
+			}
+		}
+
+		bool resetOne(int cycle)
 		{
 			bool isLocked = false;
 			bool result = false;
@@ -154,8 +262,15 @@ namespace System
 		protected long lastAllocTick;
 		protected int laneCycle;
 
+		public readonly DisposalMode Disposal;
+
+		// The Tracker index is the Allocation index of the fragment
+		List<FragTracker> Tracker = new List<FragTracker>();
+
 		SpinLock allocGate = new SpinLock();
 		SpinLock resetGate = new SpinLock();
+		object trackLock = new object();
+
 		int isClosed;
 	}
 }

@@ -8,7 +8,8 @@ namespace System
 	/// </summary>
 	public class MappedFragment : MemoryFragment
 	{
-		public MappedFragment(long startIdx, int length, MemoryMappedViewAccessor va, MappedLane lane) : base(lane)
+		public MappedFragment(long startIdx, int length, MemoryMappedViewAccessor va, MappedLane lane, Action dtor)
+			: base(lane, dtor)
 		{
 			StartIdx = startIdx;
 			this.length = length;
@@ -102,7 +103,7 @@ namespace System
 		{
 			if (!isDisposed)
 			{
-				lane?.ResetOne(laneCycle);
+				Destructor();
 				lane = null;
 				mmva = null;
 				isDisposed = true;

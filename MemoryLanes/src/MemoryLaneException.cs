@@ -18,7 +18,8 @@ namespace System
 			LaneNegativeReset,
 			AttemptToAccessWrongLaneCycle,
 			AttemptToAccessDisposedLane,
-			AttemptToAccessClosedLane
+			AttemptToAccessClosedLane,
+			IncorrectDisposalMode 
 		}
 
 		public MemoryLaneException() { }

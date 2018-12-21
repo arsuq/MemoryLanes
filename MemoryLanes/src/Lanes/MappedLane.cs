@@ -7,7 +7,9 @@ namespace System
 {
 	public class MappedLane : MemoryLane
 	{
-		public MappedLane(int capacity, string filename = null) : base(capacity)
+		public MappedLane(int capacity) : this(capacity, null, DisposalMode.IDispose) { }
+
+		public MappedLane(int capacity, string filename, DisposalMode dm) : base(capacity, dm)
 		{
 			laneCapacity = capacity;
 			if (string.IsNullOrEmpty(filename)) FileID = string.Format("MMF-{0}K-{1}", capacity / 1024, Guid.NewGuid().ToString().Substring(0, 8));
@@ -23,7 +25,7 @@ namespace System
 
 			if (Alloc(size, ref fr, awaitMS))
 			{
-				frag = new MappedFragment(fr.Offset, fr.Length, mmva, this);
+				frag = new MappedFragment(fr.Offset, fr.Length, mmva, this, () => free(laneCycle, fr.Allocation));
 				return true;
 			}
 			else return false;

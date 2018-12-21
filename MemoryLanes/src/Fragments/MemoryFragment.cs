@@ -6,9 +6,10 @@ namespace System
 	{
 		public MemoryFragment() { }
 
-		public MemoryFragment(MemoryLane lane)
+		public MemoryFragment(MemoryLane lane, Action dtor)
 		{
 			this.lane = lane ?? throw new ArgumentNullException("lane");
+			Destructor = dtor ?? throw new ArgumentNullException("dtor");
 			laneCycle = lane.LaneCycle;
 		}
 
@@ -19,7 +20,7 @@ namespace System
 		public abstract void Dispose();
 
 		public bool IsDisposed => isDisposed;
-		public long LaneCycle => laneCycle;
+		public int LaneCycle => laneCycle;
 
 		protected void laneCheck()
 		{
@@ -42,5 +43,6 @@ namespace System
 		protected MemoryLane lane;
 		protected readonly int laneCycle;
 		protected bool isDisposed;
+		protected readonly Action Destructor;
 	}
 }

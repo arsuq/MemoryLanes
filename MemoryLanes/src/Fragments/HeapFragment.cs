@@ -8,7 +8,7 @@ namespace System
 	/// </summary>
 	public class HeapFragment : MemoryFragment
 	{
-		public HeapFragment(Memory<byte> m, HeapLane lane) : base(lane)
+		public HeapFragment(Memory<byte> m, HeapLane lane, Action dtor) : base(lane, dtor)
 		{
 			Memory = m;
 		}
@@ -47,7 +47,7 @@ namespace System
 		/// <param name="destination">The buffer where the MMF data goes to.</param>
 		/// <param name="offset">The reading starts at offset.</param>
 		/// <param name="destOffset">The writing starts at destOffset.</param>
-		/// <returns>The new reading position = offset + the read bytes count.</returns>
+		/// <returns>The new reading position = offset + the read bytes notNullsCount.</returns>
 		/// <exception cref="System.ArgumentNullException">If destination is null.</exception>
 		/// <exception cref="System.ArgumentOutOfRangeException">For offset and destOffset.</exception>
 		/// <exception cref="System.MemoryLaneException">If UseAccessChecks is on: 
@@ -77,7 +77,7 @@ namespace System
 		{
 			if (!isDisposed)
 			{
-				lane?.ResetOne(laneCycle);
+				Destructor();
 				lane = null;
 				Memory = null;
 				isDisposed = true;

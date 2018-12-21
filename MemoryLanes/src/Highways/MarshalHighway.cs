@@ -32,7 +32,7 @@
 		protected override bool createFragment(MarshalLane ml, int size, ref MarshalLaneFragment f, int awaitMS) =>
 			ml.TryCreateFragment(size, ref f, awaitMS);
 
-		protected override MarshalLane createLane(int size) => new MarshalLane(size);
+		protected override MarshalLane createLane(int size) => new MarshalLane(size, settings.Disposal);
 
 		static int[] DEF_NHEAP_LANES = new int[] { 8_000_000, 4_000_000 };
 	}

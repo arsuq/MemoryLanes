@@ -8,7 +8,7 @@ namespace System
 	/// </summary>
 	public class MarshalLaneFragment : MemoryFragment
 	{
-		public MarshalLaneFragment(int startIdx, int length, IntPtr lPtr, MarshalLane lane) : base(lane)
+		public MarshalLaneFragment(int startIdx, int length, IntPtr lPtr, MarshalLane lane, Action dtor) : base(lane, dtor)
 		{
 			if (startIdx < 0 || length < 0) throw new ArgumentOutOfRangeException("startIdx or length");
 			if (lPtr == null) throw new ArgumentOutOfRangeException("plane");
@@ -110,7 +110,7 @@ namespace System
 		{
 			if (!isDisposed)
 			{
-				lane?.ResetOne(laneCycle);
+				Destructor();
 				lane = null;
 				lanePtr = IntPtr.Zero;
 				isDisposed = true;
@@ -136,7 +136,7 @@ namespace System
 		/// The length of the fragment. 
 		/// </summary>
 		protected readonly int length;
-		
+
 		IntPtr lanePtr;
 	}
 }

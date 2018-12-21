@@ -16,7 +16,7 @@ namespace Tests.Surface
 			"Example client: -mode c -mc 200 -ms 1024 -r" + Environment.NewLine +
 			"Example server: -mode s";
 
-		public bool RequireArgs => true;
+		public bool RequiresArgs => true;
 		public string FailureMessage => string.Empty;
 		public bool? Passed => passed;
 		public bool IsComplete { get; private set; }

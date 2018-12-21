@@ -10,7 +10,7 @@ namespace System.Collections.Concurrent
 	public class ConcurrentFixedArray<T> where T : class
 	{
 		/// <summary>
-		/// Fixes the length. It will never change.
+		/// Fixes the length.
 		/// </summary>
 		/// <param name="capacity">The total length.</param>
 		public ConcurrentFixedArray(int capacity) => array = new T[capacity];
@@ -28,32 +28,31 @@ namespace System.Collections.Concurrent
 		public int Count => Volatile.Read(ref count);
 
 		/// <summary>
-		/// The array length
+		/// The array length.
 		/// </summary>
 		public int Capacity => array.Length;
 
 		/// <summary>
-		/// Access the individual cells.
-		/// The setter updates the appendPos if the index is bigger which could lead to 
-		/// lost append cells for the Append() only adds items after AppendPos.
-		/// If the setter value is null and the updated cell is not null the Count will be decremented.
-		/// If the setter value is not null the Counter is incremented.
+		/// Access to the individual cells.
 		/// </summary>
-		/// <remarks>
-		/// Use either Append/RemoveLast or the indexer; mixed access could  
-		/// </remarks>
-		/// <param name="index">The position in the array</param>
+		/// <param name="index">The position in the array, 
+		/// must be less than the AppendPos for setting and less than Capacity for getting.</param>
 		/// <returns>The object reference at the index</returns>
-		/// <exception cref="ArgumentOutOfRangeException">index</exception>
+		/// <exception cref="ArgumentOutOfRangeException">If the index is negative or greater than the AppendPos.</exception>
 		public T this[int index]
 		{
-			get => Volatile.Read(ref array[index]);
-			set
+			get
 			{
 				if (index < 0 || index > array.Length)
 					throw new ArgumentOutOfRangeException("index");
 
-				if (index > AppendPos) Interlocked.Exchange(ref appendPos, index);
+				return Volatile.Read(ref array[index]);
+			}
+			set
+			{
+				if (index < 0 || index > AppendPos)
+					throw new ArgumentOutOfRangeException("index");
+
 				var original = Interlocked.Exchange<T>(ref array[index], value);
 				if (value != null) Interlocked.Increment(ref count);
 				else if (original != null) Interlocked.Decrement(ref count);
@@ -71,8 +70,22 @@ namespace System.Collections.Concurrent
 
 			if (item != null)
 			{
-				pos = Interlocked.Increment(ref appendPos);
-				this[pos] = item;
+				bool isLocked = false;
+				spin.Enter(ref isLocked);
+
+				if (isLocked)
+				{
+					pos = Interlocked.Increment(ref appendPos);
+					Interlocked.Exchange<T>(ref array[pos], item);
+					Interlocked.Increment(ref count);
+
+					spin.Exit();
+				}
+				else
+				{
+					spin.Exit();
+					throw new IndexOutOfRangeException("Nothing to remove.");
+				}
 			}
 
 			return pos;
@@ -87,16 +100,29 @@ namespace System.Collections.Concurrent
 		/// <returns>The removed item.</returns>
 		public T RemoveLast(out int pos)
 		{
-			T theItem = null;
-			pos = Interlocked.Decrement(ref appendPos);
+			bool isLocked = false;
+			spin.Enter(ref isLocked);
 
-			if (pos >= 0)
+			if (isLocked)
 			{
-				theItem = this[pos];
-				this[pos] = null;
-			}
+				pos = AppendPos;
 
-			return theItem;
+				if (pos >= 0)
+				{
+					Interlocked.Decrement(ref count);
+					var removed = Interlocked.Exchange<T>(ref array[pos], null);
+					Interlocked.Decrement(ref appendPos);
+					spin.Exit();
+
+					return removed;
+				}
+				else
+				{
+					spin.Exit();
+					throw new IndexOutOfRangeException("Nothing to remove.");
+				}
+			}
+			else throw new ApplicationException("Failed to acquire the spin lock.");
 		}
 
 		/// <summary>
@@ -113,11 +139,33 @@ namespace System.Collections.Concurrent
 
 			if (idx >= 0)
 			{
-				this[idx] = null;
+				Interlocked.Exchange<T>(ref array[idx], null);
+				Interlocked.Decrement(ref count);
+
 				return true;
 			}
 
 			return false;
+		}
+
+		/// <summary>
+		/// Resets the AppendPos and count
+		/// </summary>
+		/// <param name="newsize">If greater than 0 allocates a new array.</param>
+		public void Reset(int newsize = 0)
+		{
+			bool isLocked = false;
+			spin.Enter(ref isLocked);
+
+			if (isLocked)
+			{
+				Interlocked.Exchange(ref appendPos, -1);
+				Interlocked.Exchange(ref count, 0);
+				if (newsize > 0) Interlocked.Exchange(ref array, new T[newsize]);
+
+				spin.Exit();
+			}
+			else throw new ApplicationException("Failed to acquire the spin lock.");
 		}
 
 		/// <summary>
@@ -127,14 +175,10 @@ namespace System.Collections.Concurrent
 		/// <returns>A not null item.</returns>
 		public IEnumerable<T> Items()
 		{
-			T item = null;
 			var LEN = AppendPos;
 			for (int i = 0; i <= LEN; i++)
-			{
-				item = this[i];
-				if (item != null)
-					yield return item;
-			}
+				if (Volatile.Read(ref array[i]) != null)
+					yield return array[i];
 		}
 
 		/// <summary>
@@ -145,13 +189,15 @@ namespace System.Collections.Concurrent
 		/// <returns>A positive value if the item is found, -1 otherwise.</returns>
 		public int IndexOf(T item)
 		{
-			for (var i = 0; i <= AppendPos; i++)
-				if (this[i] == item)
+			var LEN = AppendPos;
+			for (var i = 0; i <= LEN; i++)
+				if (Volatile.Read(ref array[i]) == item)
 					return i;
 
 			return -1;
 		}
 
+		SpinLock spin = new SpinLock();
 		T[] array = null;
 		int appendPos = -1;
 		int count;

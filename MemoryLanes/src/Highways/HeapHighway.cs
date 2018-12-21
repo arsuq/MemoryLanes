@@ -33,7 +33,7 @@
 		protected override bool createFragment(HeapLane ml, int size, ref HeapFragment f, int awaitMS) =>
 			ml.TryCreateFragment(size, ref f, awaitMS);
 
-		protected override HeapLane createLane(int size) => new HeapLane(size);
+		protected override HeapLane createLane(int size) => new HeapLane(size, settings.Disposal);
 
 		static int[] DEF_HEAP_LANES = new int[] { 8_000_000, 4_000_000 };
 	}

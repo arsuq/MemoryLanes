@@ -4,7 +4,7 @@ namespace System
 {
 	public class HeapLane : MemoryLane
 	{
-		public HeapLane(int capacity) : base(capacity)
+		public HeapLane(int capacity, DisposalMode dm) : base(capacity, dm)
 		{
 			lane = new byte[capacity];
 		}
@@ -17,7 +17,7 @@ namespace System
 			if (Alloc(size, ref fr, awaitMS))
 			{
 				var mem = new Memory<byte>(lane, fr.Offset, fr.Length);
-				frag = new HeapFragment(mem, this);
+				frag = new HeapFragment(mem, this, () => free(laneCycle, fr.Allocation));
 				return true;
 			}
 			else return false;

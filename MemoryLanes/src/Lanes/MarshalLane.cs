@@ -6,7 +6,7 @@ namespace System
 {
 	public class MarshalLane : MemoryLane
 	{
-		public MarshalLane(int capacity) : base(capacity)
+		public MarshalLane(int capacity, DisposalMode dm) : base(capacity, dm)
 		{
 			lanePtr = Marshal.AllocHGlobal(capacity);
 			Capacity = capacity;
@@ -19,7 +19,10 @@ namespace System
 
 			if (Alloc(size, ref fr, awaitMS))
 			{
-				frag = new MarshalLaneFragment(fr.Offset, fr.Length, lanePtr, this);
+				frag = new MarshalLaneFragment(
+					fr.Offset, fr.Length, lanePtr, this, 
+					() => free(laneCycle, fr.Allocation));
+
 				return true;
 			}
 			else return false;
