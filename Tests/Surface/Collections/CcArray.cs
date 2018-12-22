@@ -8,9 +8,9 @@ using TestRunner;
 
 namespace Tests.Surface.Collections
 {
-	public class CCSequence : ITestSurface
+	public class CCArray : ITestSurface
 	{
-		public string Info => "Tests the ConcurrentSequence class.";
+		public string Info => "Tests the ConcurrentArray class.";
 
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
@@ -22,7 +22,7 @@ namespace Tests.Surface.Collections
 			try
 			{
 				var rdm = new Random();
-				var ccfas = new ConcurrentSequence<object>(10);
+				var ccfas = new ConcurrentArray<object>(10);
 
 				Parallel.For(0, 100, (i) =>
 				{
@@ -110,6 +110,36 @@ namespace Tests.Surface.Collections
 				}
 
 				"OK: Resize() expanding".AsTestSuccess();
+
+
+				var ccaexp = new ConcurrentArray<object>(10, 1, (len) => len < 20 ? len * 2 : Convert.ToInt32(len * 1.5));
+
+				for (int i = 0; i < 50; i++)
+				{
+					ccaexp.Append(i);
+
+					if (i == 10)
+					{
+						if (ccaexp.Capacity != 20)
+						{
+							Passed = false;
+							FailureMessage = $"Expansion is wrong, Expected 20, got {ccaexp.Capacity}";
+							return;
+						}
+					}
+
+					if (i == 20)
+					{
+						if (ccaexp.Capacity != 30)
+						{
+							Passed = false;
+							FailureMessage = $"Expansion is wrong, Expected 30, got {ccaexp.Capacity}";
+							return;
+						}
+					}
+				}
+
+				"OK: Custom growth".AsTestSuccess();
 
 				Passed = true;
 				IsComplete = true;

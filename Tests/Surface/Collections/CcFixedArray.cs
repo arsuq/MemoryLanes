@@ -10,7 +10,7 @@ namespace Tests.Surface.Collections
 {
 	public class CCFixedArray : ITestSurface
 	{
-		public string Info => "Tests the ConcurrentSequence class.";
+		public string Info => "Tests the ConcurrentArray class.";
 
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }

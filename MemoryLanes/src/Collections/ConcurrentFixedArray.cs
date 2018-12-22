@@ -4,7 +4,9 @@ using System.Threading;
 namespace System.Collections.Concurrent
 {
 	/// <summary>
-	/// A fixed length array with a simple API to get/set object references.
+	/// Provides a simple thread safe API for accessing a fixed length array.
+	/// All methods use atomic operations, only Append and RemoveLast are 
+	/// spin lock protected.
 	/// </summary>
 	/// <typeparam name="T">Must be a class</typeparam>
 	public class ConcurrentFixedArray<T> where T : class
@@ -16,9 +18,7 @@ namespace System.Collections.Concurrent
 		public ConcurrentFixedArray(int capacity) => array = new T[capacity];
 
 		/// <summary>
-		/// The biggest Add or set offset. It can only increase up to the capacity.
-		/// Using the indexer may create holes in the array as it shifts the appendPos
-		/// and all subsequent appends will queue after that position.
+		/// The last Append position. It can only increase up to the capacity.
 		/// </summary>
 		public int AppendPos => Volatile.Read(ref appendPos);
 
@@ -64,6 +64,7 @@ namespace System.Collections.Concurrent
 		/// </summary>
 		/// <param name="item">The object reference</param>
 		/// <returns>The index of the item</returns>
+		/// <exception cref="System.SynchronizationException">If fails to take the lock.</exception>
 		public int Append(T item)
 		{
 			var pos = -1;
@@ -81,11 +82,7 @@ namespace System.Collections.Concurrent
 
 					spin.Exit();
 				}
-				else
-				{
-					spin.Exit();
-					throw new IndexOutOfRangeException("Nothing to remove.");
-				}
+				else throw new SynchronizationException(SynchronizationException.Code.LockAcquisition);
 			}
 
 			return pos;
@@ -98,6 +95,8 @@ namespace System.Collections.Concurrent
 		/// </summary>
 		/// <param name="pos">The item position.</param>
 		/// <returns>The removed item.</returns>
+		/// <exception cref="System.SynchronizationException">If fails to take the lock.</exception>
+		/// <exception cref="System.InvalidOperationException">If there are no items.</exception>
 		public T RemoveLast(out int pos)
 		{
 			bool isLocked = false;
@@ -119,16 +118,21 @@ namespace System.Collections.Concurrent
 				else
 				{
 					spin.Exit();
-					throw new IndexOutOfRangeException("Nothing to remove.");
+
+					throw new InvalidOperationException("Nothing to remove");
 				}
 			}
-			else throw new ApplicationException("Failed to acquire the spin lock.");
+			else throw new SynchronizationException(SynchronizationException.Code.LockAcquisition);
 		}
 
 		/// <summary>
-		/// Looks for the item and nulls the array cell, 
-		/// this will decrement the Count value.
+		/// First searches for the item index and then nulls the array cell and decrements the Count.
 		/// </summary>
+		/// <remarks>
+		/// Because there is no lock protection, the same cell could be 
+		/// updated before the atomic null exchange by another thread,
+		/// thus overriding the new value as null.
+		/// </remarks>
 		/// <param name="item">The object reference</param>
 		/// <returns>True if found and null-ed</returns>
 		public bool Remove(T item)
@@ -149,9 +153,10 @@ namespace System.Collections.Concurrent
 		}
 
 		/// <summary>
-		/// Resets the AppendPos and count
+		/// Resets the AppendPos to -1 and the Count to 0.
 		/// </summary>
 		/// <param name="newsize">If greater than 0 allocates a new array.</param>
+		/// <exception cref="System.SynchronizationException">If fails to take the lock.</exception>
 		public void Reset(int newsize = 0)
 		{
 			bool isLocked = false;
@@ -165,11 +170,11 @@ namespace System.Collections.Concurrent
 
 				spin.Exit();
 			}
-			else throw new ApplicationException("Failed to acquire the spin lock.");
+			else throw new SynchronizationException(SynchronizationException.Code.LockAcquisition);
 		}
 
 		/// <summary>
-		/// Iterates all cells from 0 up to AppendPos and yields the 
+		/// Iterates all cells from 0 up to AppendPos (inclusive) and yields the 
 		/// item if it's not null at the time of the check.
 		/// </summary>
 		/// <returns>A not null item.</returns>

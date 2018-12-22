@@ -10,6 +10,7 @@ namespace System
 		int GetTotalActiveFragments();
 		int GetTotalCapacity();
 		int GetLanesCount();
+		int GetLastLaneIndex();
 		long LastAllocTickAnyLane { get; }
 		IReadOnlyList<MemoryLane> GetLanes();
 		MemoryLane this[int index] { get; }
@@ -105,7 +106,6 @@ namespace System
 					var lane = Lanes[i];
 					if (lane != null && createFragment(lane, size, ref frag, awaitMS))
 					{
-
 						Interlocked.Exchange(ref lastAllocTickAnyLane, DateTime.Now.Ticks);
 						return frag;
 					}
@@ -148,9 +148,12 @@ namespace System
 		public int GetTotalActiveFragments()
 		{
 			// It's fine not to lock because the lanes could only increase
-			var lc = Lanes.Count;
+			var lc = Lanes.AppendPos;
 			var c = 0;
-			for (int i = 0; i < lc; i++) c += Lanes[i].Allocations;
+			for (int i = 0; i <= lc; i++)
+				if (Lanes[i] != null)
+					c += Lanes[i].Allocations;
+
 			return c;
 		}
 
@@ -160,9 +163,12 @@ namespace System
 		/// <returns>The total preallocated space for the highway.</returns>
 		public int GetTotalCapacity()
 		{
-			var lc = Lanes.Count;
+			var lc = Lanes.AppendPos;
 			var cap = 0;
-			for (int i = 0; i < lc; i++) cap += Lanes[i].LaneCapacity;
+			for (int i = 0; i <= lc; i++)
+				if (Lanes[i] != null)
+					cap += Lanes[i].LaneCapacity;
+
 			return cap;
 		}
 
@@ -172,25 +178,32 @@ namespace System
 		/// <returns>The number of preallocated lanes.</returns>
 		public int GetLanesCount() => Lanes.Count;
 
+
+		/// <summary>
+		/// Returns the array.AppendPos value, i.e. the furthest index in the Lanes array.
+		/// </summary>
+		/// <returns>The number of preallocated lanes.</returns>
+		public int GetLastLaneIndex() => Lanes.AppendPos;
+
+
 		/// <summary>
 		/// Creates a new List instance with the selection of all non null cells in the underlying array.
 		/// This is a relatively expensive operation, depending on the array length and the AppendPos value, so
-		/// you may consider using the indexer instead.
+		/// one may consider using the indexer instead.
 		/// </summary>
 		/// <returns>A read only list of MemoryLane objects.</returns>
 		public IReadOnlyList<MemoryLane> GetLanes() => new List<MemoryLane>(Lanes.Items());
 
 		/// <summary>
 		/// Get a specific lane.
-		/// Use this method instead of GetLanes() which 
 		/// </summary>
-		/// <param name="index"></param>
+		/// <param name="index">The index must be less than the LastLaneIndex value. </param>
 		/// <returns>The Lane</returns>
 		public L this[int index]
 		{
 			get
 			{
-				if (index < 0 || index > Lanes.Capacity) throw new ArgumentOutOfRangeException("index");
+				if (index < 0 || index > Lanes.AppendPos) throw new ArgumentOutOfRangeException("index");
 				return Lanes[index];
 			}
 		}

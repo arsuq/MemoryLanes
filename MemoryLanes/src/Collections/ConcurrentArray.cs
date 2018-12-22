@@ -8,29 +8,27 @@ using System.Threading;
 namespace System.Collections.Concurrent
 {
 	/// <summary>
-	/// Creates a chained sequence of fixed sized arrays, which can be
-	/// accessed as one virtual contiguous array. It's thread safe.
+	/// Represents an ordered list of fixed sized arrays as one virtual contiguous array. 
+	/// It's thread safe.
 	/// </summary>
 	/// <remarks>
-	/// Growing allocates as much new arrays as needed with the same BaseLength size,
-	/// there is no copying of old arrays' data, only their references are copied into a
-	/// bigger collection, i.e. the sequence.
-	/// There synchronization mechanism is ReaderWriterLockSlim lock such that 
-	/// all methods except Append() acquire read locks, only when more space is needed
-	/// the write lock is held.
+	/// Growing allocates as much new arrays as configured, each with the same BaseLength size.
+	/// The synchronization mechanism is ReaderWriterLockSlim lock such that all methods 
+	/// except Append() and Resize() acquire read locks.
 	/// </remarks>
 	/// <typeparam name="T">A class.</typeparam>
-	public class ConcurrentSequence<T> where T : class
+	public class ConcurrentArray<T> where T : class
 	{
-		public ConcurrentSequence(int baseLength, int count = 1)
+		public ConcurrentArray(int baseLength, int count = 1, Func<int, int> expansionLen = null)
 		{
 			if (baseLength < 1) throw new ArgumentException("BaseLength");
 			if (count < 1) throw new ArgumentException("notNullsCount");
+			if (expansionLen != null) ExpansionLength = expansionLen;
 
 			this.BaseLength = baseLength;
 			for (int i = 0; i < count; i++)
 			{
-				sequence.Add(new T[baseLength]);
+				blocks.Add(new T[baseLength]);
 				combinedLength += baseLength;
 			}
 		}
@@ -56,17 +54,29 @@ namespace System.Collections.Concurrent
 		public int Capacity => Volatile.Read(ref combinedLength);
 
 		/// <summary>
+		/// Will be called before allocating more space, providing the current length as an argument.
+		/// The returned value is desired new total length.
+		/// The default growth factor is 1.8.
+		/// </summary>
+		/// <remarks>
+		/// Use this callback to fine tune the amount of blocked memory and/or the allocation time.
+		/// The expansion happens in exclusive mode so one may want to minimize the total 
+		/// number of resizings. By providing different growth factors depending on the current size,
+		/// one can create a best fitting nonlinear allocation curve.
+		/// </remarks>
+		Func<int, int> ExpansionLength = (c) => Convert.ToInt32(c * 1.8);
+
+		/// <summary>
 		/// Access to the individual cells.
 		/// </summary>
-		/// <param name="index">Must be less than AppendPos when setting
-		/// and less than Capacity for a get.</param>
+		/// <param name="index">Must be less than AppendPos</param>
 		/// <returns>The object reference at the index</returns>
 		/// <exception cref="ArgumentOutOfRangeException">index</exception>
 		public T this[int index]
 		{
 			get
 			{
-				if (index < 0 || index > Capacity)
+				if (index < 0 || index > AppendPos)
 					throw new ArgumentOutOfRangeException("index");
 
 				gate.EnterReadLock();
@@ -75,7 +85,7 @@ namespace System.Collections.Concurrent
 				int seq = -1, idx = -1;
 				Index2Seq(index, ref seq, ref idx);
 
-				var r = Volatile.Read(ref sequence[seq][idx]);
+				var r = Volatile.Read(ref blocks[seq][idx]);
 
 				gate.ExitReadLock();
 
@@ -92,7 +102,7 @@ namespace System.Collections.Concurrent
 				int seq = -1, idx = -1;
 				Index2Seq(index, ref seq, ref idx);
 
-				var original = Interlocked.Exchange<T>(ref sequence[seq][idx], value);
+				var original = Interlocked.Exchange<T>(ref blocks[seq][idx], value);
 				if (value != null) Interlocked.Increment(ref notNullsCount);
 				else if (original != null) Interlocked.Decrement(ref notNullsCount);
 
@@ -126,10 +136,15 @@ namespace System.Collections.Concurrent
 					{
 						// Could have been augmented by another thread during the wait.
 						// Add as much baseLenght tiles as needed.
-						while (pos >= Capacity)
+						var cap = Capacity;
+						if (pos >= cap)
 						{
-							sequence.Add(new T[BaseLength]);
-							Interlocked.Add(ref combinedLength, BaseLength);
+							var newCap = ExpansionLength(cap);
+							while (newCap > combinedLength)
+							{
+								blocks.Add(new T[BaseLength]);
+								Interlocked.Add(ref combinedLength, BaseLength);
+							}
 						}
 					}
 					finally
@@ -141,7 +156,7 @@ namespace System.Collections.Concurrent
 				// Set the value
 				int seq = -1, idx = -1;
 				Index2Seq(pos, ref seq, ref idx);
-				Interlocked.Exchange<T>(ref sequence[seq][idx], item);
+				Interlocked.Exchange<T>(ref blocks[seq][idx], item);
 				Interlocked.Increment(ref notNullsCount);
 			}
 			finally
@@ -171,7 +186,7 @@ namespace System.Collections.Concurrent
 
 				Index2Seq(pos, ref seq, ref idx);
 
-				theItem = Interlocked.Exchange<T>(ref sequence[seq][idx], null);
+				theItem = Interlocked.Exchange<T>(ref blocks[seq][idx], null);
 				Interlocked.Decrement(ref appendPos);
 				Interlocked.Decrement(ref notNullsCount);
 
@@ -230,7 +245,7 @@ namespace System.Collections.Concurrent
 					for (int i = 0; i <= LEN; i++)
 					{
 						Index2Seq(i, ref seq, ref idx);
-						item = Volatile.Read(ref sequence[seq][idx]);
+						item = Volatile.Read(ref blocks[seq][idx]);
 						if (item != null)
 							yield return item;
 					}
@@ -265,7 +280,7 @@ namespace System.Collections.Concurrent
 			for (var i = 0; i <= AppendPos; i++)
 			{
 				Index2Seq(i, ref seq, ref idx);
-				if (Volatile.Read(ref sequence[seq][idx]) == item)
+				if (Volatile.Read(ref blocks[seq][idx]) == item)
 				{
 					result = i;
 					break;
@@ -279,14 +294,10 @@ namespace System.Collections.Concurrent
 
 
 		/// <summary>
-		/// Expands or shrinks the virtual array to the exact number of base-length tiles to
-		/// fit the given length. If the AppendPos is greater that the new length, it is cut to the length -1.
-		/// If shrinking, the not null values, i.e. Count is also updated.
+		/// Expands or shrinks the virtual array to the number of base-length tiles fitting the requested length.
+		/// If the AppendPos is greater that the new length, it's cut to length -1.
+		/// If shrinking, the number of not-null values, i.e. Count is also updated.
 		/// </summary>
-		/// <remarks>
-		/// Acquires a writer lock, calculates the correct number of tiles, creates a new sequence and
-		/// copies all tile references into the new sequence.
-		/// </remarks>
 		/// <param name="length">The new length.</param>
 		/// <exception cref="System.ArgumentOutOfRangeException">If length is negative</exception>
 		public void Resize(int length)
@@ -298,33 +309,32 @@ namespace System.Collections.Concurrent
 
 			try
 			{
-				var newSequence = new List<T[]>();
-				var count = length / BaseLength;
-				var rem = length % BaseLength;
-				if (rem > 0) count++;
-
-				// Shrink or expand
-				for (int i = 0; i < count; i++)
-					if (i < sequence.Count - 1)
-						newSequence.Add(sequence[i]);
-					else
-						newSequence.Add(new T[BaseLength]);
-
-				Interlocked.Exchange(ref sequence, newSequence);
-
-				if (length <= AppendPos)
+				if (length > Capacity)
 				{
+					while (length > combinedLength)
+					{
+						blocks.Add(new T[BaseLength]);
+						Interlocked.Add(ref combinedLength, BaseLength);
+					}
+				}
+				else
+				{
+					while (length < combinedLength)
+					{
+						var last = blocks.Count - 1;
+						blocks.Remove(blocks[last]);
+						Interlocked.Add(ref combinedLength, -BaseLength);
+					}
+
 					Interlocked.Exchange(ref appendPos, length - 1);
 
 					int notNull = 0;
-					foreach (var tile in sequence)
+					foreach (var tile in blocks)
 						foreach (var cell in tile)
 							if (cell != null) notNull++;
 
 					Interlocked.Exchange(ref notNullsCount, notNull);
 				}
-
-				Interlocked.Exchange(ref combinedLength, sequence.Count * BaseLength);
 			}
 			finally
 			{
@@ -352,6 +362,6 @@ namespace System.Collections.Concurrent
 		int notNullsCount;
 
 		ReaderWriterLockSlim gate = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
-		List<T[]> sequence = new List<T[]>();
+		List<T[]> blocks = new List<T[]>();
 	}
 }
