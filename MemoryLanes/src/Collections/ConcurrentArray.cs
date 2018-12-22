@@ -1,23 +1,19 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Threading;
 
 namespace System.Collections.Concurrent
 {
 	/// <summary>
-	/// Represents an ordered list of fixed sized arrays as one virtual contiguous array. 
-	/// It's thread safe.
+	/// Represents an ordered list of fix-sized arrays as one virtual contiguous array. 
 	/// </summary>
 	/// <remarks>
-	/// Growing allocates as much new arrays as configured, each with the same BaseLength size.
-	/// The synchronization mechanism is ReaderWriterLockSlim lock such that all methods 
+	/// Growing allocates as much new arrays as configured, each with the same BaseLength.
+	/// The synchronization mechanism is ReaderWriterLockSlim such that all methods 
 	/// except Append() and Resize() acquire read locks.
 	/// </remarks>
 	/// <typeparam name="T">A class.</typeparam>
-	public class ConcurrentArray<T> where T : class
+	public class ConcurrentArray<T>  where T : class
 	{
 		public ConcurrentArray(int baseLength, int count = 1, Func<int, int> expansionLen = null)
 		{
@@ -60,9 +56,8 @@ namespace System.Collections.Concurrent
 		/// </summary>
 		/// <remarks>
 		/// Use this callback to fine tune the amount of blocked memory and/or the allocation time.
-		/// The expansion happens in exclusive mode so one may want to minimize the total 
-		/// number of resizings. By providing different growth factors depending on the current size,
-		/// one can create a best fitting nonlinear allocation curve.
+		/// By providing different growth factors depending on the current size,
+		/// one can create a best fitting allocation/capacity curve.
 		/// </remarks>
 		Func<int, int> ExpansionLength = (c) => Convert.ToInt32(c * 1.8);
 
@@ -102,7 +97,7 @@ namespace System.Collections.Concurrent
 				int seq = -1, idx = -1;
 				Index2Seq(index, ref seq, ref idx);
 
-				var original = Interlocked.Exchange<T>(ref blocks[seq][idx], value);
+				var original = Interlocked.Exchange(ref blocks[seq][idx], value);
 				if (value != null) Interlocked.Increment(ref notNullsCount);
 				else if (original != null) Interlocked.Decrement(ref notNullsCount);
 
@@ -136,7 +131,7 @@ namespace System.Collections.Concurrent
 					{
 						// Could have been augmented by another thread during the wait.
 						// Add as much baseLenght tiles as needed.
-						var cap = Capacity;
+						var cap = Capacity; // Volatile read once
 						if (pos >= cap)
 						{
 							var newCap = ExpansionLength(cap);
@@ -222,10 +217,9 @@ namespace System.Collections.Concurrent
 		}
 
 		/// <summary>
-		/// Iterates all cells from 0 up to AppendPos and yields the 
-		/// item if it's not null at the time of the check.
-		/// The longLock determines whether the indexer would be used thus locking on each individual read
-		/// or one long lock for the entire enumeration.
+		/// Iterates all cells from 0 up to AppendPos and yields the  item if it's not null at the time of the check.
+		/// The longLock determines whether the indexer would be used, thus locking on each individual read
+		/// or one long lock would be held for the entire enumeration.
 		/// </summary>
 		/// <param name="longLock">If true (the default) acquires a ReaderLock for the duration of the whole traversal.</param>
 		/// <returns>A not null item.</returns>
