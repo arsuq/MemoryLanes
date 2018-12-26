@@ -30,7 +30,7 @@ namespace Tests.Surface.Collections
 				if (!expand(arr)) return;
 				if (!customExpand()) return;
 				if (!gears()) return;
-
+				if (!format()) return;
 
 				Passed = true;
 				IsComplete = true;
@@ -261,6 +261,27 @@ namespace Tests.Surface.Collections
 				Passed = false;
 				return false;
 			}
+
+			return true;
+		}
+
+		bool format()
+		{
+			var arr = new ConcurrentArray<object>(10, 10);
+
+			for (int i = 0; i < 100; i++)
+				arr.Append(i);
+
+			object o = 3;
+			arr.Format(o);
+
+			foreach (var item in arr.Items())
+				if (item != o)
+				{
+					Passed = false;
+					FailureMessage = "Format fails";
+					return false;
+				}
 
 			return true;
 		}

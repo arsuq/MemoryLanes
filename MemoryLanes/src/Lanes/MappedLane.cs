@@ -26,6 +26,10 @@ namespace System
 			if (Alloc(size, ref fr, awaitMS))
 			{
 				frag = new MappedFragment(fr.Offset, fr.Length, mmva, this, () => free(laneCycle, fr.Allocation));
+
+				if (Disposal == DisposalMode.TrackGhosts)
+					track(frag, fr.Allocation);
+
 				return true;
 			}
 			else return false;

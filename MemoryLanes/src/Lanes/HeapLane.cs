@@ -18,6 +18,10 @@ namespace System
 			{
 				var mem = new Memory<byte>(lane, fr.Offset, fr.Length);
 				frag = new HeapFragment(mem, this, () => free(laneCycle, fr.Allocation));
+
+				if (Disposal == DisposalMode.TrackGhosts)
+					track(frag, fr.Allocation);
+
 				return true;
 			}
 			else return false;

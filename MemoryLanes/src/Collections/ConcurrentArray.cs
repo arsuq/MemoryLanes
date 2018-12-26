@@ -124,23 +124,26 @@ namespace System.Collections.Concurrent
 		/// <param name="timeout">In milliseconds, by default is -1, which is indefinitely.</param>
 		/// <returns>The old gear.</returns>
 		/// <exception cref="System.SynchronizationException">Code.SignalAwaitTimeout</exception>
-		[MethodImpl(MethodImplOptions.Synchronized)]
 		public Gear ShiftGear(Gear g, int timeout = -1)
 		{
-			// It's the same
-			if (Drive == g) return g;
+			// One call at a time
+			lock (shiftLock)
+			{
+				// It's the same
+				if (Drive == g) return g;
 
-			// There must be no other resets anywhere
-			gearShift.Reset();
+				// There must be no other resets anywhere
+				gearShift.Reset();
 
-			var old = Interlocked.Exchange(ref direction, (int)g);
+				var old = Interlocked.Exchange(ref direction, (int)g);
 
-			// Wait for all concurrent operations to finish
-			if (Volatile.Read(ref concurrentOps) > 0)
-				if (!gearShift.WaitOne(timeout))
-					throw new SynchronizationException(SynchronizationException.Code.SignalAwaitTimeout);
+				// Wait for all concurrent operations to finish
+				if (Volatile.Read(ref concurrentOps) > 0)
+					if (!gearShift.WaitOne(timeout))
+						throw new SynchronizationException(SynchronizationException.Code.SignalAwaitTimeout);
 
-			return (Gear)old;
+				return (Gear)old;
+			}
 		}
 
 
@@ -193,8 +196,6 @@ namespace System.Collections.Concurrent
 			return old;
 		}
 
-		int concurrentOps = 0;
-
 		/// <summary>
 		/// Appends an item after the AppendIndex index. 
 		/// If there is not enough space locks until enough blocks are
@@ -217,7 +218,7 @@ namespace System.Collections.Concurrent
 
 			if (cca + AppendIndex >= Capacity)
 			{
-				lock (appendExpLock)
+				lock (commonLock)
 				{
 					// Could have been augmented by another thread during the wait.
 					var cap = Capacity; // Volatile read once
@@ -230,7 +231,7 @@ namespace System.Collections.Concurrent
 							if (blocks[blocksCount] == null) blocks[blocksCount] = new T[BlockLength];
 							cap += BlockLength;
 							blocksCount++;
-							if (blocksCount >= blocks.Length) throw new Exception("Maximum number of blocks reached.");
+							if (blocksCount > blocks.Length) throw new Exception("Maximum number of blocks reached.");
 						}
 
 						Interlocked.Exchange(ref capacity, cap);
@@ -341,50 +342,115 @@ namespace System.Collections.Concurrent
 		/// <param name="length">The new length.</param>
 		/// <exception cref="System.ArgumentOutOfRangeException">If length is negative</exception>
 		/// <exception cref="System.InvalidOperationException">When Drive != Gear.P </exception>
-		[MethodImpl(MethodImplOptions.Synchronized)]
 		public void Resize(int length, bool nullBlocksOnShrink = false)
 		{
-			Interlocked.Increment(ref concurrentOps);
-
-			if (Drive != Gear.P) throw new InvalidOperationException("Wrong drive");
-
-			if (length < 0) throw new ArgumentOutOfRangeException("length");
-			if (length == Capacity) return;
-
-			if (length > Capacity)
+			lock (commonLock)
 			{
-				while (length > capacity)
+				Interlocked.Increment(ref concurrentOps);
+
+				if (Drive != Gear.P) throw new InvalidOperationException("Wrong drive");
+
+				if (length < 0) throw new ArgumentOutOfRangeException("length");
+				if (length == Capacity) return;
+
+				if (length > Capacity)
 				{
-					if (blocks[blocksCount] == null) blocks[blocksCount] = new T[BlockLength];
-					capacity += BlockLength;
-					blocksCount++;
+					while (length > capacity)
+					{
+						if (blocks[blocksCount] == null) blocks[blocksCount] = new T[BlockLength];
+						capacity += BlockLength;
+						blocksCount++;
+					}
 				}
+				else
+				{
+					// Leave plus one block unless resetting to zero capacity
+					while ((capacity - length > BlockLength) || (length == 0 && capacity > 0))
+					{
+						if (nullBlocksOnShrink) blocks[blocksCount - 1] = null;
+						else for (int i = 0; i < BlockLength; i++) blocks[blocksCount - 1][i] = null;
+						capacity -= BlockLength;
+						blocksCount--;
+					}
+
+					if (blocksCount > 0)
+						for (int i = capacity - length; i < BlockLength; i++)
+							blocks[blocksCount - 1][i] = null;
+
+					Interlocked.Exchange(ref appendIndex, length - 1);
+
+					int notNull = 0;
+					foreach (var c in Items()) notNull++;
+
+					Interlocked.Exchange(ref notNullsCount, notNull);
+				}
+
+				Interlocked.Decrement(ref concurrentOps);
+				gearShift.Set();
 			}
+		}
+
+		/// <summary>
+		/// Sets the provided item ref or null to all available cells.
+		/// The Drive must be either N or Straight, meaning that 
+		/// there is a race with Append() and set.
+		/// The method is synchronized.
+		/// </summary>
+		/// <param name="item">The ref to be set</param>
+		/// <exception cref="System.InvalidOperationException">Drive is not N or Straight</exception>
+		public void Format(T item)
+		{
+			lock (commonLock)
+			{
+				Interlocked.Increment(ref concurrentOps);
+
+				var d = Drive;
+				if (d != Gear.N && d != Gear.Straight)
+				{
+					Interlocked.Decrement(ref concurrentOps);
+					throw new InvalidOperationException("Wrong drive");
+				}
+
+				for (int b = 0; b < blocks.Length; b++)
+					for (int i = 0; i < BlockLength; i++)
+						blocks[b][i] = item;
+
+				Interlocked.Decrement(ref concurrentOps);
+			}
+		}
+
+
+		/// <summary>
+		/// Moves the AppendIndex to a new location, which must be and less than Capacity.
+		/// </summary>
+		/// <param name="newIndex">The new index.</param>
+		/// <param name="forced">If true, blindly swaps the AppendIndex with the newIndex, regardless
+		/// of the Drive mode.</param>
+		public void MoveAppendIndex(int newIndex, bool forced = false)
+		{
+			if (forced) Interlocked.Exchange(ref appendIndex, newIndex);
 			else
-			{
-				// Leave plus one block unless resetting to zero capacity
-				while ((capacity - length > BlockLength) || (length == 0 && capacity > 0))
+				lock (commonLock)
 				{
-					if (nullBlocksOnShrink) blocks[blocksCount - 1] = null;
-					else for (int i = 0; i < BlockLength; i++) blocks[blocksCount - 1][i] = null;
-					capacity -= BlockLength;
-					blocksCount--;
+					Interlocked.Increment(ref concurrentOps);
+
+					var d = Drive;
+					if (d != Gear.P)
+					{
+						Interlocked.Decrement(ref concurrentOps);
+						throw new InvalidOperationException("Wrong drive");
+					}
+
+					if (newIndex < 0 || newIndex >= Capacity)
+					{
+						Interlocked.Decrement(ref concurrentOps);
+						throw new ArgumentOutOfRangeException("newIndex");
+					}
+
+					var old = Interlocked.Exchange(ref appendIndex, newIndex);
+
+					Interlocked.Decrement(ref concurrentOps);
 				}
-
-				if (blocksCount > 0)
-					for (int i = capacity - length; i < BlockLength; i++)
-						blocks[blocksCount - 1][i] = null;
-
-				Interlocked.Exchange(ref appendIndex, length - 1);
-
-				int notNull = 0;
-				foreach (var c in Items()) notNull++;
-
-				Interlocked.Exchange(ref notNullsCount, notNull);
-			}
-
-			Interlocked.Decrement(ref concurrentOps);
-			gearShift.Set();
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -402,13 +468,15 @@ namespace System.Collections.Concurrent
 			}
 		}
 
+		int concurrentOps = 0;
 		int capacity;
 		int appendIndex = -1;
 		int notNullsCount = 0;
 		int blocksCount;
 		int direction = 0;
 
-		object appendExpLock = new object();
+		object commonLock = new object();
+		object shiftLock = new object();
 
 		ManualResetEvent gearShift = new ManualResetEvent(false);
 		ReaderWriterLockSlim sync = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);

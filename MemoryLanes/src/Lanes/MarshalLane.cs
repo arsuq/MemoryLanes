@@ -20,8 +20,11 @@ namespace System
 			if (Alloc(size, ref fr, awaitMS))
 			{
 				frag = new MarshalLaneFragment(
-					fr.Offset, fr.Length, lanePtr, this, 
+					fr.Offset, fr.Length, lanePtr, this,
 					() => free(laneCycle, fr.Allocation));
+
+				if (Disposal == DisposalMode.TrackGhosts)
+					track(frag, fr.Allocation);
 
 				return true;
 			}
