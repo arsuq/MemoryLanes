@@ -5,7 +5,8 @@
 		public enum Code
 		{
 			NotSet = 0,
-			LockAcquisition = 1
+			LockAcquisition = 1,
+			SignalAwaitTimeout = 2,
 		}
 
 		public SynchronizationException() { }

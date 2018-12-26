@@ -9,195 +9,272 @@ namespace System.Collections.Concurrent
 	/// </summary>
 	/// <remarks>
 	/// Growing allocates as much new arrays as configured, each with the same BaseLength.
-	/// The synchronization mechanism is ReaderWriterLockSlim such that all methods 
-	/// except Append() and Resize() acquire read locks.
 	/// </remarks>
-	/// <typeparam name="T">A class.</typeparam>
-	public class ConcurrentArray<T>  where T : class
+	/// <typeparam name="T">A class</typeparam>
+	public class ConcurrentArray<T> where T : class
 	{
-		public ConcurrentArray(int baseLength, int count = 1, Func<int, int> expansionLen = null)
+		/// <summary>
+		/// Represents possible concurrent operations
+		/// </summary>
+		public enum Gear
 		{
-			if (baseLength < 1) throw new ArgumentException("BaseLength");
-			if (count < 1) throw new ArgumentException("notNullsCount");
+			/// <summary>
+			/// Concurrent gets and sets are enabled, but not Append/Remove or Resize.
+			/// </summary>
+			N = 0,
+			/// <summary>
+			/// Concurrent Append(), gets and sets are enabled.
+			/// </summary>
+			Straight = 1,
+			/// <summary>
+			/// Concurrent RemoveLast() and N ops are enabled.
+			/// </summary>
+			Reverse = -1,
+			/// <summary>
+			/// Only Resize() is allowed.
+			/// </summary>
+			P = -2
+		}
+
+		/// <summary>
+		/// Creates new Concurrent array with predefined max capacity = maxBlocksCount * blockLength.
+		/// </summary>
+		/// <param name="blockLength">The fixed length of the individual blocks</param>
+		/// <param name="maxBlocksCount">The array cannot expand beyond that value</param>
+		/// <param name="initBlocksCount">The number of blocks to allocate in the constructor</param>
+		/// <param name="expansionLen">A callback invoked when more blocks are needed, 
+		/// allowing a nonlinear expansion.</param>
+		public ConcurrentArray(
+			int blockLength,
+			int maxBlocksCount,
+			int initBlocksCount = 1,
+			Func<ConcurrentArray<T>, int> expansionLen = null)
+		{
+			if (blockLength < 1) throw new ArgumentException("BaseLength");
+			if (initBlocksCount < 1) throw new ArgumentException("notNullsCount");
 			if (expansionLen != null) ExpansionLength = expansionLen;
 
-			this.BaseLength = baseLength;
-			for (int i = 0; i < count; i++)
+			blocksCount = initBlocksCount;
+			BlockLength = blockLength;
+			blocks = new T[maxBlocksCount][];
+			direction = 1;
+
+			for (int i = 0; i < initBlocksCount; i++)
 			{
-				blocks.Add(new T[baseLength]);
-				combinedLength += baseLength;
+				blocks[i] = new T[blockLength];
+				capacity += blockLength;
 			}
 		}
 
 		/// <summary>
-		/// The sequence incremental size.
+		/// The virtual array incremental size.
 		/// </summary>
-		public readonly int BaseLength;
+		public readonly int BlockLength;
 
 		/// <summary>
-		/// The biggest Add or set offset. 
+		/// Returns the product of all block slots (including the non allocated ones) and the BlockLength.
 		/// </summary>
-		public int AppendPos => Volatile.Read(ref appendPos);
+		public int TotalMaxCapacity => blocks.Length * BlockLength;
 
 		/// <summary>
-		/// Counts the non null items in the sequence.
+		/// The current set index. 
 		/// </summary>
-		public int Count => Volatile.Read(ref notNullsCount);
+		public int AppendIndex => Volatile.Read(ref appendIndex);
 
 		/// <summary>
-		/// The array sequence length
+		/// The sum of all non null items.
 		/// </summary>
-		public int Capacity => Volatile.Read(ref combinedLength);
+		public int ItemsCount => Volatile.Read(ref notNullsCount);
+
+		/// <summary>
+		/// The total allocated space.
+		/// </summary>
+		public int Capacity => Volatile.Read(ref capacity);
+
+		/// <summary>
+		/// The allowed set of concurrent operations.
+		/// </summary>
+		public Gear Drive => (Gear)Volatile.Read(ref direction);
 
 		/// <summary>
 		/// Will be called before allocating more space, providing the current length as an argument.
 		/// The returned value is desired new total length.
-		/// The default growth factor is 1.8.
+		/// The default growth factor is 2.
 		/// </summary>
 		/// <remarks>
-		/// Use this callback to fine tune the amount of blocked memory and/or the allocation time.
 		/// By providing different growth factors depending on the current size,
-		/// one can create a best fitting allocation/capacity curve.
+		/// one can create different allocation size vs. capacity curves.
 		/// </remarks>
-		Func<int, int> ExpansionLength = (c) => Convert.ToInt32(c * 1.8);
+		Func<ConcurrentArray<T>, int> ExpansionLength = (ca) => defaultExpansion(ca);
+
+		static int defaultExpansion(ConcurrentArray<T> arr)
+		{
+			if (arr.Capacity < arr.BlockLength) return arr.BlockLength;
+
+			int newCap = arr.Capacity * 2;
+			if (newCap > arr.TotalMaxCapacity) newCap = arr.TotalMaxCapacity - 1;
+
+			return newCap;
+		}
+
+		/// <summary>
+		/// Blocks until the gear is shifted. 
+		/// </summary>
+		/// <param name="g">The new concurrent mode.</param>
+		/// <param name="timeout">In milliseconds, by default is -1, which is indefinitely.</param>
+		/// <returns>The old gear.</returns>
+		/// <exception cref="System.SynchronizationException">Code.SignalAwaitTimeout</exception>
+		[MethodImpl(MethodImplOptions.Synchronized)]
+		public Gear ShiftGear(Gear g, int timeout = -1)
+		{
+			// It's the same
+			if (Drive == g) return g;
+
+			// There must be no other resets anywhere
+			gearShift.Reset();
+
+			var old = Interlocked.Exchange(ref direction, (int)g);
+
+			// Wait for all concurrent operations to finish
+			if (Volatile.Read(ref concurrentOps) > 0)
+				if (!gearShift.WaitOne(timeout))
+					throw new SynchronizationException(SynchronizationException.Code.SignalAwaitTimeout);
+
+			return (Gear)old;
+		}
+
 
 		/// <summary>
 		/// Access to the individual cells.
 		/// </summary>
-		/// <param name="index">Must be less than AppendPos</param>
+		/// <param name="index">Must be less than AppendIndex</param>
 		/// <returns>The object reference at the index</returns>
 		/// <exception cref="ArgumentOutOfRangeException">index</exception>
+		/// <exception cref="System.InvalidOperationException">If the Drive is wrong</exception>
 		public T this[int index]
 		{
 			get
 			{
-				if (index < 0 || index > AppendPos)
+				if (Drive == Gear.P) throw new InvalidOperationException("Wrong drive");
+
+				if (index < 0 || index > AppendIndex)
 					throw new ArgumentOutOfRangeException("index");
 
-				gate.EnterReadLock();
-
-				// Could be resized while waiting
 				int seq = -1, idx = -1;
 				Index2Seq(index, ref seq, ref idx);
 
-				var r = Volatile.Read(ref blocks[seq][idx]);
-
-				gate.ExitReadLock();
-
-				return r;
+				return Volatile.Read(ref blocks[seq][idx]);
 			}
 			set
 			{
-				if (index < 0 || index > AppendPos)
+				if (Drive == Gear.P) throw new InvalidOperationException("Wrong drive");
+
+				if (index < 0 || index > AppendIndex)
 					throw new ArgumentOutOfRangeException("index");
 
-				// Still it's a reader lock because there is no resizing here
-				gate.EnterReadLock();
-
-				int seq = -1, idx = -1;
-				Index2Seq(index, ref seq, ref idx);
-
-				var original = Interlocked.Exchange(ref blocks[seq][idx], value);
-				if (value != null) Interlocked.Increment(ref notNullsCount);
-				else if (original != null) Interlocked.Decrement(ref notNullsCount);
-
-				gate.ExitReadLock();
+				set(index, value);
 			}
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		T set(int index, T value)
+		{
+			int seq = -1, idx = -1;
+			Index2Seq(index, ref seq, ref idx);
+
+			var old = Interlocked.Exchange(ref blocks[seq][idx], value);
+
+			if (old != null)
+			{
+				if (value == null) Interlocked.Decrement(ref notNullsCount);
+			}
+			else if (value != null) Interlocked.Increment(ref notNullsCount);
+
+			return old;
+		}
+
+		int concurrentOps = 0;
+
 		/// <summary>
-		/// Appends an item after the AppendPos index.
+		/// Appends an item after the AppendIndex index. 
+		/// If there is not enough space locks until enough blocks are
+		/// allocated and then switches back to fully concurrent mode.
 		/// </summary>
 		/// <param name="item">The object reference</param>
 		/// <returns>The index of the item</returns>
+		/// <exception cref="System.InvalidOperationException">When Drive != Gear.Straight</exception>
 		public int Append(T item)
 		{
-			var pos = -1;
+			// Must be the first instruction, otherwise a whole Shift()
+			// execution could interleave after the assert and change the direction.
+			var cca = Interlocked.Increment(ref concurrentOps);
 
-			// Do not throw ArgumentNull
-			if (item == null) return pos;
-
-			gate.EnterUpgradeableReadLock();
-
-			try
+			if (Drive != Gear.Straight)
 			{
-				pos = Interlocked.Increment(ref appendPos);
+				Interlocked.Decrement(ref concurrentOps);
+				throw new InvalidOperationException("Wrong drive");
+			}
 
-				if (pos >= Capacity)
+			if (cca + AppendIndex >= Capacity)
+			{
+				lock (appendExpLock)
 				{
-					gate.EnterWriteLock();
-
-					try
+					// Could have been augmented by another thread during the wait.
+					var cap = Capacity; // Volatile read once
+					if (cca + AppendIndex >= cap)
 					{
-						// Could have been augmented by another thread during the wait.
-						// Add as much baseLenght tiles as needed.
-						var cap = Capacity; // Volatile read once
-						if (pos >= cap)
+						var newCap = ExpansionLength(this);
+						// Add as much blockLenght tiles as needed.
+						while (newCap > cap)
 						{
-							var newCap = ExpansionLength(cap);
-							while (newCap > combinedLength)
-							{
-								blocks.Add(new T[BaseLength]);
-								Interlocked.Add(ref combinedLength, BaseLength);
-							}
+							if (blocks[blocksCount] == null) blocks[blocksCount] = new T[BlockLength];
+							cap += BlockLength;
+							blocksCount++;
+							if (blocksCount >= blocks.Length) throw new Exception("Maximum number of blocks reached.");
 						}
-					}
-					finally
-					{
-						if (gate.IsWriteLockHeld) gate.ExitWriteLock();
+
+						Interlocked.Exchange(ref capacity, cap);
 					}
 				}
+			}
 
-				// Set the value
-				int seq = -1, idx = -1;
-				Index2Seq(pos, ref seq, ref idx);
-				Interlocked.Exchange<T>(ref blocks[seq][idx], item);
-				Interlocked.Increment(ref notNullsCount);
-			}
-			finally
-			{
-				if (gate.IsUpgradeableReadLockHeld) gate.ExitUpgradeableReadLock();
-			}
+			var pos = Interlocked.Increment(ref appendIndex);
+			this[pos] = item;
+
+			// If it's the last exiting operation for the old direction
+			if (Interlocked.Decrement(ref concurrentOps) == 0 && Drive != Gear.Straight)
+				gearShift.Set();
 
 			return pos;
 		}
 
 		/// <summary>
-		/// Decrements the AppendPos, nulls the corresponding cell and returns the item that was there.
+		/// Nulls the AppendIndex cell, decrements the AppendIndex value and returns the item that was there.
 		/// </summary>
 		/// <param name="pos">The item position.</param>
 		/// <returns>The removed item.</returns>
-		/// <exception cref="System.IndexOutOfRangeException">When there are no items.</exception>
+		/// <exception cref="System.InvalidOperationException">When Drive != Gear.Reverse</exception>
 		public T RemoveLast(out int pos)
 		{
-			gate.EnterReadLock();
+			var cca = Interlocked.Increment(ref concurrentOps);
 
-			pos = AppendPos;
-
-			if (pos >= 0)
+			if (Drive != Gear.Reverse)
 			{
-				T theItem = null;
-				int seq = -1, idx = -1;
-
-				Index2Seq(pos, ref seq, ref idx);
-
-				theItem = Interlocked.Exchange<T>(ref blocks[seq][idx], null);
-				Interlocked.Decrement(ref appendPos);
-				Interlocked.Decrement(ref notNullsCount);
-
-				gate.ExitReadLock();
-				return theItem;
+				Interlocked.Decrement(ref concurrentOps);
+				throw new InvalidOperationException("Wrong drive");
 			}
-			else
-			{
-				gate.ExitReadLock();
-				throw new IndexOutOfRangeException("Nothing to remove.");
-			}
+
+			pos = Interlocked.Decrement(ref appendIndex) + 1;
+			var item = set(pos, null);
+
+			if (Interlocked.Decrement(ref concurrentOps) == 0 && Drive != Gear.Reverse)
+				gearShift.Set();
+
+			return item;
 		}
 
 		/// <summary>
-		/// Looks for the item and nulls the array cell, 
-		/// this will decrement the Count value.
+		/// Looks for the item and nulls the array cell.
 		/// </summary>
 		/// <param name="item">The object reference</param>
 		/// <returns>True if found and null-ed</returns>
@@ -217,51 +294,25 @@ namespace System.Collections.Concurrent
 		}
 
 		/// <summary>
-		/// Iterates all cells from 0 up to AppendPos and yields the  item if it's not null at the time of the check.
-		/// The longLock determines whether the indexer would be used, thus locking on each individual read
-		/// or one long lock would be held for the entire enumeration.
+		/// Iterates all cells from 0 up to AppendIndex and yields the  item if it's not null at the time of the check.
 		/// </summary>
-		/// <param name="longLock">If true (the default) acquires a ReaderLock for the duration of the whole traversal.</param>
 		/// <returns>A not null item.</returns>
-		public IEnumerable<T> Items(bool longLock = true)
+		public IEnumerable<T> Items()
 		{
+			int seq = -1, idx = -1;
 			T item = null;
-			var LEN = AppendPos;
 
-			if (longLock)
+			for (int i = 0; i <= AppendIndex; i++)
 			{
-				gate.EnterReadLock();
-
-				try
-				{
-					int seq = -1, idx = -1;
-
-					for (int i = 0; i <= LEN; i++)
-					{
-						Index2Seq(i, ref seq, ref idx);
-						item = Volatile.Read(ref blocks[seq][idx]);
-						if (item != null)
-							yield return item;
-					}
-				}
-				finally
-				{
-					if (gate.IsReadLockHeld) gate.ExitReadLock();
-				}
+				Index2Seq(i, ref seq, ref idx);
+				item = Volatile.Read(ref blocks[seq][idx]);
+				if (item != null)
+					yield return item;
 			}
-			else
-				for (int i = 0; i <= LEN; i++)
-				{
-					item = this[i];
-					if (item != null)
-						yield return item;
-				}
 		}
 
 		/// <summary>
-		/// Searches for an item by traversing all cells up to AppendPos, which is 
-		/// the furthest index in the array.
-		/// Acquires a ReaderLock.
+		/// Searches for an item by traversing all cells up to AppendIndex.
 		/// </summary>
 		/// <param name="item">The object ref</param>
 		/// <returns>A positive value if the item is found, -1 otherwise.</returns>
@@ -269,9 +320,7 @@ namespace System.Collections.Concurrent
 		{
 			int seq = -1, idx = -1, result = -1;
 
-			gate.EnterReadLock();
-
-			for (var i = 0; i <= AppendPos; i++)
+			for (var i = 0; i <= AppendIndex; i++)
 			{
 				Index2Seq(i, ref seq, ref idx);
 				if (Volatile.Read(ref blocks[seq][idx]) == item)
@@ -281,81 +330,89 @@ namespace System.Collections.Concurrent
 				}
 			}
 
-			gate.ExitReadLock();
-
 			return result;
 		}
 
-
 		/// <summary>
 		/// Expands or shrinks the virtual array to the number of base-length tiles fitting the requested length.
-		/// If the AppendPos is greater that the new length, it's cut to length -1.
-		/// If shrinking, the number of not-null values, i.e. Count is also updated.
+		/// If the AppendIndex is greater that the new length, it's cut to length -1.
+		/// If shrinking, the number of not-null values, i.e. ItemsCount is also updated.
 		/// </summary>
 		/// <param name="length">The new length.</param>
 		/// <exception cref="System.ArgumentOutOfRangeException">If length is negative</exception>
-		public void Resize(int length)
+		/// <exception cref="System.InvalidOperationException">When Drive != Gear.P </exception>
+		[MethodImpl(MethodImplOptions.Synchronized)]
+		public void Resize(int length, bool nullBlocksOnShrink = false)
 		{
+			Interlocked.Increment(ref concurrentOps);
+
+			if (Drive != Gear.P) throw new InvalidOperationException("Wrong drive");
+
 			if (length < 0) throw new ArgumentOutOfRangeException("length");
 			if (length == Capacity) return;
 
-			gate.EnterWriteLock();
-
-			try
+			if (length > Capacity)
 			{
-				if (length > Capacity)
+				while (length > capacity)
 				{
-					while (length > combinedLength)
-					{
-						blocks.Add(new T[BaseLength]);
-						Interlocked.Add(ref combinedLength, BaseLength);
-					}
-				}
-				else
-				{
-					while (length < combinedLength)
-					{
-						var last = blocks.Count - 1;
-						blocks.Remove(blocks[last]);
-						Interlocked.Add(ref combinedLength, -BaseLength);
-					}
-
-					Interlocked.Exchange(ref appendPos, length - 1);
-
-					int notNull = 0;
-					foreach (var tile in blocks)
-						foreach (var cell in tile)
-							if (cell != null) notNull++;
-
-					Interlocked.Exchange(ref notNullsCount, notNull);
+					if (blocks[blocksCount] == null) blocks[blocksCount] = new T[BlockLength];
+					capacity += BlockLength;
+					blocksCount++;
 				}
 			}
-			finally
+			else
 			{
-				if (gate.IsWriteLockHeld) gate.ExitWriteLock();
+				// Leave plus one block unless resetting to zero capacity
+				while ((capacity - length > BlockLength) || (length == 0 && capacity > 0))
+				{
+					if (nullBlocksOnShrink) blocks[blocksCount - 1] = null;
+					else for (int i = 0; i < BlockLength; i++) blocks[blocksCount - 1][i] = null;
+					capacity -= BlockLength;
+					blocksCount--;
+				}
+
+				if (blocksCount > 0)
+					for (int i = capacity - length; i < BlockLength; i++)
+						blocks[blocksCount - 1][i] = null;
+
+				Interlocked.Exchange(ref appendIndex, length - 1);
+
+				int notNull = 0;
+				foreach (var c in Items()) notNull++;
+
+				Interlocked.Exchange(ref notNullsCount, notNull);
 			}
+
+			Interlocked.Decrement(ref concurrentOps);
+			gearShift.Set();
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void Index2Seq(int index, ref int seq, ref int idx)
 		{
-			if (index < BaseLength)
+			if (index < BlockLength)
 			{
 				seq = 0;
 				idx = index;
 			}
 			else
 			{
-				seq = index / BaseLength;
-				idx = index % BaseLength;
+				seq = index / BlockLength;
+				idx = index % BlockLength;
 			}
 		}
 
-		int combinedLength;
-		int appendPos = -1;
-		int notNullsCount;
+		int capacity;
+		int appendIndex = -1;
+		int notNullsCount = 0;
+		int blocksCount;
+		int direction = 0;
 
-		ReaderWriterLockSlim gate = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
-		List<T[]> blocks = new List<T[]>();
+		object appendExpLock = new object();
+
+		ManualResetEvent gearShift = new ManualResetEvent(false);
+		ReaderWriterLockSlim sync = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
+
+		T[][] blocks = null;
 	}
 }

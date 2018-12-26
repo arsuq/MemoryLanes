@@ -22,124 +22,15 @@ namespace Tests.Surface.Collections
 			try
 			{
 				var rdm = new Random();
-				var ccfas = new ConcurrentArray<object>(10);
+				var arr = new ConcurrentArray<object>(10, 40);
 
-				Parallel.For(0, 100, (i) =>
-				{
-					Thread.Sleep(rdm.Next(20, 100));
-					ccfas.Append(i);
-				});
+				if (!parallelAppend(rdm, arr)) return;
+				if (!parallelAppendRemoveLast(rdm, arr)) return;
+				if (!shrink(arr)) return;
+				if (!expand(arr)) return;
+				if (!customExpand()) return;
+				if (!gears()) return;
 
-				var L = new List<object>(ccfas.Items());
-				L.Sort();
-
-				for (int i = 0; i < 100; i++)
-				{
-					if ((int)L[i] != i)
-					{
-						FailureMessage = "Parallel Append() fails.";
-						Passed = false;
-						break;
-					}
-					if (ccfas.IndexOf(L[i]) != i)
-					{
-						FailureMessage = "IndexOf() fails.";
-						Passed = false;
-						break;
-					}
-				}
-
-				"OK: Parallel Append()".AsTestSuccess();
-
-				Parallel.For(0, 200, (i) =>
-				{
-					Thread.Sleep(rdm.Next(20, 100));
-					ccfas.Append(i);
-					ccfas.RemoveLast(out int x);
-				});
-
-				if (ccfas.Count != 100)
-				{
-					Passed = false;
-					FailureMessage = $"The Count is incorrect. Should be 100, it's {ccfas.Count}";
-					return;
-				}
-
-				if (ccfas.AppendPos != 99)
-				{
-					Passed = false;
-					FailureMessage = $"The AppendPos is incorrect. Should be 99 for 100 items, it's {ccfas.AppendPos}";
-					return;
-				}
-
-				"OK: Parallel Append and RemoveLast()".AsTestSuccess();
-
-				var oldCap = ccfas.Capacity;
-				var newCap = oldCap / 3;
-
-				ccfas.Resize(newCap);
-
-				var newCapTilesCount = (newCap / ccfas.BaseLength);
-				if (newCap % ccfas.BaseLength != 0) newCapTilesCount++;
-				var newCapTiled = newCapTilesCount * ccfas.BaseLength;
-
-				if (ccfas.Capacity != newCapTiled)
-				{
-					Passed = false;
-					FailureMessage = $"The Capacity is wrong. Expected {newCapTiled} got {ccfas.Capacity}";
-					return;
-				}
-
-				if (ccfas.AppendPos != newCap - 1)
-				{
-					Passed = false;
-					FailureMessage = $"The AppendPos should be {newCap - 1}, it's {ccfas.AppendPos}";
-					return;
-				}
-
-				"OK: Resize() shrinking".AsTestSuccess();
-
-				var doubleCap = ccfas.Capacity * 2;
-				ccfas.Resize(doubleCap);
-
-				if (ccfas.Capacity != doubleCap)
-				{
-					Passed = false;
-					FailureMessage = $"The Capacity is wrong. Expected {doubleCap} got {ccfas.Capacity}";
-					return;
-				}
-
-				"OK: Resize() expanding".AsTestSuccess();
-
-
-				var ccaexp = new ConcurrentArray<object>(10, 1, (len) => len < 20 ? len * 2 : Convert.ToInt32(len * 1.5));
-
-				for (int i = 0; i < 50; i++)
-				{
-					ccaexp.Append(i);
-
-					if (i == 10)
-					{
-						if (ccaexp.Capacity != 20)
-						{
-							Passed = false;
-							FailureMessage = $"Expansion is wrong, Expected 20, got {ccaexp.Capacity}";
-							return;
-						}
-					}
-
-					if (i == 20)
-					{
-						if (ccaexp.Capacity != 30)
-						{
-							Passed = false;
-							FailureMessage = $"Expansion is wrong, Expected 30, got {ccaexp.Capacity}";
-							return;
-						}
-					}
-				}
-
-				"OK: Custom growth".AsTestSuccess();
 
 				Passed = true;
 				IsComplete = true;
@@ -150,5 +41,229 @@ namespace Tests.Surface.Collections
 				FailureMessage = ex.Message;
 			}
 		}
+
+		bool customExpand()
+		{
+			var ccaexp = new ConcurrentArray<object>(10, 100, 1,
+				(ca) => ca.Capacity < 20 ? ca.Capacity * 2 : Convert.ToInt32(ca.Capacity * 1.5));
+
+			for (int i = 0; i < 50; i++)
+			{
+				ccaexp.Append(i);
+
+				if (i == 10)
+				{
+					if (ccaexp.Capacity != 20)
+					{
+						Passed = false;
+						FailureMessage = $"Expansion is wrong, Expected 20, got {ccaexp.Capacity}";
+						return false;
+					}
+				}
+
+				if (i == 20)
+				{
+					if (ccaexp.Capacity != 30)
+					{
+						Passed = false;
+						FailureMessage = $"Expansion is wrong, Expected 30, got {ccaexp.Capacity}";
+						return false;
+					}
+				}
+			}
+
+			"OK: Custom growth".AsTestSuccess();
+
+			return true;
+		}
+
+		bool expand(ConcurrentArray<object> arr)
+		{
+			var doubleCap = arr.Capacity * 2;
+			arr.Resize(doubleCap);
+
+			if (arr.Capacity != doubleCap)
+			{
+				Passed = false;
+				FailureMessage = $"The Capacity is wrong. Expected {doubleCap} got {arr.Capacity}";
+				return false;
+			}
+
+			"OK: Resize() expanding".AsTestSuccess();
+
+			return true;
+		}
+
+		bool shrink(ConcurrentArray<object> arr)
+		{
+			var oldCap = arr.Capacity;
+			var newCap = oldCap / 3;
+
+			arr.ShiftGear(ConcurrentArray<object>.Gear.P);
+			arr.Resize(newCap);
+
+			var newCapTilesCount = (newCap / arr.BlockLength);
+			if (newCap % arr.BlockLength != 0) newCapTilesCount++;
+			var newCapTiled = newCapTilesCount * arr.BlockLength;
+
+			if (arr.Capacity != newCapTiled)
+			{
+				Passed = false;
+				FailureMessage = $"The Capacity is wrong. Expected {newCapTiled} got {arr.Capacity}";
+				return false;
+			}
+
+			if (arr.AppendIndex != newCap - 1)
+			{
+				Passed = false;
+				FailureMessage = $"The AppendIndex should be {newCap - 1}, it's {arr.AppendIndex}";
+				return false;
+			}
+
+			"OK: Resize() shrinking".AsTestSuccess();
+
+			return true;
+		}
+
+		bool parallelAppendRemoveLast(Random rdm, ConcurrentArray<object> arr)
+		{
+			arr.ShiftGear(ConcurrentArray<object>.Gear.P);
+			arr.Resize(0);
+			arr.ShiftGear(ConcurrentArray<object>.Gear.Straight);
+
+			for (int i = 0; i < 200; i++)
+			{
+				arr.ShiftGear(ConcurrentArray<object>.Gear.Straight);
+				arr.Append(i);
+				arr.ShiftGear(ConcurrentArray<object>.Gear.Reverse);
+				arr.RemoveLast(out int x);
+			}
+
+			int count = 0;
+
+			Parallel.For(0, 200, (i) =>
+			{
+				Thread.Sleep(rdm.Next(20, 100));
+				if (i % 2 == 0)
+				{
+					arr.ShiftGear(ConcurrentArray<object>.Gear.Straight);
+					arr.Append(i);
+					Interlocked.Increment(ref count);
+				}
+				else
+				{
+					if (arr.ItemsCount > 1)
+					{
+						arr.ShiftGear(ConcurrentArray<object>.Gear.Reverse);
+						arr.RemoveLast(out int x);
+						Interlocked.Decrement(ref count);
+					}
+				}
+			});
+
+			if (arr.ItemsCount != count)
+			{
+				Passed = false;
+				FailureMessage = $"The ItemsCount is incorrect. Should be {count}, it's {arr.ItemsCount}";
+				return false;
+			}
+
+			if (arr.AppendIndex != count - 1)
+			{
+				Passed = false;
+				FailureMessage = $"The AppendIndex is incorrect. Should be {count - 1} for 100 items, it's {arr.AppendIndex}";
+				return false;
+			}
+
+			"OK: Parallel Append and RemoveLast()".AsTestSuccess();
+
+			return true;
+		}
+
+		bool parallelAppend(Random rdm, ConcurrentArray<object> arr)
+		{
+			var controlArr = new List<object>();
+
+			Parallel.For(0, 200, (i) =>
+			{
+				Thread.Sleep(rdm.Next(20, 100));
+				arr.Append((object)i);
+			});
+
+			for (int i = 0; i <= arr.AppendIndex; i++)
+				controlArr.Add(arr[i]);
+
+			var L = new List<object>(arr.Items());
+			L.Sort();
+
+			for (int i = 0; i < 100; i++)
+			{
+				if ((int)L[i] != i)
+				{
+					FailureMessage = "Parallel Append() fails.";
+					Passed = false;
+					return false;
+				}
+
+				var o = controlArr[i];
+
+				if (arr.IndexOf(o) != controlArr.IndexOf(o))
+				{
+					FailureMessage = "IndexOf() fails.";
+					Passed = false;
+					return false;
+				}
+			}
+
+			"OK: Parallel Append()".AsTestSuccess();
+
+			return true;
+		}
+
+		bool gears()
+		{
+			var arr = new ConcurrentArray<object>(10, 100);
+			var rdm = new Random();
+
+			try
+			{
+				Parallel.For(0, 200, (i) =>
+				{
+					var pos = arr.Append(i);
+					var x = (int)arr[pos];
+					arr[pos] = x + 1000;
+				});
+
+				"OK: Gears.Straight".AsTestSuccess();
+
+				arr.ShiftGear(ConcurrentArray<object>.Gear.N);
+
+				Parallel.For(0, 200, (i) =>
+				{
+					var rid = rdm.Next(0, 40);
+					arr[rid] = (int)arr[rid] + 1000;
+				});
+
+				"OK: Gears.N".AsTestSuccess();
+
+				arr.ShiftGear(ConcurrentArray<object>.Gear.Reverse);
+
+				Parallel.For(0, 200, (i) =>
+				{
+					arr.RemoveLast(out int pos);
+				});
+
+				"OK: Gears.Reverse".AsTestSuccess();
+			}
+			catch (Exception ex)
+			{
+				FailureMessage = "Gears fails";
+				Passed = false;
+				return false;
+			}
+
+			return true;
+		}
+
 	}
 }

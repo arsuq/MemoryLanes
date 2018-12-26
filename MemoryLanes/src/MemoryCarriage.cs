@@ -92,7 +92,7 @@ namespace System
 		/// </exception>
 		public F Alloc(int size, int awaitMS = -1)
 		{
-			if (Lanes == null || Lanes.Count < 1) throw new MemoryLaneException(MemoryLaneException.Code.NotInitialized);
+			if (Lanes == null || Lanes.Capacity == 0) throw new MemoryLaneException(MemoryLaneException.Code.NotInitialized);
 			if (size < 0 || size > MemoryLaneSettings.MAX_CAPACITY) throw new ArgumentOutOfRangeException("size");
 
 			F frag = null;
@@ -101,7 +101,7 @@ namespace System
 			// If awaitMS > -1 cycle around a few times before making a new lane
 			var LAPS = awaitMS > -1 ? settings.NoWaitLapsBeforeNewLane : 1;
 			for (var laps = 0; laps < LAPS; laps++)
-				for (var i = 0; i <= Lanes.AppendPos; i++)
+				for (var i = 0; i <= Lanes.AppendIndex; i++)
 				{
 					var lane = Lanes[i];
 					if (lane != null && createFragment(lane, size, ref frag, awaitMS))
@@ -112,7 +112,7 @@ namespace System
 				}
 
 			// No luck, create a new lane and do not publish it before getting a fragment
-			var nextCapacity = settings.NextCapacity(Lanes.Count);
+			var nextCapacity = settings.NextCapacity(Lanes.AppendIndex);
 			var cap = size > nextCapacity ? size : nextCapacity;
 			var ml = allocLane(cap, true);
 
@@ -148,7 +148,7 @@ namespace System
 		public int GetTotalActiveFragments()
 		{
 			// It's fine not to lock because the lanes could only increase
-			var lc = Lanes.AppendPos;
+			var lc = Lanes.AppendIndex;
 			var c = 0;
 			for (int i = 0; i <= lc; i++)
 				if (Lanes[i] != null)
@@ -163,7 +163,7 @@ namespace System
 		/// <returns>The total preallocated space for the highway.</returns>
 		public int GetTotalCapacity()
 		{
-			var lc = Lanes.AppendPos;
+			var lc = Lanes.AppendIndex;
 			var cap = 0;
 			for (int i = 0; i <= lc; i++)
 				if (Lanes[i] != null)
@@ -176,19 +176,19 @@ namespace System
 		/// Gets the Lanes notNullsCount.
 		/// </summary>
 		/// <returns>The number of preallocated lanes.</returns>
-		public int GetLanesCount() => Lanes.Count;
+		public int GetLanesCount() => Lanes.ItemsCount;
 
 
 		/// <summary>
-		/// Returns the array.AppendPos value, i.e. the furthest index in the Lanes array.
+		/// Returns the array.AppendIndex value, i.e. the furthest index in the Lanes array.
 		/// </summary>
 		/// <returns>The number of preallocated lanes.</returns>
-		public int GetLastLaneIndex() => Lanes.AppendPos;
+		public int GetLastLaneIndex() => Lanes.AppendIndex;
 
 
 		/// <summary>
 		/// Creates a new List instance with the selection of all non null cells in the underlying array.
-		/// This is a relatively expensive operation, depending on the array length and the AppendPos value, so
+		/// This is a relatively expensive operation, depending on the array length and the AppendIndex value, so
 		/// one may consider using the indexer instead.
 		/// </summary>
 		/// <returns>A read only list of MemoryLane objects.</returns>
@@ -203,7 +203,7 @@ namespace System
 		{
 			get
 			{
-				if (index < 0 || index > Lanes.AppendPos) throw new ArgumentOutOfRangeException("index");
+				if (index < 0 || index > Lanes.AppendIndex) throw new ArgumentOutOfRangeException("index");
 				return Lanes[index];
 			}
 		}
@@ -220,7 +220,7 @@ namespace System
 				pad = new string(lp);
 			}
 
-			var lc = Lanes.Count;
+			var lc = Lanes.ItemsCount;
 			var lines = new string[lc + 3];
 			var i = 0;
 
@@ -242,7 +242,7 @@ namespace System
 			var ignore = false;
 			var lanesTotalLength = 0;
 
-			if (Lanes.Count + 1 > settings.MaxLanesCount)
+			if (Lanes.ItemsCount + 1 > settings.MaxLanesCount)
 			{
 				if (settings.OnMaxLaneReached != null) ignore = settings.OnMaxLaneReached();
 				if (!ignore) throw new MemoryLaneException(MemoryLaneException.Code.MaxLanesCountReached);
@@ -271,7 +271,7 @@ namespace System
 			{
 				try
 				{
-					if (Lanes != null && Lanes.Count > 0)
+					if (Lanes != null && Lanes.ItemsCount > 0)
 						foreach (var lane in Lanes.Items())
 							lane.Dispose();
 				}
@@ -291,7 +291,7 @@ namespace System
 
 		long lastAllocTickAnyLane;
 
-		ConcurrentFixedArray<L> Lanes = new ConcurrentFixedArray<L>(MemoryLaneSettings.MAX_COUNT);
+		ConcurrentArray<L> Lanes = new ConcurrentArray<L>(MemoryLaneSettings.MAX_COUNT / 10, 12 );
 		bool isDisposed;
 	}
 }
