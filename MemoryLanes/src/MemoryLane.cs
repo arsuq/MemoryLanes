@@ -103,7 +103,7 @@ namespace System
 		/// </summary>
 		/// <remarks>
 		/// This method is racing both the allocations and the reset. If the lane is reset 
-		/// FreeGhosts() returns immediately. The check is made on every iteration.
+		/// FreeGhosts() returns immediately. The check is made on every iteration before the resetOne() call.
 		/// </remarks>
 		/// <returns>The number of deallocations.</returns>
 		/// <exception cref="System.MemoryLaneException">Code: IncorrectDisposalMode</exception>
@@ -112,9 +112,10 @@ namespace System
 			if (Disposal != DisposalMode.TrackGhosts)
 				throw new MemoryLaneException(MemoryLaneException.Code.IncorrectDisposalMode);
 
-			lock (trackLock)
+			int freed = 0;
+
+			if (Interlocked.CompareExchange(ref freeGhostsGate, 1, 0) < 1)
 			{
-				int freed = 0;
 				int ai = Tracker.AppendIndex;
 				int startedCycle = LaneCycle;
 
@@ -133,8 +134,10 @@ namespace System
 					}
 				}
 
-				return freed;
+				Interlocked.Exchange(ref freeGhostsGate, 0);
 			}
+
+			return freed;
 		}
 
 		/// <summary>
@@ -260,7 +263,7 @@ namespace System
 
 		SpinLock allocGate = new SpinLock();
 		SpinLock resetGate = new SpinLock();
-		object trackLock = new object();
+		int freeGhostsGate;
 
 		int isClosed;
 	}
