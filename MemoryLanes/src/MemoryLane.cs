@@ -81,7 +81,7 @@ namespace System
 					Interlocked.Increment(ref allocations);
 					Interlocked.Exchange(ref lastAllocTick, DateTime.Now.Ticks);
 
-					frag = new FragmentRange(oldoffset, size, allocations);
+					frag = new FragmentRange(oldoffset, size, allocations - 1);
 
 					// Just make the slot, then the derived lane will set it 
 					// at 'allocations' position.
@@ -101,6 +101,10 @@ namespace System
 		/// Triggers deallocation of the tracked not-disposed and GC collected fragments. 
 		/// Does nothing if the fragments are still alive. 
 		/// </summary>
+		/// <remarks>
+		/// This method is racing both the allocations and the reset. If the lane is reset 
+		/// FreeGhosts() returns immediately. The check is made on every iteration.
+		/// </remarks>
 		/// <returns>The number of deallocations.</returns>
 		/// <exception cref="System.MemoryLaneException">Code: IncorrectDisposalMode</exception>
 		public int FreeGhosts()
@@ -112,16 +116,19 @@ namespace System
 			{
 				int freed = 0;
 				int ai = Tracker.AppendIndex;
+				int startedCycle = LaneCycle;
 
-				for (int i = 0; i < ai; i++)
+				for (int i = 0; i <= ai; i++)
 				{
 					var t = Tracker[i];
 
 					if (t == null) continue;
 					if (!t.TryGetTarget(out MemoryFragment f) || f == null)
 					{
-						resetOne(f.LaneCycle);
+						// Could be a new cycle already 
+						if (startedCycle != LaneCycle) return freed;
 						Tracker[i] = null;
+						resetOne(startedCycle);
 						freed++;
 					}
 				}

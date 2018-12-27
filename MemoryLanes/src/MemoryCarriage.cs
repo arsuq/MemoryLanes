@@ -4,19 +4,6 @@ using System.Threading;
 
 namespace System
 {
-	public interface IMemoryHighway : IDisposable
-	{
-		MemoryFragment AllocFragment(int size, int awaitMS = -1);
-		int GetTotalActiveFragments();
-		int GetTotalCapacity();
-		int GetLanesCount();
-		int GetLastLaneIndex();
-		long LastAllocTickAnyLane { get; }
-		IReadOnlyList<MemoryLane> GetLanes();
-		MemoryLane this[int index] { get; }
-		string FullTrace(int leftSpaces);
-	}
-
 	/// <summary>
 	/// The allocation/release behavior is generalized here.
 	/// </summary>
@@ -30,6 +17,14 @@ namespace System
 
 			if (settings.RegisterForProcessExitCleanup)
 				AppDomain.CurrentDomain.ProcessExit += (s, e) => destroy();
+
+			if (stg.MaxLanesCount < 1000)
+				Lanes = new ConcurrentArray<L>(stg.MaxLanesCount, 1);
+			else
+			{
+				var lenBlockSize = 1 + (int)Math.Sqrt(stg.MaxLanesCount);
+				Lanes = new ConcurrentArray<L>(lenBlockSize, lenBlockSize);
+			}
 		}
 
 		/// <summary>
@@ -210,6 +205,18 @@ namespace System
 
 		MemoryLane IMemoryHighway.this[int index] => this[index];
 
+		/// <summary>
+		/// Triggers FreeGhosts() on all lanes.
+		/// </summary>
+		public void FreeGhosts()
+		{
+			if (settings.Disposal != MemoryLane.DisposalMode.TrackGhosts)
+				throw new MemoryLaneException(MemoryLaneException.Code.IncorrectDisposalMode);
+
+			foreach (var lane in Lanes.Items())
+				lane.FreeGhosts();
+		}
+
 		public virtual string FullTrace(int padLeft = 0)
 		{
 			var pad = string.Empty;
@@ -291,7 +298,8 @@ namespace System
 
 		long lastAllocTickAnyLane;
 
-		ConcurrentArray<L> Lanes = new ConcurrentArray<L>(MemoryLaneSettings.MAX_COUNT / 10, 12 );
+		ConcurrentArray<L> Lanes = null;
+
 		bool isDisposed;
 	}
 }

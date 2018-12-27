@@ -24,6 +24,15 @@ namespace Tests.Surface
 			var opt = args["-store"];
 			opt.AssertNothingButTheseArgs("mh", "mmf", "nh");
 
+			if (!reset(opt)) return;
+			if (!freeGhosts(opt)) return;
+
+			if (!Passed.HasValue) Passed = true;
+			IsComplete = true;
+		}
+
+		bool reset(List<string> opt)
+		{
 			var stg = new MemoryLaneSettings(4000, 8, 10000);
 			var iH = new Dictionary<string, IMemoryHighway>();
 
@@ -60,7 +69,7 @@ namespace Tests.Surface
 							{
 								Passed = false;
 								FailureMessage = string.Format("{0}: expected one ghost fragment, found {1}.", hwName, af);
-								return;
+								return false;
 							}
 
 							Print.Trace("    Forcing reset.. ", ConsoleColor.Magenta, null, hwName, af);
@@ -73,7 +82,7 @@ namespace Tests.Surface
 							{
 								Passed = false;
 								FailureMessage = string.Format("{0}: expected 0 ghost fragments after forcing a reset, found {1}.", hwName, af);
-								return;
+								return false;
 							}
 							else Print.Trace("    {0} has {1} allocations and offset {2}", ConsoleColor.Green, null, hwName, lane0.Allocations, lane0.Offset);
 						}
@@ -81,7 +90,7 @@ namespace Tests.Surface
 						{
 							Passed = false;
 							FailureMessage = string.Format("{0}: the active fragments count is wrong, should be 1.", hwName);
-							return;
+							return false;
 						}
 
 						Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
@@ -89,8 +98,90 @@ namespace Tests.Surface
 				}
 			}
 
-			if (!Passed.HasValue) Passed = true;
-			IsComplete = true;
+			return true;
+		}
+
+		bool freeGhosts(List<string> opt)
+		{
+			var stg = new MemoryLaneSettings(1024, 3, MemoryLane.DisposalMode.TrackGhosts);
+			var iH = new Dictionary<string, IMemoryHighway>();
+
+			iH.Add("mh", new HeapHighway(stg, 1024, 1024));
+			iH.Add("nh", new MarshalHighway(stg, 1024, 1024));
+			iH.Add("mmf", new MappedHighway(stg, 1024, 1024));
+
+			foreach (var kp in iH)
+			{
+				var hwName = kp.Value.GetType().Name;
+				var F = new List<MemoryFragment>();
+
+				if (opt.Contains(kp.Key))
+				{
+					var hw = kp.Value;
+					using (hw)
+					{
+						Print.Trace("    Allocating 4 fragments 1 will be lost.", ConsoleColor.Magenta);
+
+						void alloc()
+						{
+							F.Add(hw.AllocFragment(500));
+							hw.AllocFragment(500); // lost  
+							F.Add(hw.AllocFragment(500));
+							F.Add(hw.AllocFragment(500));
+						}
+
+						alloc();
+
+						Print.Trace("    Triggering FreeGhosts()", ConsoleColor.Magenta);
+
+						hw.FreeGhosts();
+						var af = hw.GetTotalActiveFragments();
+
+						if (af != 4)
+						{
+							Passed = false;
+							FailureMessage = $"{hwName} FreeGhosts() collected something, maybe the GC passed. This may not be a failure.";
+							return false;
+						}
+
+						"OK: FreeGhosts() did nothing on the live fragments".AsTestSuccess();
+						"    Forcing GC and then FreeGhosts() ".Trace(ConsoleColor.Magenta);
+
+						GC.Collect(2);
+						GC.WaitForFullGCComplete();
+						Thread.Sleep(3000);
+						hw.FreeGhosts();
+						af = hw.GetTotalActiveFragments();
+
+						if (af < 3)
+						{
+							Passed = false;
+							FailureMessage = $"{hwName} expected 3 active fragments after one GC and GreeGhosts, got {af}";
+							return false;
+						}
+
+						"OK: FreeGhosts() collected 1 as expected".AsTestSuccess();
+						"    Disposing all".Trace(ConsoleColor.Magenta);
+
+						foreach (var f in F) f.Dispose();
+
+						af = hw.GetTotalActiveFragments();
+
+						if (af > 0)
+						{
+							Passed = false;
+							FailureMessage = $"{hwName} lane resetting on dispose is failing";
+							return false;
+						}
+
+						"OK: FreeGhosts()".AsTestSuccess();
+
+						Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
+					}
+				}
+			}
+
+			return true;
 		}
 	}
 }
