@@ -37,7 +37,8 @@ namespace System
 			/// <summary>
 			/// The lane will track all fragments into a special collection
 			/// of weak refs, so when the GC collects the non-disposed fragments
-			/// the lane can deallocate the correct amount and reset.
+			/// the lane can deallocate the correct amount and reset. 
+			/// The triggering of the deallocation - FreeGhosts() is consumers responsibility.
 			/// </summary>
 			TrackGhosts = 1
 		}
@@ -48,6 +49,12 @@ namespace System
 				throw new MemoryLaneException(MemoryLaneException.Code.SizeOutOfRange);
 
 			Disposal = dm;
+
+			if (dm == DisposalMode.TrackGhosts)
+			{
+				var side = 1 + (int)Math.Sqrt(capacity / TRACKER_ASSUMED_MIN_FRAG_SIZE_BYTES);
+				Tracker = new ConcurrentArray<WeakReference<MemoryFragment>>(side, side);
+			}
 		}
 
 		public bool Alloc(int size, ref FragmentRange frag, int awaitMS = -1)
@@ -91,12 +98,16 @@ namespace System
 		}
 
 		/// <summary>
-		/// Triggers deallocation of ghost fragments, i.e. never disposed and GC collected. 
+		/// Triggers deallocation of the tracked not-disposed and GC collected fragments. 
 		/// Does nothing if the fragments are still alive. 
 		/// </summary>
 		/// <returns>The number of deallocations.</returns>
+		/// <exception cref="System.MemoryLaneException">Code: IncorrectDisposalMode</exception>
 		public int FreeGhosts()
 		{
+			if (Disposal != DisposalMode.TrackGhosts)
+				throw new MemoryLaneException(MemoryLaneException.Code.IncorrectDisposalMode);
+
 			lock (trackLock)
 			{
 				int freed = 0;
@@ -180,8 +191,9 @@ namespace System
 		/// </summary>
 		/// <remarks>
 		/// Resetting the offset may lead to unpredictable behavior if you attempt to read or write
-		/// with any active fragments. Do this only in case of leaked fragments which are
-		/// unreachable and possibly GCed, but never properly disposed and still counted in lane's Allocations.
+		/// with any active fragments. The MemoryFragment's Read/Write and Span() methods assert the 
+		/// correctness of the lane cycle, but one may already have a Span for the previous cycle,
+		/// and using it will override the lane on write and yield corrupt data on read.
 		/// </remarks>
 		/// <param name="close">True to close the lane.</param>
 		/// <param name="reset">True to reset the offset and the allocations to 0.</param>
@@ -190,14 +202,22 @@ namespace System
 			bool isLocked = false;
 			allocGate.Enter(ref isLocked);
 
-			Interlocked.Exchange(ref isClosed, close ? 1 : 0);
-			if (reset)
+			if (isLocked)
 			{
-				Interlocked.Exchange(ref offset, 0);
-				Interlocked.Exchange(ref allocations, 0);
-			}
+				Interlocked.Exchange(ref isClosed, close ? 1 : 0);
 
-			if (isLocked) allocGate.Exit();
+				if (reset)
+				{
+					Interlocked.Exchange(ref offset, 0);
+					Interlocked.Exchange(ref allocations, 0);
+
+					if (Disposal == DisposalMode.TrackGhosts)
+						Tracker.MoveAppendIndex(0, true);
+				}
+
+				allocGate.Exit();
+			}
+			else throw new SynchronizationException(SynchronizationException.Code.LockAcquisition);
 		}
 
 		/// <summary>
@@ -217,7 +237,8 @@ namespace System
 		public int LaneCycle => Volatile.Read(ref laneCycle);
 		public bool IsDisposed => Volatile.Read(ref isDisposed);
 
-		public int ALLOC_AWAIT_MS = 10;
+		public const int ALLOC_AWAIT_MS = 10;
+		public const int TRACKER_ASSUMED_MIN_FRAG_SIZE_BYTES = 32;
 
 		protected bool isDisposed;
 		protected int allocations;
@@ -228,9 +249,7 @@ namespace System
 		public readonly DisposalMode Disposal;
 
 		// The Tracker index is the Allocation index of the fragment
-		ConcurrentArray<WeakReference<MemoryFragment>> Tracker =
-			// 2d0 make these values a setting
-			new ConcurrentArray<WeakReference<MemoryFragment>>(1000, 1000);
+		ConcurrentArray<WeakReference<MemoryFragment>> Tracker = null;
 
 		SpinLock allocGate = new SpinLock();
 		SpinLock resetGate = new SpinLock();
