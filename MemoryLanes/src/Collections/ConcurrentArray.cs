@@ -121,10 +121,11 @@ namespace System.Collections.Concurrent
 		/// Blocks until the gear is shifted. 
 		/// </summary>
 		/// <param name="g">The new concurrent mode.</param>
+		/// <param name="f">Guarantees the execution of f() within the lock scope, in case that other shifts are waiting.</param>
 		/// <param name="timeout">In milliseconds, by default is -1, which is indefinitely.</param>
 		/// <returns>The old gear.</returns>
 		/// <exception cref="System.SynchronizationException">Code.SignalAwaitTimeout</exception>
-		public Gear ShiftGear(Gear g, int timeout = -1)
+		public Gear ShiftGear(Gear g, Action f = null, int timeout = -1)
 		{
 			// One call at a time
 			lock (shiftLock)
@@ -141,6 +142,10 @@ namespace System.Collections.Concurrent
 				if (Volatile.Read(ref concurrentOps) > 0)
 					if (!gearShift.WaitOne(timeout))
 						throw new SynchronizationException(SynchronizationException.Code.SignalAwaitTimeout);
+
+				// Give a chance to at least one function to be executed, in case 
+				// there are competing shifts.
+				if (f != null) f();
 
 				return (Gear)old;
 			}

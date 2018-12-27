@@ -254,6 +254,17 @@ namespace Tests.Surface.Collections
 				});
 
 				"    Gears.Reverse".AsSuccess();
+
+				arr.ShiftGear(ConcurrentArray<object>.Gear.P);
+				arr.Resize(0);
+
+				Parallel.For(0, 200, (i) =>
+				{
+					arr.ShiftGear(ConcurrentArray<object>.Gear.Straight, () => arr.Append(i));
+					arr.ShiftGear(ConcurrentArray<object>.Gear.Reverse, () => arr.RemoveLast(out int p));
+				});
+
+				"    Competing shifts".AsSuccess();
 			}
 			catch (Exception ex)
 			{
