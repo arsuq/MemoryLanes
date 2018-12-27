@@ -35,17 +35,16 @@ namespace System
 		}
 
 		/// <summary>
-		/// A function handler which will be invoked if the MaxLanesCount threshold is reached.
-		/// The MemoryCarriage would expect a boolean response indicating whether to continue
-		/// with the allocation or to throw an exception (default behavior).
+		/// Will be invoked if the MaxLanesCount threshold is reached.
+		/// The MemoryCarriage would expect a boolean response indicating whether to swallow the 
+		/// exception and return null as fragment or throw MemoryLaneException with code MaxLanesCountReached.
 		/// </summary>
 		/// <exception cref="MemoryLaneException">Code.MaxLanesCountReached</exception>
 		public Func<bool> OnMaxLaneReached;
 
 		/// <summary>
 		/// A handler for the case of allocating more than MaxTotalAllocatedBytes in all lanes.
-		/// If there is a function and it returns true the MemoryCarriage will continue as if 
-		/// there is no limit, otherwise throws.
+		/// Pass true in order to suppress the exception and just receive null as fragment.
 		/// </summary>
 		/// <exception cref="MemoryLaneException">Code.MaxTotalAllocBytesReached</exception>
 		public Func<bool> OnMaxTotalBytesReached;
@@ -65,9 +64,9 @@ namespace System
 		/// <summary>
 		/// Controls how many full cycles around all lanes should be made and fail to enter the 
 		/// lock with the specified awaitMS before creating a new lane.
-		/// Default value = 10.
+		/// The default value is 2.
 		/// </summary>
-		public int NoWaitLapsBeforeNewLane = 10;
+		public int NoWaitLapsBeforeNewLane = 2;
 
 		/// <summary>
 		/// If the allocator fail to find a free slice in any lane, 

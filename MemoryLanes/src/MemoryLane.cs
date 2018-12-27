@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using System.Threading;
 
 namespace System
@@ -116,25 +114,30 @@ namespace System
 
 			if (Interlocked.CompareExchange(ref freeGhostsGate, 1, 0) < 1)
 			{
-				int ai = Tracker.AppendIndex;
-				int startedCycle = LaneCycle;
-
-				for (int i = 0; i <= ai; i++)
+				try
 				{
-					var t = Tracker[i];
+					int ai = Tracker.AppendIndex;
+					int startedCycle = LaneCycle;
 
-					if (t == null) continue;
-					if (!t.TryGetTarget(out MemoryFragment f) || f == null)
+					for (int i = 0; i <= ai; i++)
 					{
-						// Could be a new cycle already 
-						if (startedCycle != LaneCycle) return freed;
-						Tracker[i] = null;
-						resetOne(startedCycle);
-						freed++;
+						var t = Tracker[i];
+
+						if (t == null) continue;
+						if (!t.TryGetTarget(out MemoryFragment f) || f == null)
+						{
+							// Could be a new cycle already 
+							if (startedCycle != LaneCycle) return freed;
+							Tracker[i] = null;
+							resetOne(startedCycle);
+							freed++;
+						}
 					}
 				}
-
-				Interlocked.Exchange(ref freeGhostsGate, 0);
+				finally
+				{
+					Interlocked.Exchange(ref freeGhostsGate, 0);
+				}
 			}
 
 			return freed;
@@ -142,12 +145,11 @@ namespace System
 
 		/// <summary>
 		/// Free is called from the fragment's Dispose method.
-		/// If the lane DisposalMode is not IDispose this method does nothing.
 		/// </summary>
 		/// <param name="cycle">The lane cycle given to the fragment at creation time.</param>
 		protected void free(int cycle, int allocation)
 		{
-			if (Disposal == DisposalMode.TrackGhosts)
+			if (Disposal == DisposalMode.TrackGhosts && cycle == LaneCycle)
 				Tracker[allocation] = null;
 
 			resetOne(cycle);
@@ -156,7 +158,11 @@ namespace System
 		protected void track(MemoryFragment f, int allocationIdx)
 		{
 			if (Disposal == DisposalMode.TrackGhosts)
-				Tracker[allocationIdx] = new WeakReference<MemoryFragment>(f);
+			{
+				if (f.LaneCycle == LaneCycle)
+					Tracker[allocationIdx] = new WeakReference<MemoryFragment>(f);
+				else throw new MemoryLaneException(MemoryLaneException.Code.AttemptToAccessWrongLaneCycle);
+			}
 			else throw new MemoryLaneException(MemoryLaneException.Code.IncorrectDisposalMode);
 		}
 

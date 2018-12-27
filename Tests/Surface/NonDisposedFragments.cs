@@ -26,7 +26,7 @@ namespace Tests.Surface
 
 			if (!reset(opt)) return;
 			if (!freeGhosts(opt)) return;
-
+			
 			if (!Passed.HasValue) Passed = true;
 			IsComplete = true;
 		}
@@ -144,7 +144,7 @@ namespace Tests.Surface
 							return false;
 						}
 
-						"OK: FreeGhosts() did nothing on the live fragments".AsTestSuccess();
+						"    FreeGhosts() did nothing on the live fragments".AsSuccess();
 						"    Forcing GC and then FreeGhosts() ".Trace(ConsoleColor.Magenta);
 
 						GC.Collect(2);
@@ -160,7 +160,7 @@ namespace Tests.Surface
 							return false;
 						}
 
-						"OK: FreeGhosts() collected 1 as expected".AsTestSuccess();
+						"    FreeGhosts() collected 1 as expected".AsSuccess();
 						"    Disposing all".Trace(ConsoleColor.Magenta);
 
 						foreach (var f in F) f.Dispose();
@@ -174,7 +174,7 @@ namespace Tests.Surface
 							return false;
 						}
 
-						"OK: FreeGhosts()".AsTestSuccess();
+						"    FreeGhosts()".AsSuccess();
 
 						Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
 					}

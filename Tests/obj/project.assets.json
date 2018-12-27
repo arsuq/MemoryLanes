@@ -208,7 +208,7 @@
           "build/netstandard2.0/NETStandard.Library.targets": {}
         }
       },
-      "MemoryLanes/1.0.0": {
+      "MemoryLanes/1.1.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v2.1",
         "compile": {
@@ -701,7 +701,7 @@
         "netstandard.library.nuspec"
       ]
     },
-    "MemoryLanes/1.0.0": {
+    "MemoryLanes/1.1.0": {
       "type": "project",
       "path": "../MemoryLanes/MemoryLanes.csproj",
       "msbuildProject": "../MemoryLanes/MemoryLanes.csproj"
@@ -714,7 +714,7 @@
   },
   "projectFileDependencyGroups": {
     ".NETCoreApp,Version=v2.1": [
-      "MemoryLanes >= 1.0.0",
+      "MemoryLanes >= 1.1.0",
       "Microsoft.NETCore.App >= 2.1.0",
       "TestRunner >= 1.0.0"
     ]

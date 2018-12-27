@@ -44,8 +44,7 @@ namespace Tests.Internals
 			var T = new Task[inParallel];
 			var part = args.Count / inParallel;
 			var rem = args.Count % inParallel;
-			var dispEvent = new ManualResetEvent(false);
-			var dispCounter = args.Count;
+			var dispCounter = new CountdownEvent(args.Count);
 
 			for (int i = 0; i < inParallel; i++)
 			{
@@ -66,6 +65,13 @@ namespace Tests.Internals
 
 						 var frag = hw.AllocFragment(size, args.AllocLockAwaitMs);
 
+						 if (frag == null)
+						 {
+							 "    failed to allocate a fragment. The Highway is full.".Trace(ConsoleColor.DarkMagenta);
+							 dispCounter.Signal();
+							 continue;
+						 }
+
 						 if (args.Trace > 0)
 							 Print.Trace("    alloc {0,8} bytes on {1} thread: {2} ",
 								 ConsoleColor.Magenta, null, size, hwType,
@@ -82,15 +88,14 @@ namespace Tests.Internals
 								 Thread.CurrentThread.ManagedThreadId);
 
 							 frag.Dispose();
-							 if (Interlocked.Decrement(ref dispCounter) < 1)
-								 dispEvent.Set();
+							 dispCounter.Signal();
 						 });
 					 }
 				 });
 			}
 
 			Task.WaitAll(T);
-			if (args.AwaitFragmentDisposal) dispEvent.WaitOne();
+			if (args.AwaitFragmentDisposal) dispCounter.Wait();
 		}
 	}
 }

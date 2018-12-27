@@ -70,7 +70,7 @@ namespace Tests.Surface
 								return;
 							}
 
-							Print.Trace("{0}: closing a lane works as expected", ConsoleColor.Green, null, hwName);
+							$"    {hwName}: closing a lane works as expected".AsSuccess();
 
 							lane1.Force(false);
 							// should go into lane1 because lane0 has 1500/2000 

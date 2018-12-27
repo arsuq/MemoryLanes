@@ -36,7 +36,6 @@ namespace System
 		/// the OnMaxLaneReached handler is either null or returns false
 		/// Code.MaxTotalAllocBytesReached: when the total lanes capacity is greater than MaxTotalAllocatedBytes AND
 		/// the OnMaxTotalBytesReached handler is either null or returns false, meaning "do not ignore".
-		/// In both cases if the callbacks return true the MemoryCarriage will continue to allocate lanes. 
 		/// Code.SizeOutOfRange: when at least one of the lengths is outside the 
 		/// MemoryLaneSettings.MIN_CAPACITY - MemoryLaneSettings.MAX_CAPACITY interval.
 		/// </exception>
@@ -58,7 +57,6 @@ namespace System
 		/// the OnMaxLaneReached handler is either null or returns false
 		/// Code.MaxTotalAllocBytesReached: when the total lanes capacity is greater than MaxTotalAllocatedBytes AND
 		/// the OnMaxTotalBytesReached handler is either null or returns false, meaning "do not ignore".
-		/// In both cases if the callbacks return true the MemoryCarriage will continue to allocate lanes. 
 		/// Code.SizeOutOfRange: when at least one of the lengths is outside the 
 		/// MemoryLaneSettings.MIN_CAPACITY - MemoryLaneSettings.MAX_CAPACITY interval.
 		/// </exception>
@@ -111,14 +109,19 @@ namespace System
 			var cap = size > nextCapacity ? size : nextCapacity;
 			var ml = allocLane(cap, true);
 
-			if (!createFragment(ml, size, ref frag, awaitMS))
-				throw new MemoryLaneException(
-					MemoryLaneException.Code.NewLaneAllocFail,
-					string.Format("Failed to allocate {0} bytes on a dedicated lane.", size));
+			// Could be null if the MaxLanesCount or MaxBytesCount exceptions are ignored.
+			// The consumer can infer that by checking if the fragment is null.
+			if (ml != null)
+			{
+				if (!createFragment(ml, size, ref frag, awaitMS))
+					throw new MemoryLaneException(
+						MemoryLaneException.Code.NewLaneAllocFail,
+						string.Format("Failed to allocate {0} bytes on a dedicated lane.", size));
 
-			Lanes.Append(ml);
+				Lanes.Append(ml);
 
-			Interlocked.Exchange(ref lastAllocTickAnyLane, DateTime.Now.Ticks);
+				Interlocked.Exchange(ref lastAllocTickAnyLane, DateTime.Now.Ticks);
+			}
 
 			return frag;
 		}
@@ -205,6 +208,8 @@ namespace System
 
 		MemoryLane IMemoryHighway.this[int index] => this[index];
 
+		int freeGhostsGate = 0;
+
 		/// <summary>
 		/// Triggers FreeGhosts() on all lanes.
 		/// </summary>
@@ -213,8 +218,18 @@ namespace System
 			if (settings.Disposal != MemoryLane.DisposalMode.TrackGhosts)
 				throw new MemoryLaneException(MemoryLaneException.Code.IncorrectDisposalMode);
 
-			foreach (var lane in Lanes.Items())
-				lane.FreeGhosts();
+			if (Interlocked.CompareExchange(ref freeGhostsGate, 1, 0) < 1)
+			{
+				try
+				{
+					foreach (var lane in Lanes.Items())
+						lane.FreeGhosts();
+				}
+				finally
+				{
+					Interlocked.Exchange(ref freeGhostsGate, 0);
+				}
+			}
 		}
 
 		public virtual string FullTrace(int padLeft = 0)
@@ -246,13 +261,12 @@ namespace System
 
 		L allocLane(int capacity, bool hidden = false)
 		{
-			var ignore = false;
 			var lanesTotalLength = 0;
 
 			if (Lanes.ItemsCount + 1 > settings.MaxLanesCount)
 			{
-				if (settings.OnMaxLaneReached != null) ignore = settings.OnMaxLaneReached();
-				if (!ignore) throw new MemoryLaneException(MemoryLaneException.Code.MaxLanesCountReached);
+				if (settings.OnMaxLaneReached != null && settings.OnMaxLaneReached()) return null;
+				else throw new MemoryLaneException(MemoryLaneException.Code.MaxLanesCountReached);
 			}
 
 			foreach (var l in Lanes.Items())
@@ -260,9 +274,8 @@ namespace System
 
 			if (lanesTotalLength > settings.MaxTotalAllocatedBytes)
 			{
-				ignore = false;
-				if (settings.OnMaxTotalBytesReached != null) ignore = settings.OnMaxTotalBytesReached();
-				if (!ignore) throw new MemoryLaneException(MemoryLaneException.Code.MaxTotalAllocBytesReached);
+				if (settings.OnMaxTotalBytesReached != null && settings.OnMaxTotalBytesReached()) return null;
+				else throw new MemoryLaneException(MemoryLaneException.Code.MaxTotalAllocBytesReached);
 			}
 
 			var ml = createLane(capacity);
@@ -288,6 +301,7 @@ namespace System
 			}
 		}
 
+		// 2d0 remove the finalizer, it's useless.
 		~MemoryCarriage() => destroy(true);
 
 		protected readonly MemoryLaneSettings settings;

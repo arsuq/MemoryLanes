@@ -1,6 +1,6 @@
-Memory Lanes
+# Memory Lanes
 
-> v1.0
+> v1.1
 
 ## Description 
 
@@ -12,14 +12,13 @@ which could be stored on one of three locations:
 * A memory mapped file
 
 A **MemoryLane** represents a buffer which is already allocated and can be sliced
-on demand in a thread stack manner, i.e. reserving ranges in one direction only.
-Consequently the slicing is just a few atomic operations, there is no search involved 
-and no memory fragmentation as the exact number of bytes is blocked, as long as 
+on demand by reserving ranges in one direction only.
+Consequently there is no search involved nor memory fragmentation as the exact number of bytes is blocked, as long as 
 the lane has enough free space. 
 
 
-A **MemoryFragment** is a GC heap object created by the MemoryLane allocation function. It
-holds the starting offset and the length of the buffer slice as well as a
+A **MemoryFragment** is a GC heap object created by the MemoryLane allocation function.
+It holds the starting offset and the length of the buffer slice as well as a
 special destructor, injected by the Lane, which is triggered when the fragment is 
 disposed. There is a common API for reading from and writing to the underlying
 memory for all fragment types as well as a Span accessor.
@@ -40,14 +39,12 @@ public abstract class MemoryFragment : IDisposable
 - it's very likely that the fragments will be boxed anyway (async)
 - it's natural to share fragments among threads
 - one could subclass a fragment
-- make use of a finalizer, since there are unmanaged resources 
-- in a future version a reliable disposal implementation would most likely 
-  use some form of ref counting
+- reliable disposal, that is ref counting and resetting a lane when no Dispose is called
 
 
 Similar to the thread stack deallocation, the MemoryLane cleanup is just an
-offset reset, however that could only happen when there are
-no active fragments, i.e. the MemoryLane's active Fragments counter must be zero, 
+offset reset, however that could only happen when there are no active fragments, 
+i.e. the MemoryLane's active Fragments counter must be zero, 
 which means that the lifetime of the oldest fragment determines the reset time of the lane.
   
 
@@ -84,22 +81,30 @@ public interface IMemoryHighway : IDisposable
 }
 ```
 
+<br>
+
 ### Reliable disposal
 
-> Applies to v1.0 
+> From v1.1 
 
-The current version does not implement reliable automatic fragment disposal. The reason is that 
-it would involve more centralized storage and tracking, leading to more contention. One could easily
-add such functionality by inheriting the corresponding Fragment with the desired destructor logic.
-With the current API one could track ghost fragments by using the following metrics:
+The current version implements two disposal modes, which could be set in the MemoryLaneSettings constructor:
 
-- **LastAllocTickAnyLane** in *MemoryCarriage* or casted as *IMemoryHighway*, this is the last allocation on any lane
-- **LastAllocTick**, **Allocations** and **Offset** in the MemoryLane abstract class
-- the **OnMaxLaneReached** and **OnMaxTotalBytesReached** callbacks as an alerting mechanism
+- **IDispose (default)** In this mode the consumer *must* call *Dispose()* from each fragment in order 
+	to reset the lane. The only other option to unfreeze a lane is to *Force()* reset it which is unsafe.
 
-For example if the LastAllocTick on a given lane is *dt* ms behind LastAllocTickAnyLane, the 
-Offset indicates that there is not enough space and the Allocations remain the same in multiple checks,
-one may decide to force reset the lane if the *dt* is considered enough for the particular scenario.
+- **TrackGhosts** In order to dispose the correct number of lost fragments, each lane tracks them with 
+   weak references and resets one allocation for every GC-ed and non disposed fragment. In this mode the
+   consumer should still dispose despite that it's not required because the lane reset is dependent on the GC 
+   as long as there is one ghost fragment. If the consumer properly disposes all fragments, this mode behaves
+   as IDispiose with the overhead of the tracking.
+
+   The *TrackGhosts* mode shifts the responsibility from Disposing to launching the cleanup function with a 
+   timer or in any other way. The MemoryCarriage as well the MemoryLane classes have a *FreeGhosts()* method
+   which is multi-call protected, so it's safe to call it more than once.
+
+   In general forgetting to call Dispose on a fragment is considered a bug, however if the consumers of the
+   fragments are unknown, i.e. other libraries or teams, the only safe assumption one could make
+   is to expect a bad disposal.
 
 <br>
 
@@ -142,7 +147,7 @@ accessors, but it is not part of any lane and doesn't affect other fragments.
 
 ## Highway limits
 
-Using the MemoryCarriage is somewhat similar to stack allocation, although the space isn't limited,
+Using the MemoryCarriage is somewhat similar to stack allocation, although the space isn't fixed,
 unless you configure it to be so by passing an instance of the **MemoryLaneSettings** class in the
 Highway constructor.
 
@@ -161,6 +166,12 @@ public class MemoryLaneSettings
 	public readonly long MaxTotalAllocatedBytes;
 }
 ```
+
+The OnMaxLaneReached and OnMaxTotalBytesReached control whether the Highway will throw a 
+MemoryLaneExcepton with codes *MaxLanesCountReached* or *MaxTotalAllocBytesReached*. 
+When any of these thresholds is reached (MaxLanesCount or MaxTotalAllocatedBytes) by
+default the corresponding error code is thrown. If the delegates are not null and return true
+the allocation will simply fail by returning null instead of a fragment instance.
 
 One may notice that the buffer lengths are limited to Int32.MaxValue everywhere 
 in this API, so one couldn't use a MappedHighway with 4GB memory mapped file.

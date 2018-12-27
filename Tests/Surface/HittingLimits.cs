@@ -28,8 +28,8 @@ namespace Tests.Surface
 			var allocArgs = new AllocTestArgs()
 			{
 				Count = 5,
-				Size = 5000_000,
-				InParallel = 2,
+				Size = 5_000_000,
+				InParallel = 1, //2,
 				RandomizeAllocDelay = true,
 				RandomizeFragDisposal = false,
 				RandomizeLength = false,
@@ -75,86 +75,99 @@ namespace Tests.Surface
 			dH.Add("mmf", new MappedHighway(stg_throw));
 
 			// The ignoring case
-			foreach (var kp in iH)
-				if (opt.Contains(kp.Key))
-				{
-					var hw = kp.Value;
-					var hwName = hw.GetType().Name;
-					using (hw)
+			try
+			{
+				foreach (var kp in iH)
+					if (opt.Contains(kp.Key))
 					{
-						hw.AllocAndWait(allocArgs);
-						if (hw.GetTotalActiveFragments() > 0)
+						var hw = kp.Value;
+						var hwName = hw.GetType().Name;
+						using (hw)
 						{
-							Passed = false;
-							FailureMessage = string.Format("The {0} has active fragments after the AllocAndWait()", hw.GetType().Name);
-							return;
-						}
-						if (hw.GetLanesCount() < 3)
-						{
-							Passed = false;
-							FailureMessage = string.Format("The {0} has less than 3 lanes. ", hwName);
-							return;
-						}
-						Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
-					}
-				}
-
-			// The default case: throws MemoryLaneException
-			foreach (var kp in dH)
-				if (opt.Contains(kp.Key))
-				{
-					var hw = kp.Value;
-					var hwName = hw.GetType().Name;
-					using (hw)
-					{
-						try { hw.AllocAndWait(allocArgs); }
-						catch (AggregateException aggr)
-						{
-							Interlocked.Exchange(ref allocArgs.Trace, 0);
-
-							foreach (var ex in aggr.Flatten().InnerExceptions)
+							hw.AllocAndWait(allocArgs);
+							if (hw.GetTotalActiveFragments() > 0)
 							{
-								var mex = ex as MemoryLaneException;
+								Passed = false;
+								FailureMessage = $"The {hwName} has active fragments after the AllocAndWait()";
+								return;
+							}
+							if (hw.GetLanesCount() > stg_ignore.MaxLanesCount)
+							{
+								Passed = false;
+								FailureMessage = $"The {hwName} has more than {stg_ignore.MaxLanesCount} lanes.";
+								return;
+							}
+							Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
+						}
+					}
 
-								if (mex != null)
+				"    The limits ignoring case.".AsSuccess();
+
+				// The default case: throws MemoryLaneExceptions
+				foreach (var kp in dH)
+					if (opt.Contains(kp.Key))
+					{
+						var hw = kp.Value;
+						var hwName = hw.GetType().Name;
+						using (hw)
+						{
+							try { hw.AllocAndWait(allocArgs); }
+							catch (AggregateException aggr)
+							{
+								Interlocked.Exchange(ref allocArgs.Trace, 0);
+
+								foreach (var ex in aggr.Flatten().InnerExceptions)
 								{
-									if (mex.ErrorCode != MemoryLaneException.Code.MaxLanesCountReached &&
-										mex.ErrorCode != MemoryLaneException.Code.MaxTotalAllocBytesReached)
+									var mex = ex as MemoryLaneException;
+
+									if (mex != null)
+									{
+										if (mex.ErrorCode != MemoryLaneException.Code.MaxLanesCountReached &&
+											mex.ErrorCode != MemoryLaneException.Code.MaxTotalAllocBytesReached)
+										{
+											Passed = false;
+											FailureMessage = string.Format(
+												"The {0} should have failed with MaxLanesCountReached or MaxTotalAllocBytesReached",
+												hwName);
+											return;
+										}
+
+										$"    {mex.ErrorCode} in {hwName} as expected".AsSuccess();
+									}
+									else
 									{
 										Passed = false;
-										FailureMessage = string.Format(
-											"The {0} should have failed with MaxLanesCountReached or MaxTotalAllocBytesReached",
-											hwName);
+										FailureMessage = ex.Message;
 										return;
 									}
-
-									Print.AsInnerInfo("{0} in {1} as expected", mex.ErrorCode, hwName);
-								}
-								else
-								{
-									Passed = false;
-									FailureMessage = ex.Message;
-									return;
 								}
 							}
-						}
-						catch (Exception ex)
-						{
-							Passed = false;
-							FailureMessage = ex.Message;
-							return;
-						}
+							catch (Exception ex)
+							{
+								Passed = false;
+								FailureMessage = ex.Message;
+								return;
+							}
 
-						if (hw.GetLanesCount() > 3)
-						{
-							Passed = false;
-							FailureMessage = string.Format("The {0} has more than 3 lanes, should have failed. ", hw.GetType().Name);
-							return;
-						}
+							if (hw.GetLanesCount() > stg_throw.MaxLanesCount)
+							{
+								Passed = false;
+								FailureMessage = $"The {hwName} has more than {stg_throw.MaxLanesCount} lanes, should have failed. ";
+								return;
+							}
 
-						Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
+							Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
+						}
 					}
-				}
+
+				"    The default - throwing exceptions case.".AsSuccess();
+			}
+			catch (Exception ex)
+			{
+				Passed = false;
+				FailureMessage = ex.Message;
+				return;
+			}
 
 			if (!Passed.HasValue) Passed = true;
 			IsComplete = true;

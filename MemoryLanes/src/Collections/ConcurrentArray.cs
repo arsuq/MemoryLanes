@@ -112,7 +112,7 @@ namespace System.Collections.Concurrent
 			if (arr.Capacity < arr.BlockLength) return arr.BlockLength;
 
 			int newCap = arr.Capacity * 2;
-			if (newCap > arr.TotalMaxCapacity) newCap = arr.TotalMaxCapacity - 1;
+			if (newCap > arr.TotalMaxCapacity) newCap = arr.TotalMaxCapacity;
 
 			return newCap;
 		}
