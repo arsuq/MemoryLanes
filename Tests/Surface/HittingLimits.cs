@@ -29,7 +29,7 @@ namespace Tests.Surface
 			{
 				Count = 5,
 				Size = 5_000_000,
-				InParallel = 1, //2,
+				InParallel = 2,
 				RandomizeAllocDelay = true,
 				RandomizeFragDisposal = false,
 				RandomizeLength = false,

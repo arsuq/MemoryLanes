@@ -75,18 +75,28 @@ namespace System
 
 				if (!IsClosed && newoffset < CAP)
 				{
-					Interlocked.Exchange(ref offset, newoffset);
-					Interlocked.Increment(ref allocations);
-					Interlocked.Exchange(ref lastAllocTick, DateTime.Now.Ticks);
+					var bail = false;
 
-					frag = new FragmentRange(oldoffset, size, allocations - 1);
-
-					// Just make the slot, then the derived lane will set it 
-					// at 'allocations' position.
+					// Just makes the slot, then the derived lane will set it 
+					// at 'Allocations' position.
 					if (Disposal == DisposalMode.TrackGhosts)
-						Tracker.Append(null);
+					{
+						// If the lane can't track more fragments, bail
+						// and let Alloc() check the next lane
+						if (Tracker.TotalMaxCapacity >= allocations + 1) Tracker.Append(null);
+						else bail = true;
+					}
 
-					result = true;
+					if (!bail)
+					{
+						Interlocked.Exchange(ref offset, newoffset);
+						Interlocked.Increment(ref allocations);
+						Interlocked.Exchange(ref lastAllocTick, DateTime.Now.Ticks);
+
+						frag = new FragmentRange(oldoffset, size, allocations - 1);
+
+						result = true;
+					}
 				}
 
 				allocGate.Exit();

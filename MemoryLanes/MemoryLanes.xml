@@ -53,12 +53,17 @@
             The virtual array incremental size.
             </summary>
         </member>
-        <member name="P:System.Collections.Concurrent.ConcurrentArray`1.AppendPos">
+        <member name="P:System.Collections.Concurrent.ConcurrentArray`1.TotalMaxCapacity">
+            <summary>
+            Returns the product of all block slots (including the non allocated ones) and the BlockLength.
+            </summary>
+        </member>
+        <member name="P:System.Collections.Concurrent.ConcurrentArray`1.AppendIndex">
             <summary>
             The current set index. 
             </summary>
         </member>
-        <member name="P:System.Collections.Concurrent.ConcurrentArray`1.NotNullItemsCount">
+        <member name="P:System.Collections.Concurrent.ConcurrentArray`1.ItemsCount">
             <summary>
             The sum of all non null items.
             </summary>
@@ -77,19 +82,19 @@
             <summary>
             Will be called before allocating more space, providing the current length as an argument.
             The returned value is desired new total length.
-            The default growth factor is 1.8.
+            The default growth factor is 2.
             </summary>
             <remarks>
-            Use this callback to fine tune the amount of blocked memory and/or the allocation time.
             By providing different growth factors depending on the current size,
-            one can create a best fitting allocation/capacity curve.
+            one can create different allocation size vs. capacity curves.
             </remarks>
         </member>
-        <member name="M:System.Collections.Concurrent.ConcurrentArray`1.ShiftGear(System.Collections.Concurrent.ConcurrentArray{`0}.Gear,System.Int32)">
+        <member name="M:System.Collections.Concurrent.ConcurrentArray`1.ShiftGear(System.Collections.Concurrent.ConcurrentArray{`0}.Gear,System.Action,System.Int32)">
             <summary>
             Blocks until the gear is shifted. 
             </summary>
             <param name="g">The new concurrent mode.</param>
+            <param name="f">Guarantees the execution of f() within the lock scope, in case that other shifts are waiting.</param>
             <param name="timeout">In milliseconds, by default is -1, which is indefinitely.</param>
             <returns>The old gear.</returns>
             <exception cref="T:System.SynchronizationException">Code.SignalAwaitTimeout</exception>
@@ -98,14 +103,14 @@
             <summary>
             Access to the individual cells.
             </summary>
-            <param name="index">Must be less than AppendPos</param>
+            <param name="index">Must be less than AppendIndex</param>
             <returns>The object reference at the index</returns>
             <exception cref="T:System.ArgumentOutOfRangeException">index</exception>
             <exception cref="T:System.InvalidOperationException">If the Drive is wrong</exception>
         </member>
         <member name="M:System.Collections.Concurrent.ConcurrentArray`1.Append(`0)">
             <summary>
-            Appends an item after the AppendPos index. 
+            Appends an item after the AppendIndex index. 
             If there is not enough space locks until enough blocks are
             allocated and then switches back to fully concurrent mode.
             </summary>
@@ -115,7 +120,7 @@
         </member>
         <member name="M:System.Collections.Concurrent.ConcurrentArray`1.RemoveLast(System.Int32@)">
             <summary>
-            Nulls the AppendPos cell, decrements the AppendPos value and returns the item that was there.
+            Nulls the AppendIndex cell, decrements the AppendIndex value and returns the item that was there.
             </summary>
             <param name="pos">The item position.</param>
             <returns>The removed item.</returns>
@@ -130,13 +135,13 @@
         </member>
         <member name="M:System.Collections.Concurrent.ConcurrentArray`1.Items">
             <summary>
-            Iterates all cells from 0 up to AppendPos and yields the  item if it's not null at the time of the check.
+            Iterates all cells from 0 up to AppendIndex and yields the  item if it's not null at the time of the check.
             </summary>
             <returns>A not null item.</returns>
         </member>
         <member name="M:System.Collections.Concurrent.ConcurrentArray`1.IndexOf(`0)">
             <summary>
-            Searches for an item by traversing all cells up to AppendPos.
+            Searches for an item by traversing all cells up to AppendIndex.
             </summary>
             <param name="item">The object ref</param>
             <returns>A positive value if the item is found, -1 otherwise.</returns>
@@ -144,103 +149,30 @@
         <member name="M:System.Collections.Concurrent.ConcurrentArray`1.Resize(System.Int32,System.Boolean)">
             <summary>
             Expands or shrinks the virtual array to the number of base-length tiles fitting the requested length.
-            If the AppendPos is greater that the new length, it's cut to length -1.
-            If shrinking, the number of not-null values, i.e. NotNullItemsCount is also updated.
+            If the AppendIndex is greater that the new length, it's cut to length -1.
+            If shrinking, the number of not-null values, i.e. ItemsCount is also updated.
             </summary>
             <param name="length">The new length.</param>
             <exception cref="T:System.ArgumentOutOfRangeException">If length is negative</exception>
             <exception cref="T:System.InvalidOperationException">When Drive != Gear.P </exception>
         </member>
-        <member name="T:System.Collections.Concurrent.ConcurrentFixedArray`1">
+        <member name="M:System.Collections.Concurrent.ConcurrentArray`1.Format(`0)">
             <summary>
-            Provides a simple thread safe API for accessing a fixed length array.
-            All methods use atomic operations, only Append and RemoveLast are 
-            spin lock protected.
+            Sets the provided item ref or null to all available cells.
+            The Drive must be either N or Straight, meaning that 
+            there is a race with Append() and set.
+            The method is synchronized.
             </summary>
-            <typeparam name="T">Must be a class</typeparam>
+            <param name="item">The ref to be set</param>
+            <exception cref="T:System.InvalidOperationException">Drive is not N or Straight</exception>
         </member>
-        <member name="M:System.Collections.Concurrent.ConcurrentFixedArray`1.#ctor(System.Int32)">
+        <member name="M:System.Collections.Concurrent.ConcurrentArray`1.MoveAppendIndex(System.Int32,System.Boolean)">
             <summary>
-            Fixes the length.
+            Moves the AppendIndex to a new location, which must be and less than Capacity.
             </summary>
-            <param name="capacity">The total length.</param>
-        </member>
-        <member name="P:System.Collections.Concurrent.ConcurrentFixedArray`1.AppendPos">
-            <summary>
-            The last Append position. It can only increase up to the capacity.
-            </summary>
-        </member>
-        <member name="P:System.Collections.Concurrent.ConcurrentFixedArray`1.Count">
-            <summary>
-            Counts the non null items in the array.
-            </summary>
-        </member>
-        <member name="P:System.Collections.Concurrent.ConcurrentFixedArray`1.Capacity">
-            <summary>
-            The array length.
-            </summary>
-        </member>
-        <member name="P:System.Collections.Concurrent.ConcurrentFixedArray`1.Item(System.Int32)">
-            <summary>
-            Access to the individual cells.
-            </summary>
-            <param name="index">The position in the array, 
-            must be less than the AppendPos for setting and less than Capacity for getting.</param>
-            <returns>The object reference at the index</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If the index is negative or greater than the AppendPos.</exception>
-        </member>
-        <member name="M:System.Collections.Concurrent.ConcurrentFixedArray`1.Append(`0)">
-            <summary>
-            Appends an item after the AppendPos index.
-            </summary>
-            <param name="item">The object reference</param>
-            <returns>The index of the item</returns>
-            <exception cref="T:System.SynchronizationException">If fails to take the lock.</exception>
-        </member>
-        <member name="M:System.Collections.Concurrent.ConcurrentFixedArray`1.RemoveLast(System.Int32@)">
-            <summary>
-            Decrements the AppendPos, nulls the corresponding cell and returns the item that was there.
-            Note that since there are no locks here, the array cell could change several times from the
-            moment of getting the index up to the actual return.
-            </summary>
-            <param name="pos">The item position.</param>
-            <returns>The removed item.</returns>
-            <exception cref="T:System.SynchronizationException">If fails to take the lock.</exception>
-            <exception cref="T:System.InvalidOperationException">If there are no items.</exception>
-        </member>
-        <member name="M:System.Collections.Concurrent.ConcurrentFixedArray`1.Remove(`0)">
-            <summary>
-            First searches for the item index and then nulls the array cell and decrements the Count.
-            </summary>
-            <remarks>
-            Because there is no lock protection, the same cell could be 
-            updated before the atomic null exchange by another thread,
-            thus overriding the new value as null.
-            </remarks>
-            <param name="item">The object reference</param>
-            <returns>True if found and null-ed</returns>
-        </member>
-        <member name="M:System.Collections.Concurrent.ConcurrentFixedArray`1.Reset(System.Int32)">
-            <summary>
-            Resets the AppendPos to -1 and the Count to 0.
-            </summary>
-            <param name="newsize">If greater than 0 allocates a new array.</param>
-            <exception cref="T:System.SynchronizationException">If fails to take the lock.</exception>
-        </member>
-        <member name="M:System.Collections.Concurrent.ConcurrentFixedArray`1.Items">
-            <summary>
-            Iterates all cells from 0 up to AppendPos (inclusive) and yields the 
-            item if it's not null at the time of the check.
-            </summary>
-            <returns>A not null item.</returns>
-        </member>
-        <member name="M:System.Collections.Concurrent.ConcurrentFixedArray`1.IndexOf(`0)">
-            <summary>
-            Searches for an item by traversing all cells up to AppendPos, which is 
-            the furthest index in the array.
-            </summary>
-            <param name="item">The object ref</param>
-            <returns>A positive value if the item is found, -1 otherwise.</returns>
+            <param name="newIndex">The new index.</param>
+            <param name="forced">If true, blindly swaps the AppendIndex with the newIndex, regardless
+            of the Drive mode.</param>
         </member>
         <member name="T:System.HeapFragment">
             <summary>
@@ -587,7 +519,6 @@
             the OnMaxLaneReached handler is either null or returns false
             Code.MaxTotalAllocBytesReached: when the total lanes capacity is greater than MaxTotalAllocatedBytes AND
             the OnMaxTotalBytesReached handler is either null or returns false, meaning "do not ignore".
-            In both cases if the callbacks return true the MemoryCarriage will continue to allocate lanes. 
             Code.SizeOutOfRange: when at least one of the lengths is outside the 
             MemoryLaneSettings.MIN_CAPACITY - MemoryLaneSettings.MAX_CAPACITY interval.
             </exception>
@@ -603,7 +534,6 @@
             the OnMaxLaneReached handler is either null or returns false
             Code.MaxTotalAllocBytesReached: when the total lanes capacity is greater than MaxTotalAllocatedBytes AND
             the OnMaxTotalBytesReached handler is either null or returns false, meaning "do not ignore".
-            In both cases if the callbacks return true the MemoryCarriage will continue to allocate lanes. 
             Code.SizeOutOfRange: when at least one of the lengths is outside the 
             MemoryLaneSettings.MIN_CAPACITY - MemoryLaneSettings.MAX_CAPACITY interval.
             </exception>
@@ -656,14 +586,14 @@
         </member>
         <member name="M:System.MemoryCarriage`2.GetLastLaneIndex">
             <summary>
-            Returns the array.AppendPos value, i.e. the furthest index in the Lanes array.
+            Returns the array.AppendIndex value, i.e. the furthest index in the Lanes array.
             </summary>
             <returns>The number of preallocated lanes.</returns>
         </member>
         <member name="M:System.MemoryCarriage`2.GetLanes">
             <summary>
             Creates a new List instance with the selection of all non null cells in the underlying array.
-            This is a relatively expensive operation, depending on the array length and the AppendPos value, so
+            This is a relatively expensive operation, depending on the array length and the AppendIndex value, so
             one may consider using the indexer instead.
             </summary>
             <returns>A read only list of MemoryLane objects.</returns>
@@ -674,6 +604,11 @@
             </summary>
             <param name="index">The index must be less than the LastLaneIndex value. </param>
             <returns>The Lane</returns>
+        </member>
+        <member name="M:System.MemoryCarriage`2.FreeGhosts">
+            <summary>
+            Triggers FreeGhosts() on all lanes.
+            </summary>
         </member>
         <member name="P:System.MemoryCarriage`2.LastAllocTickAnyLane">
             <summary>
@@ -691,45 +626,29 @@
             the lane will never reset unless forced.
             </summary>
         </member>
-        <member name="F:System.MemoryLane.DisposalMode.Reliable">
+        <member name="F:System.MemoryLane.DisposalMode.TrackGhosts">
             <summary>
             The lane will track all fragments into a special collection
             of weak refs, so when the GC collects the non-disposed fragments
-            the lane can deallocate the correct amount and reset.
+            the lane can deallocate the correct amount and reset. 
+            The triggering of the deallocation - FreeGhosts() is consumers responsibility.
             </summary>
-        </member>
-        <member name="F:System.MemoryLane.DisposalMode.ResetOnly">
-            <summary>
-            The fragment's dispose will do nothing. The only way to decrease 
-            the Allocations in a lane is by calling ResetOne(). All synchronization
-            and coordination is a consumer's responsibility. 
-            </summary>
-        </member>
-        <member name="M:System.MemoryLane.ResetOne(System.Int32)">
-            <summary>
-            Decrements the Allocations counter if the passed LaneCycle matches the current LaneCycle value. 
-            When the Allocations reach 0 the offset is reset and the LaneCycle incremented.
-            </summary>
-            <remarks>
-            This methods is exposed for consumers implementing a reliable disposal by
-            tracking the fragments with WeakReferenes and could detect lost non disposed fragments,
-            which keep a lane from resetting. 
-            </remarks>
-            <param name="cycle">The laneCycle at the time of the fragment creation.</param>
-            <returns>True if decrements one.</returns>
-            <exception cref="T:System.MemoryLaneException">IncorrectDisposalMode if the Disposal is not ResetOnly.</exception>
         </member>
         <member name="M:System.MemoryLane.FreeGhosts">
             <summary>
-            Triggers deallocation of ghost fragments, i.e. never disposed and GC collected. 
-            If the fragments are still alive, this method will not free their slots. 
+            Triggers deallocation of the tracked not-disposed and GC collected fragments. 
+            Does nothing if the fragments are still alive. 
             </summary>
+            <remarks>
+            This method is racing both the allocations and the reset. If the lane is reset 
+            FreeGhosts() returns immediately. The check is made on every iteration before the resetOne() call.
+            </remarks>
             <returns>The number of deallocations.</returns>
+            <exception cref="T:System.MemoryLaneException">Code: IncorrectDisposalMode</exception>
         </member>
         <member name="M:System.MemoryLane.free(System.Int32,System.Int32)">
             <summary>
             Free is called from the fragment's Dispose method.
-            If the lane DisposalMode is not IDispose this method does nothing.
             </summary>
             <param name="cycle">The lane cycle given to the fragment at creation time.</param>
         </member>
@@ -739,8 +658,9 @@
             </summary>
             <remarks>
             Resetting the offset may lead to unpredictable behavior if you attempt to read or write
-            with any active fragments. Do this only in case of leaked fragments which are
-            unreachable and possibly GCed, but never properly disposed and still counted in lane's Allocations.
+            with any active fragments. The MemoryFragment's Read/Write and Span() methods assert the 
+            correctness of the lane cycle, but one may already have a Span for the previous cycle,
+            and using it will override the lane on write and yield corrupt data on read.
             </remarks>
             <param name="close">True to close the lane.</param>
             <param name="reset">True to reset the offset and the allocations to 0.</param>
@@ -753,17 +673,16 @@
         </member>
         <member name="F:System.MemoryLaneSettings.OnMaxLaneReached">
             <summary>
-            A function handler which will be invoked if the MaxLanesCount threshold is reached.
-            The MemoryCarriage would expect a boolean response indicating whether to continue
-            with the allocation or to throw an exception (default behavior).
+            Will be invoked if the MaxLanesCount threshold is reached.
+            The MemoryCarriage would expect a boolean response indicating whether to swallow the 
+            exception and return null as fragment or throw MemoryLaneException with code MaxLanesCountReached.
             </summary>
             <exception cref="T:System.MemoryLaneException">Code.MaxLanesCountReached</exception>
         </member>
         <member name="F:System.MemoryLaneSettings.OnMaxTotalBytesReached">
             <summary>
             A handler for the case of allocating more than MaxTotalAllocatedBytes in all lanes.
-            If there is a function and it returns true the MemoryCarriage will continue as if 
-            there is no limit, otherwise throws.
+            Pass true in order to suppress the exception and just receive null as fragment.
             </summary>
             <exception cref="T:System.MemoryLaneException">Code.MaxTotalAllocBytesReached</exception>
         </member>
@@ -777,7 +696,7 @@
             <summary>
             Controls how many full cycles around all lanes should be made and fail to enter the 
             lock with the specified awaitMS before creating a new lane.
-            Default value = 10.
+            The default value is 2.
             </summary>
         </member>
         <member name="F:System.MemoryLaneSettings.DefaultCapacity">

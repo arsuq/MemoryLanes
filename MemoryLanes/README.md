@@ -147,7 +147,7 @@ accessors, but it is not part of any lane and doesn't affect other fragments.
 
 ## Highway limits
 
-Using the MemoryCarriage is somewhat similar to stack allocation, although the space isn't fixed,
+Using the MemoryCarriage is somewhat similar to a stack allocation, although the space isn't fixed,
 unless you configure it to be so by passing an instance of the **MemoryLaneSettings** class in the
 Highway constructor.
 
@@ -171,7 +171,14 @@ The OnMaxLaneReached and OnMaxTotalBytesReached control whether the Highway will
 MemoryLaneExcepton with codes *MaxLanesCountReached* or *MaxTotalAllocBytesReached*. 
 When any of these thresholds is reached (MaxLanesCount or MaxTotalAllocatedBytes) by
 default the corresponding error code is thrown. If the delegates are not null and return true
-the allocation will simply fail by returning null instead of a fragment instance.
+the allocation will simply fail, returning null instead of a fragment instance.
+
+In GhostTracking disposal mode the lane will stop allocating fragments if there is no more
+free tracking slots available. This number is not a setting for configuration simplicity, it's
+calculated as  lane.Capacity in bytes / 32, assuming that fragments with less than 32 bytes 
+will be larger than the fragment itself hence totally useless as they'll pollute the managed heap.
+For example the default lane 0 in a a highway has a capacity of 8M and 8_000_000/32 = 250_000
+maximum tracking slots. Note that these are not preallocated, just limited to that number. 
 
 One may notice that the buffer lengths are limited to Int32.MaxValue everywhere 
 in this API, so one couldn't use a MappedHighway with 4GB memory mapped file.
