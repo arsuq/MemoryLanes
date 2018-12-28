@@ -22,7 +22,7 @@ namespace Tests.Surface
 
 			args.AssertAll("-store");
 			var opt = args["-store"];
-			opt.AssertNothingButTheseArgs("mh", "mmf", "nh");
+			opt.AssertNothingOutsideThese("mh", "mmf", "nh");
 
 			var allocArgs = new AllocTestArgs()
 			{

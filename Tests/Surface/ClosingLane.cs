@@ -22,7 +22,7 @@ namespace Tests.Surface
 
 			args.AssertAll("-store");
 			var opt = args["-store"];
-			opt.AssertNothingButTheseArgs("mh", "mmf", "nh");
+			opt.AssertNothingOutsideThese("mh", "mmf", "nh");
 
 			var stg = new MemoryLaneSettings(2000, 8, 10000);
 			var iH = new Dictionary<string, IMemoryHighway>();

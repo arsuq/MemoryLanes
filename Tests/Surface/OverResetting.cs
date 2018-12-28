@@ -21,7 +21,7 @@ namespace Tests.Surface
 
 			args.AssertAll("-store");
 			var opt = args["-store"];
-			opt.AssertNothingButTheseArgs("mh", "mmf", "nh");
+			opt.AssertNothingOutsideThese("mh", "mmf", "nh");
 
 			var ms = new MemoryLaneSettings(1024, 1, 1024);
 
