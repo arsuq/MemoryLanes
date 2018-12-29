@@ -26,7 +26,7 @@ namespace Tests.Surface
 
 			if (!reset(opt)) return;
 			if (!freeGhosts(opt)) return;
-			
+
 			if (!Passed.HasValue) Passed = true;
 			IsComplete = true;
 		}
@@ -72,7 +72,7 @@ namespace Tests.Surface
 								return false;
 							}
 
-							Print.Trace("    Forcing reset.. ", ConsoleColor.Magenta, null, hwName, af);
+							Print.Trace("    Forcing reset.. ", ConsoleColor.Magenta, hwName, af);
 							var lane0 = hw[0];
 							lane0.Force(false, true);
 							af = hw.GetTotalActiveFragments();
@@ -84,7 +84,7 @@ namespace Tests.Surface
 								FailureMessage = string.Format("{0}: expected 0 ghost fragments after forcing a reset, found {1}.", hwName, af);
 								return false;
 							}
-							else Print.Trace("    {0} has {1} allocations and offset {2}", ConsoleColor.Green, null, hwName, lane0.Allocations, lane0.Offset);
+							else Print.Trace("    {0} has {1} allocations and offset {2}", ConsoleColor.Green, hwName, lane0.Allocations, lane0.Offset);
 						}
 						else
 						{
@@ -93,7 +93,7 @@ namespace Tests.Surface
 							return false;
 						}
 
-						Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
+						Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black);
 					}
 				}
 			}

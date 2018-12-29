@@ -67,14 +67,14 @@ namespace Tests.Internals
 
 						 if (frag == null)
 						 {
-							 "    failed to allocate a fragment. The Highway is full.".Trace(ConsoleColor.DarkMagenta);
+							 "    failed to allocate a fragment. The Highway is full.".AsInfo(ConsoleColor.DarkMagenta);
 							 dispCounter.Signal();
 							 continue;
 						 }
 
 						 if (args.Trace > 0)
 							 Print.Trace("    alloc {0,8} bytes on {1} thread: {2} ",
-								 ConsoleColor.Magenta, null, size, hwType,
+								 ConsoleColor.Magenta, size, hwType,
 								 Thread.CurrentThread.ManagedThreadId);
 
 						 var t = Task.Run(async () =>
@@ -84,7 +84,7 @@ namespace Tests.Internals
 
 							 if (args.Trace > 0)
 								 Print.Trace("    free  {0,8} bytes on {1} thread: {2} ",
-								 ConsoleColor.Green, null, frag.Length, hwType,
+								 ConsoleColor.Green, frag.Length, hwType,
 								 Thread.CurrentThread.ManagedThreadId);
 
 							 frag.Dispose();
