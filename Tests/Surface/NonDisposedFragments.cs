@@ -72,7 +72,7 @@ namespace Tests.Surface
 								return false;
 							}
 
-							Print.Trace("    Forcing reset.. ", ConsoleColor.Magenta, hwName, af);
+							Print.Trace("Forcing reset.. ", ConsoleColor.Magenta, hwName, af);
 							var lane0 = hw[0];
 							lane0.Force(false, true);
 							af = hw.GetTotalActiveFragments();
@@ -84,7 +84,7 @@ namespace Tests.Surface
 								FailureMessage = string.Format("{0}: expected 0 ghost fragments after forcing a reset, found {1}.", hwName, af);
 								return false;
 							}
-							else Print.Trace("    {0} has {1} allocations and offset {2}", ConsoleColor.Green, hwName, lane0.Allocations, lane0.Offset);
+							else Print.Trace("{0} has {1} allocations and offset {2}", ConsoleColor.Green, hwName, lane0.Allocations, lane0.Offset);
 						}
 						else
 						{
@@ -93,7 +93,7 @@ namespace Tests.Surface
 							return false;
 						}
 
-						Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black);
+						Print.Trace(hw.FullTrace(), 2, true, ConsoleColor.Cyan, ConsoleColor.Black);
 					}
 				}
 			}
@@ -120,7 +120,7 @@ namespace Tests.Surface
 					var hw = kp.Value;
 					using (hw)
 					{
-						Print.Trace("    Allocating 4 fragments 1 will be lost.", ConsoleColor.Magenta);
+						Print.Trace("Allocating 4 fragments 1 will be lost.", ConsoleColor.Magenta);
 
 						void alloc()
 						{
@@ -132,7 +132,7 @@ namespace Tests.Surface
 
 						alloc();
 
-						Print.Trace("    Triggering FreeGhosts()", ConsoleColor.Magenta);
+						Print.Trace("Triggering FreeGhosts()", ConsoleColor.Magenta);
 
 						hw.FreeGhosts();
 						var af = hw.GetTotalActiveFragments();
@@ -144,8 +144,8 @@ namespace Tests.Surface
 							return false;
 						}
 
-						"    FreeGhosts() did nothing on the live fragments".AsSuccess();
-						"    Forcing GC and then FreeGhosts() ".Trace(ConsoleColor.Magenta);
+						"FreeGhosts() did nothing on the live fragments".AsSuccess();
+						"Forcing GC and then FreeGhosts() ".Trace(ConsoleColor.Magenta);
 
 						GC.Collect(2);
 						GC.WaitForFullGCComplete();
@@ -160,8 +160,8 @@ namespace Tests.Surface
 							return false;
 						}
 
-						"    FreeGhosts() collected 1 as expected".AsSuccess();
-						"    Disposing all".Trace(ConsoleColor.Magenta);
+						"FreeGhosts() collected 1 as expected".AsSuccess();
+						"Disposing all".Trace(ConsoleColor.Magenta);
 
 						foreach (var f in F) f.Dispose();
 
@@ -174,9 +174,9 @@ namespace Tests.Surface
 							return false;
 						}
 
-						"    FreeGhosts()".AsSuccess();
+						"FreeGhosts()".AsSuccess();
 
-						Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
+						Print.Trace(hw.FullTrace(), 2, true, ConsoleColor.Cyan, ConsoleColor.Black, null);
 					}
 				}
 			}

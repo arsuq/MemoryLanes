@@ -13,6 +13,6 @@ namespace System
 		long LastAllocTickAnyLane { get; }
 		IReadOnlyList<MemoryLane> GetLanes();
 		MemoryLane this[int index] { get; }
-		string FullTrace(int leftSpaces);
+		string FullTrace();
 	}
 }

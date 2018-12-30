@@ -20,9 +20,9 @@ namespace Tests.Internals
 		public bool AwaitFragmentDisposal = true;
 		public int Trace = 1;
 
-		public string FullTrace(int padLeft)
+		public string FullTrace()
 		{
-			return FormatText.JoinLines(padLeft,
+			return FormatText.JoinLines(
 				"Allocation settings:",
 				$"  Count: {Count}",
 				$"  Size: {Size}; IsRandomized: {RandomizeLength}",
@@ -67,13 +67,13 @@ namespace Tests.Internals
 
 						 if (frag == null)
 						 {
-							 "    failed to allocate a fragment. The Highway is full.".AsInfo(ConsoleColor.DarkMagenta);
+							 "failed to allocate a fragment. The Highway is full.".AsInfo(ConsoleColor.DarkMagenta);
 							 dispCounter.Signal();
 							 continue;
 						 }
 
 						 if (args.Trace > 0)
-							 Print.Trace("    alloc {0,8} bytes on {1} thread: {2} ",
+							 Print.Trace("alloc {0,8} bytes on {1} thread: {2} ",
 								 ConsoleColor.Magenta, size, hwType,
 								 Thread.CurrentThread.ManagedThreadId);
 
@@ -83,7 +83,7 @@ namespace Tests.Internals
 								 await Task.Delay(dispDelayMS);
 
 							 if (args.Trace > 0)
-								 Print.Trace("    free  {0,8} bytes on {1} thread: {2} ",
+								 Print.Trace("free  {0,8} bytes on {1} thread: {2} ",
 								 ConsoleColor.Green, frag.Length, hwType,
 								 Thread.CurrentThread.ManagedThreadId);
 

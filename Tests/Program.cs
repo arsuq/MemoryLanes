@@ -7,7 +7,7 @@ namespace Tests
 	{
 		static void Main(string[] args)
 		{
-			new Runner().Run("MemoryLanes", args);
+			new Runner().Run(args);
 
 			Print.AsSystemTrace("Done. Press <Enter> to close.");
 			Console.ReadLine();

@@ -48,7 +48,7 @@ namespace Tests.Surface
 			H.Add("nh", new MarshalHighway(ms, lanes));
 			H.Add("mmf", new MappedHighway(ms, lanes));
 
-			Print.Trace(allocArgs.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
+			Print.Trace(allocArgs.FullTrace(), ConsoleColor.Cyan, ConsoleColor.Black, null);
 
 			foreach (var kp in H)
 				if (opt.Contains(kp.Key))
@@ -75,7 +75,7 @@ namespace Tests.Surface
 								"{0}: Total lanes count: {1} Total active fragments: {2}",
 								hwName, hw.GetLanesCount(), hw.GetTotalActiveFragments());
 
-						Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
+						Print.Trace(hw.FullTrace(), 2, true, ConsoleColor.Cyan, ConsoleColor.Black, null);
 					}
 				}
 

@@ -232,26 +232,18 @@ namespace System
 			}
 		}
 
-		public virtual string FullTrace(int padLeft = 0)
+		public virtual string FullTrace()
 		{
-			var pad = string.Empty;
-			if (padLeft > 0)
-			{
-				var lp = new char[padLeft];
-				for (int k = 0; k < lp.Length; k++) lp[k] = ' ';
-				pad = new string(lp);
-			}
-
 			var lc = Lanes.ItemsCount;
 			var lines = new string[lc + 3];
 			var i = 0;
 
-			lines[i++] = $"{pad}{this.GetType().Name}";
-			lines[i++] = $"{pad}Total lanes: {lc}";
-			lines[i++] = $"{pad}Now - Last alloc tick: {DateTime.Now.Ticks - LastAllocTickAnyLane}";
+			lines[i++] = $"{this.GetType().Name}";
+			lines[i++] = $"Total lanes: {lc}";
+			lines[i++] = $"Now-Last allocation tick: {DateTime.Now.Ticks - LastAllocTickAnyLane}";
 
 			foreach (var l in Lanes.Items())
-				lines[i++] = pad + l.FullTrace();
+				lines[i++] = l.FullTrace();
 
 			return string.Join(Environment.NewLine, lines);
 		}

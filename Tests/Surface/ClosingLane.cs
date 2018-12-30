@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 using TestRunner;
 
@@ -70,7 +69,7 @@ namespace Tests.Surface
 								return;
 							}
 
-							$"    {hwName}: closing a lane works as expected".AsSuccess();
+							$"{hwName}: closing a lane works as expected".AsSuccess();
 
 							lane1.Force(false);
 							// should go into lane1 because lane0 has 1500/2000 
@@ -88,7 +87,7 @@ namespace Tests.Surface
 							foreach (var f in F) f.Dispose();
 						}
 
-						Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
+						Print.Trace(hw.FullTrace(), 2, true, ConsoleColor.Cyan, ConsoleColor.Black, null);
 					}
 				}
 			}

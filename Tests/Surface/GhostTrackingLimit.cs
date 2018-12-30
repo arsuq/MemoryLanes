@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Threading;
 using System.Threading.Tasks;
 using TestRunner;
 
@@ -54,7 +53,7 @@ namespace Tests.Surface
 						var maxTrackingCap = LEN / MemoryLane.TRACKER_ASSUMED_MIN_FRAG_SIZE_BYTES;
 						var half = MemoryLane.TRACKER_ASSUMED_MIN_FRAG_SIZE_BYTES / 2;
 
-						$"    Allocating twice the tracking capacity ({maxTrackingCap}) of the lane with 16 byte slices.".Trace(ConsoleColor.Magenta);
+						$"Allocating twice the tracking capacity ({maxTrackingCap}) of the lane with 16 byte slices.".Trace(ConsoleColor.Magenta);
 
 						// Half of them should go to lane 1
 						for (int i = 0; i < maxTrackingCap * 2; i++)
@@ -70,7 +69,7 @@ namespace Tests.Surface
 								$"It has {hw[0].Allocations} allocations and {maxTrackingCap} tracking capacity";
 						}
 
-						$"   {hwName}: lane 0 has {hw[0].Allocations} allocations as expected.".AsSuccess();
+						$"{hwName}: lane 0 has {hw[0].Allocations} allocations as expected.".AsSuccess();
 
 						if (hw[1].Allocations < (maxTrackingCap * 2) - slots)
 						{
@@ -79,9 +78,9 @@ namespace Tests.Surface
 								$"Lane 1 has {hw[1].Allocations} allocations";
 						}
 
-						$"   {hwName}: lane 1 took {hw[1].Allocations} rejected fragments as expected.".AsSuccess();
+						$"{hwName}: lane 1 took {hw[1].Allocations} rejected fragments as expected.".AsSuccess();
 
-						Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
+						Print.Trace(hw.FullTrace(), 2, true, ConsoleColor.Cyan, ConsoleColor.Black, null);
 					}
 				}
 			}

@@ -122,7 +122,7 @@ namespace Tests.SocketLoad
 								frag.Write(spoon, total, read);
 								total += read;
 
-								Print.AsInnerInfo("    read {0} on thread {1}", read, Thread.CurrentThread.ManagedThreadId);
+								Print.AsInnerInfo("read {0} on thread {1}", read, Thread.CurrentThread.ManagedThreadId);
 
 								if (total >= frameLen)
 								{

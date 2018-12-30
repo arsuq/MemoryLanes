@@ -65,7 +65,7 @@ namespace Tests.Surface
 						else Print.AsInnerInfo($"{i}: {theSpan[i]} laps");
 
 					Passed = true;
-					Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
+					Print.Trace(hw.FullTrace(), 2, true, ConsoleColor.Cyan, ConsoleColor.Black, null);
 				}
 			}
 			catch (Exception ex)

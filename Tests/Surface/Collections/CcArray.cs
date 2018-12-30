@@ -72,7 +72,7 @@ namespace Tests.Surface.Collections
 				}
 			}
 
-			"    Custom growth".AsSuccess();
+			"Custom growth".AsSuccess();
 
 			return true;
 		}
@@ -89,7 +89,7 @@ namespace Tests.Surface.Collections
 				return false;
 			}
 
-			"    Resize() expanding".AsSuccess();
+			"Resize() expanding".AsSuccess();
 
 			return true;
 		}
@@ -120,7 +120,7 @@ namespace Tests.Surface.Collections
 				return false;
 			}
 
-			"    Resize() shrinking".AsSuccess();
+			"Resize() shrinking".AsSuccess();
 
 			return true;
 		}
@@ -175,7 +175,7 @@ namespace Tests.Surface.Collections
 				return false;
 			}
 
-			"    Parallel Append and RemoveLast()".AsSuccess();
+			"Parallel Append and RemoveLast()".AsSuccess();
 
 			return true;
 		}
@@ -215,7 +215,7 @@ namespace Tests.Surface.Collections
 				}
 			}
 
-			"    Parallel Append()".AsSuccess();
+			"Parallel Append()".AsSuccess();
 
 			return true;
 		}
@@ -234,7 +234,7 @@ namespace Tests.Surface.Collections
 					arr[pos] = x + 1000;
 				});
 
-				"    Gears.Straight".AsSuccess();
+				"Gears.Straight".AsSuccess();
 
 				arr.ShiftGear(ConcurrentArray<object>.Gear.N);
 
@@ -244,7 +244,7 @@ namespace Tests.Surface.Collections
 					arr[rid] = (int)arr[rid] + 1000;
 				});
 
-				"    Gears.N".AsSuccess();
+				"Gears.N".AsSuccess();
 
 				arr.ShiftGear(ConcurrentArray<object>.Gear.Reverse);
 
@@ -253,7 +253,7 @@ namespace Tests.Surface.Collections
 					arr.RemoveLast(out int pos);
 				});
 
-				"    Gears.Reverse".AsSuccess();
+				"Gears.Reverse".AsSuccess();
 
 				arr.ShiftGear(ConcurrentArray<object>.Gear.P);
 				arr.Resize(0);
@@ -264,7 +264,7 @@ namespace Tests.Surface.Collections
 					arr.ShiftGear(ConcurrentArray<object>.Gear.Reverse, () => arr.RemoveLast(out int p));
 				});
 
-				"    Competing shifts".AsSuccess();
+				"Competing shifts".AsSuccess();
 			}
 			catch (Exception ex)
 			{

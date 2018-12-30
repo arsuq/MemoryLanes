@@ -45,7 +45,7 @@ namespace Tests.Surface
 				return;
 			}
 
-			Print.Trace(allocArgs.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
+			Print.Trace(allocArgs.FullTrace(), ConsoleColor.Cyan, ConsoleColor.Black, null);
 
 			var stg_ignore = new MemoryLaneSettings(8_000_000, 2, 10_000_000);
 			var stg_throw = new MemoryLaneSettings(8_000_000, 2, 10_000_000);
@@ -97,11 +97,11 @@ namespace Tests.Surface
 								FailureMessage = $"The {hwName} has more than {stg_ignore.MaxLanesCount} lanes.";
 								return;
 							}
-							Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
+							Print.Trace(hw.FullTrace(), 2, true, ConsoleColor.Cyan, ConsoleColor.Black, null);
 						}
 					}
 
-				"    The limits ignoring case.".AsSuccess();
+				"The limits ignoring case.".AsSuccess();
 
 				// The default case: throws MemoryLaneExceptions
 				foreach (var kp in dH)
@@ -132,7 +132,7 @@ namespace Tests.Surface
 											return;
 										}
 
-										$"    {mex.ErrorCode} in {hwName} as expected".AsSuccess();
+										$"{mex.ErrorCode} in {hwName} as expected".AsSuccess();
 									}
 									else
 									{
@@ -156,11 +156,11 @@ namespace Tests.Surface
 								return;
 							}
 
-							Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
+							Print.Trace(hw.FullTrace(), 2, true, ConsoleColor.Cyan, ConsoleColor.Black, null);
 						}
 					}
 
-				"    The default - throwing exceptions case.".AsSuccess();
+				"The default - throwing exceptions case.".AsSuccess();
 			}
 			catch (Exception ex)
 			{

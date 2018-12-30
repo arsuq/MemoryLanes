@@ -51,7 +51,7 @@ namespace Tests.Surface
 				return;
 			}
 
-			Print.Trace(allocArgs.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
+			Print.Trace(allocArgs.FullTrace(), ConsoleColor.Cyan, ConsoleColor.Black, null);
 
 			if (opt.Contains("mh"))
 				using (var hw = new HeapHighway())
@@ -62,7 +62,7 @@ namespace Tests.Surface
 						Passed = false;
 						FailureMessage = "The HeapHighway has active fragments after the AllocAndWait()";
 					}
-					Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
+					Print.Trace(hw.FullTrace(), 2, true, ConsoleColor.Cyan, ConsoleColor.Black, null);
 				}
 
 			if (opt.Contains("nh"))
@@ -74,7 +74,7 @@ namespace Tests.Surface
 						Passed = false;
 						FailureMessage = "The MarshalHighway has active fragments after the AllocAndWait()";
 					}
-					Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
+					Print.Trace(hw.FullTrace(), 2, true, ConsoleColor.Cyan, ConsoleColor.Black, null);
 				}
 
 			if (opt.Contains("mmf"))
@@ -86,7 +86,7 @@ namespace Tests.Surface
 						Passed = false;
 						FailureMessage = "The MappedHighway has active fragments after the AllocAndWait()";
 					}
-					Print.Trace(hw.FullTrace(4), ConsoleColor.Cyan, ConsoleColor.Black, null);
+					Print.Trace(hw.FullTrace(), 2, true, ConsoleColor.Cyan, ConsoleColor.Black, null);
 				}
 
 			if (!Passed.HasValue) Passed = true;
