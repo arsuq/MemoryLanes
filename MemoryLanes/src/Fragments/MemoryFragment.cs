@@ -1,4 +1,5 @@
-﻿using System.Runtime.InteropServices;
+﻿using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace System
 {
@@ -22,6 +23,7 @@ namespace System
 		public bool IsDisposed => isDisposed;
 		public int LaneCycle => laneCycle;
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		protected void laneCheck()
 		{
 			if (!useAccessChecks) return;
@@ -31,7 +33,7 @@ namespace System
 		}
 
 		/// <summary>
-		/// If true checks whether the lane is closed, disposed or the cycle is not changed.
+		/// If true checks whether the lane is closed, disposed or the cycle has not changed.
 		/// Derived classes may expose it as public, by default is true.
 		/// </summary>
 		protected bool useAccessChecks = true;

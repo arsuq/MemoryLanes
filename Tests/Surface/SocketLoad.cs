@@ -17,8 +17,8 @@ namespace Tests.Surface
 			"Example server: -mode s";
 
 		public bool RequiresArgs => true;
-		public string FailureMessage => string.Empty;
-		public bool? Passed => passed;
+		public string FailureMessage { get; private set; }
+		public bool? Passed { get; private set; }
 		public bool IsComplete { get; private set; }
 
 		public Task Run(ArgMap args)
@@ -37,7 +37,5 @@ namespace Tests.Surface
 			}
 			else throw new ArgumentException("The SocketLoad -mode can only be <s> or <c>");
 		}
-
-		bool? passed;
 	}
 }

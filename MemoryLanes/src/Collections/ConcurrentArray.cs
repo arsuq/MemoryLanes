@@ -14,7 +14,7 @@ namespace System.Collections.Concurrent
 	public class ConcurrentArray<T> where T : class
 	{
 		/// <summary>
-		/// Represents possible concurrent operations
+		/// The allowed concurrent operations
 		/// </summary>
 		public enum Gear
 		{
@@ -27,8 +27,11 @@ namespace System.Collections.Concurrent
 			/// </summary>
 			Straight = 1,
 			/// <summary>
-			/// Concurrent RemoveLast() and N ops are enabled.
+			/// Concurrent RemoveLast() gets and sets are enabled.
 			/// </summary>
+			/// <remarks>
+			/// Getting or setting values in this mode is racing with the AppendPos.
+			/// </remarks>
 			Reverse = -1,
 			/// <summary>
 			/// Only Resize() is allowed.
