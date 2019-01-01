@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\TestRunner\TestRunner.csproj" />
+    <ProjectReference Include="..\..\TestSurface\TestSurface.csproj" />
     <ProjectReference Include="..\MemoryLanes\MemoryLanes.csproj" />
   </ItemGroup>
 

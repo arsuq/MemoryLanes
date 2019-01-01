@@ -218,14 +218,14 @@
           "bin/placeholder/MemoryLanes.dll": {}
         }
       },
-      "TestRunner/1.0.0": {
+      "TestSurface/1.0.0": {
         "type": "project",
         "framework": ".NETStandard,Version=v2.0",
         "compile": {
-          "bin/placeholder/TestRunner.dll": {}
+          "bin/placeholder/TestSurface.dll": {}
         },
         "runtime": {
-          "bin/placeholder/TestRunner.dll": {}
+          "bin/placeholder/TestSurface.dll": {}
         }
       }
     }
@@ -706,17 +706,17 @@
       "path": "../MemoryLanes/MemoryLanes.csproj",
       "msbuildProject": "../MemoryLanes/MemoryLanes.csproj"
     },
-    "TestRunner/1.0.0": {
+    "TestSurface/1.0.0": {
       "type": "project",
-      "path": "../../TestRunner/TestRunner.csproj",
-      "msbuildProject": "../../TestRunner/TestRunner.csproj"
+      "path": "../../TestSurface/TestSurface.csproj",
+      "msbuildProject": "../../TestSurface/TestSurface.csproj"
     }
   },
   "projectFileDependencyGroups": {
     ".NETCoreApp,Version=v2.1": [
       "MemoryLanes >= 1.1.0",
       "Microsoft.NETCore.App >= 2.1.0",
-      "TestRunner >= 1.0.0"
+      "TestSurface >= 1.0.0"
     ]
   },
   "packageFolders": {
@@ -752,8 +752,8 @@
             "C:\\Github\\MemoryLanes\\MemoryLanes\\MemoryLanes.csproj": {
               "projectPath": "C:\\Github\\MemoryLanes\\MemoryLanes\\MemoryLanes.csproj"
             },
-            "C:\\Github\\TestRunner\\TestRunner.csproj": {
-              "projectPath": "C:\\Github\\TestRunner\\TestRunner.csproj"
+            "C:\\Github\\TestSurface\\TestSurface.csproj": {
+              "projectPath": "C:\\Github\\TestSurface\\TestSurface.csproj"
             }
           }
         }

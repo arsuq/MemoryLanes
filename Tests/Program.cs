@@ -1,5 +1,5 @@
 ﻿using System;
-using TestRunner;
+using TestSurface;
 
 namespace Tests
 {
