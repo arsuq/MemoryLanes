@@ -15,7 +15,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\TestSurface\TestSurface.csproj" />
+    <PackageReference Include="TestSurface" Version="1.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\MemoryLanes\MemoryLanes.csproj" />
   </ItemGroup>
 
