@@ -15,7 +15,7 @@
         </member>
         <member name="T:System.Collections.Concurrent.ConcurrentArray`1.Gear">
             <summary>
-            Represents possible concurrent operations
+            The allowed concurrent operations
             </summary>
         </member>
         <member name="F:System.Collections.Concurrent.ConcurrentArray`1.Gear.N">
@@ -30,8 +30,11 @@
         </member>
         <member name="F:System.Collections.Concurrent.ConcurrentArray`1.Gear.Reverse">
             <summary>
-            Concurrent RemoveLast() and N ops are enabled.
+            Concurrent RemoveLast() gets and sets are enabled.
             </summary>
+            <remarks>
+            Getting or setting values in this mode is racing with the AppendPos.
+            </remarks>
         </member>
         <member name="F:System.Collections.Concurrent.ConcurrentArray`1.Gear.P">
             <summary>
@@ -78,17 +81,6 @@
             The allowed set of concurrent operations.
             </summary>
         </member>
-        <member name="F:System.Collections.Concurrent.ConcurrentArray`1.ExpansionLength">
-            <summary>
-            Will be called before allocating more space, providing the current length as an argument.
-            The returned value is desired new total length.
-            The default growth factor is 2.
-            </summary>
-            <remarks>
-            By providing different growth factors depending on the current size,
-            one can create different allocation size vs. capacity curves.
-            </remarks>
-        </member>
         <member name="M:System.Collections.Concurrent.ConcurrentArray`1.ShiftGear(System.Collections.Concurrent.ConcurrentArray{`0}.Gear,System.Action,System.Int32)">
             <summary>
             Blocks until the gear is shifted. 
@@ -108,15 +100,27 @@
             <exception cref="T:System.ArgumentOutOfRangeException">index</exception>
             <exception cref="T:System.InvalidOperationException">If the Drive is wrong</exception>
         </member>
+        <member name="M:System.Collections.Concurrent.ConcurrentArray`1.Take(System.Int32)">
+            <summary>
+            Takes the item at index and swaps it with null as one atomic operation.
+            </summary>
+            <remarks>
+            One can use Take() and Append() in multi-producer, multi-consumer scenarios, since both are safe,
+            </remarks>
+            <param name="index">The position in the array, must be less than AppendIndex.</param>
+            <returns>The reference at index.</returns>
+            <exception cref="T:System.InvalidOperationException">When Drive is P.</exception>
+        </member>
         <member name="M:System.Collections.Concurrent.ConcurrentArray`1.Append(`0)">
             <summary>
-            Appends an item after the AppendIndex index. 
+            Appends an item after the AppendIndex. 
             If there is not enough space locks until enough blocks are
             allocated and then switches back to fully concurrent mode.
             </summary>
             <param name="item">The object reference</param>
-            <returns>The index of the item</returns>
+            <returns>The index of the item, -1 if fails.</returns>
             <exception cref="T:System.InvalidOperationException">When Drive != Gear.Straight</exception>
+            <exception cref="T:System.InvariantException">On attempt to append beyond TotalMaxCapacity.</exception>
         </member>
         <member name="M:System.Collections.Concurrent.ConcurrentArray`1.RemoveLast(System.Int32@)">
             <summary>
@@ -173,6 +177,17 @@
             <param name="newIndex">The new index.</param>
             <param name="forced">If true, blindly swaps the AppendIndex with the newIndex, regardless
             of the Drive mode.</param>
+        </member>
+        <member name="F:System.Collections.Concurrent.ConcurrentArray`1.ExpansionLength">
+            <summary>
+            Will be called before allocating more space, providing the current length as an argument.
+            The returned value is desired new total length.
+            The default growth factor is 2.
+            </summary>
+            <remarks>
+            By providing different growth factors depending on the current size,
+            one can create different allocation size vs. capacity curves.
+            </remarks>
         </member>
         <member name="T:System.HeapFragment">
             <summary>
@@ -424,7 +439,7 @@
         </member>
         <member name="F:System.MemoryFragment.useAccessChecks">
             <summary>
-            If true checks whether the lane is closed, disposed or the cycle is not changed.
+            If true checks whether the lane is closed, disposed or the cycle has not changed.
             Derived classes may expose it as public, by default is true.
             </summary>
         </member>

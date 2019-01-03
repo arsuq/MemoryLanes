@@ -100,27 +100,6 @@ namespace System.Collections.Concurrent
 		public Gear Drive => (Gear)Volatile.Read(ref direction);
 
 		/// <summary>
-		/// Will be called before allocating more space, providing the current length as an argument.
-		/// The returned value is desired new total length.
-		/// The default growth factor is 2.
-		/// </summary>
-		/// <remarks>
-		/// By providing different growth factors depending on the current size,
-		/// one can create different allocation size vs. capacity curves.
-		/// </remarks>
-		Func<ConcurrentArray<T>, int> ExpansionLength = (ca) => defaultExpansion(ca);
-
-		static int defaultExpansion(ConcurrentArray<T> arr)
-		{
-			if (arr.Capacity < arr.BlockLength) return arr.BlockLength;
-
-			int newCap = arr.Capacity * 2;
-			if (newCap > arr.TotalMaxCapacity) newCap = arr.TotalMaxCapacity;
-
-			return newCap;
-		}
-
-		/// <summary>
 		/// Blocks until the gear is shifted. 
 		/// </summary>
 		/// <param name="g">The new concurrent mode.</param>
@@ -154,7 +133,6 @@ namespace System.Collections.Concurrent
 			}
 		}
 
-
 		/// <summary>
 		/// Access to the individual cells.
 		/// </summary>
@@ -187,72 +165,80 @@ namespace System.Collections.Concurrent
 			}
 		}
 
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		T set(int index, T value)
+		/// <summary>
+		/// Takes the item at index and swaps it with null as one atomic operation.
+		/// </summary>
+		/// <remarks>
+		/// One can use Take() and Append() in multi-producer, multi-consumer scenarios, since both are safe,
+		/// </remarks>
+		/// <param name="index">The position in the array, must be less than AppendIndex.</param>
+		/// <returns>The reference at index.</returns>
+		/// <exception cref="System.InvalidOperationException">When Drive is P.</exception>
+		public T Take(int index)
 		{
-			int seq = -1, idx = -1;
-			Index2Seq(index, ref seq, ref idx);
+			if (Drive == Gear.P) throw new InvalidOperationException("Wrong drive");
 
-			var old = Interlocked.Exchange(ref blocks[seq][idx], value);
-
-			if (old != null)
-			{
-				if (value == null) Interlocked.Decrement(ref notNullsCount);
-			}
-			else if (value != null) Interlocked.Increment(ref notNullsCount);
-
-			return old;
+			return set(index, null);
 		}
 
+
 		/// <summary>
-		/// Appends an item after the AppendIndex index. 
+		/// Appends an item after the AppendIndex. 
 		/// If there is not enough space locks until enough blocks are
 		/// allocated and then switches back to fully concurrent mode.
 		/// </summary>
 		/// <param name="item">The object reference</param>
-		/// <returns>The index of the item</returns>
+		/// <returns>The index of the item, -1 if fails.</returns>
 		/// <exception cref="System.InvalidOperationException">When Drive != Gear.Straight</exception>
+		/// <exception cref="System.InvariantException">On attempt to append beyond TotalMaxCapacity.</exception>
 		public int Append(T item)
 		{
 			// Must be the first instruction, otherwise a whole Shift()
 			// execution could interleave after the assert and change the direction.
 			var cca = Interlocked.Increment(ref concurrentOps);
+			var pos = -1;
 
-			if (Drive != Gear.Straight)
+			try
 			{
-				Interlocked.Decrement(ref concurrentOps);
-				throw new InvalidOperationException("Wrong drive");
-			}
+				if (Drive != Gear.Straight)
+					throw new InvalidOperationException("Wrong drive");
 
-			if (cca + AppendIndex >= Capacity)
-			{
-				lock (commonLock)
+				if (cca + AppendIndex >= Capacity)
 				{
-					// Could have been augmented by another thread during the wait.
-					var cap = Capacity; // Volatile read once
-					if (cca + AppendIndex >= cap)
+					lock (commonLock)
 					{
-						var newCap = ExpansionLength(this);
-						// Add as much blockLenght tiles as needed.
-						while (newCap > cap)
+						// Could have been augmented by another thread during the wait.
+						var cap = Capacity; // Volatile read once
+						if (cca + AppendIndex >= cap)
 						{
-							if (blocks[blocksCount] == null) blocks[blocksCount] = new T[BlockLength];
-							cap += BlockLength;
-							blocksCount++;
-							if (blocksCount > blocks.Length) throw new Exception("Maximum number of blocks reached.");
-						}
+							var newCap = ExpansionLength(this);
+							// Add as much blockLenght tiles as needed.
+							while (newCap > cap)
+							{
+								if (blocks[blocksCount] == null) blocks[blocksCount] = new T[BlockLength];
+								cap += BlockLength;
+								blocksCount++;
+								if (blocksCount > blocks.Length)
+									throw new InvariantException("blocksCount", "Maximum number of blocks reached.");
+							}
 
-						Interlocked.Exchange(ref capacity, cap);
+							Interlocked.Exchange(ref capacity, cap);
+						}
 					}
 				}
+
+				if (AppendIndex < Capacity)
+				{
+					pos = Interlocked.Increment(ref appendIndex);
+					this[pos] = item;
+				}
 			}
-
-			var pos = Interlocked.Increment(ref appendIndex);
-			this[pos] = item;
-
-			// If it's the last exiting operation for the old direction
-			if (Interlocked.Decrement(ref concurrentOps) == 0 && Drive != Gear.Straight)
-				gearShift.Set();
+			finally
+			{
+				// If it's the last exiting operation for the old direction
+				if (Interlocked.Decrement(ref concurrentOps) == 0 && Drive != Gear.Straight)
+					gearShift.Set();
+			}
 
 			return pos;
 		}
@@ -356,45 +342,50 @@ namespace System.Collections.Concurrent
 			{
 				Interlocked.Increment(ref concurrentOps);
 
-				if (Drive != Gear.P) throw new InvalidOperationException("Wrong drive");
-
-				if (length < 0) throw new ArgumentOutOfRangeException("length");
-				if (length == Capacity) return;
-
-				if (length > Capacity)
+				try
 				{
-					while (length > capacity)
+					if (Drive != Gear.P) throw new InvalidOperationException("Wrong drive");
+
+					if (length < 0 || length > TotalMaxCapacity) throw new ArgumentOutOfRangeException("length");
+					if (length == Capacity) return;
+
+					if (length > Capacity)
 					{
-						if (blocks[blocksCount] == null) blocks[blocksCount] = new T[BlockLength];
-						capacity += BlockLength;
-						blocksCount++;
+						while (length > capacity)
+						{
+							if (blocks[blocksCount] == null) blocks[blocksCount] = new T[BlockLength];
+							capacity += BlockLength;
+							blocksCount++;
+						}
+					}
+					else
+					{
+						// Leave plus one block unless resetting to zero capacity
+						while ((capacity - length > BlockLength) || (length == 0 && capacity > 0))
+						{
+							if (nullBlocksOnShrink) blocks[blocksCount - 1] = null;
+							else for (int i = 0; i < BlockLength; i++) blocks[blocksCount - 1][i] = null;
+							capacity -= BlockLength;
+							blocksCount--;
+						}
+
+						if (blocksCount > 0)
+							for (int i = capacity - length; i < BlockLength; i++)
+								blocks[blocksCount - 1][i] = null;
+
+						Interlocked.Exchange(ref appendIndex, length - 1);
+
+						int notNull = 0;
+						foreach (var c in Items()) notNull++;
+
+						Interlocked.Exchange(ref notNullsCount, notNull);
 					}
 				}
-				else
+				finally
 				{
-					// Leave plus one block unless resetting to zero capacity
-					while ((capacity - length > BlockLength) || (length == 0 && capacity > 0))
-					{
-						if (nullBlocksOnShrink) blocks[blocksCount - 1] = null;
-						else for (int i = 0; i < BlockLength; i++) blocks[blocksCount - 1][i] = null;
-						capacity -= BlockLength;
-						blocksCount--;
-					}
-
-					if (blocksCount > 0)
-						for (int i = capacity - length; i < BlockLength; i++)
-							blocks[blocksCount - 1][i] = null;
-
-					Interlocked.Exchange(ref appendIndex, length - 1);
-
-					int notNull = 0;
-					foreach (var c in Items()) notNull++;
-
-					Interlocked.Exchange(ref notNullsCount, notNull);
+					Interlocked.Decrement(ref concurrentOps);
+					gearShift.Set();
 				}
-
-				Interlocked.Decrement(ref concurrentOps);
-				gearShift.Set();
 			}
 		}
 
@@ -427,7 +418,6 @@ namespace System.Collections.Concurrent
 			}
 		}
 
-
 		/// <summary>
 		/// Moves the AppendIndex to a new location, which must be and less than Capacity.
 		/// </summary>
@@ -441,23 +431,21 @@ namespace System.Collections.Concurrent
 				lock (commonLock)
 				{
 					Interlocked.Increment(ref concurrentOps);
+					try
+					{
+						var d = Drive;
+						if (d != Gear.P)
+							throw new InvalidOperationException("Wrong drive");
 
-					var d = Drive;
-					if (d != Gear.P)
+						if (newIndex < 0 || newIndex >= Capacity)
+							throw new ArgumentOutOfRangeException("newIndex");
+
+						var old = Interlocked.Exchange(ref appendIndex, newIndex);
+					}
+					finally
 					{
 						Interlocked.Decrement(ref concurrentOps);
-						throw new InvalidOperationException("Wrong drive");
 					}
-
-					if (newIndex < 0 || newIndex >= Capacity)
-					{
-						Interlocked.Decrement(ref concurrentOps);
-						throw new ArgumentOutOfRangeException("newIndex");
-					}
-
-					var old = Interlocked.Exchange(ref appendIndex, newIndex);
-
-					Interlocked.Decrement(ref concurrentOps);
 				}
 		}
 
@@ -474,6 +462,44 @@ namespace System.Collections.Concurrent
 				seq = index / BlockLength;
 				idx = index % BlockLength;
 			}
+		}
+
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		T set(int index, T value)
+		{
+			int seq = -1, idx = -1;
+			Index2Seq(index, ref seq, ref idx);
+
+			var old = Interlocked.Exchange(ref blocks[seq][idx], value);
+
+			if (old != null)
+			{
+				if (value == null) Interlocked.Decrement(ref notNullsCount);
+			}
+			else if (value != null) Interlocked.Increment(ref notNullsCount);
+
+			return old;
+		}
+
+		/// <summary>
+		/// Will be called before allocating more space, providing the current length as an argument.
+		/// The returned value is desired new total length.
+		/// The default growth factor is 2.
+		/// </summary>
+		/// <remarks>
+		/// By providing different growth factors depending on the current size,
+		/// one can create different allocation size vs. capacity curves.
+		/// </remarks>
+		Func<ConcurrentArray<T>, int> ExpansionLength = (ca) => defaultExpansion(ca);
+
+		static int defaultExpansion(ConcurrentArray<T> arr)
+		{
+			if (arr.Capacity < arr.BlockLength) return arr.BlockLength;
+
+			int newCap = arr.Capacity * 2;
+			if (newCap > arr.TotalMaxCapacity) newCap = arr.TotalMaxCapacity;
+
+			return newCap;
 		}
 
 		int concurrentOps = 0;

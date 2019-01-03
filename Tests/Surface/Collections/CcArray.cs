@@ -31,6 +31,7 @@ namespace Tests.Surface.Collections
 				if (!customExpand()) return;
 				if (!gears()) return;
 				if (!format()) return;
+				if (!take()) return;
 
 				Passed = true;
 				IsComplete = true;
@@ -294,8 +295,107 @@ namespace Tests.Surface.Collections
 					return false;
 				}
 
+			"Fotmat()".AsSuccess();
+
 			return true;
 		}
 
+		bool take()
+		{
+			var cca = new ConcurrentArray<object>(1000, 1000);
+			var CAP = cca.TotalMaxCapacity;
+			int next = 0, sum = 0;
+			int compareSum = (CAP / 2) * (1 + CAP);
+
+			// Producers
+			var P = new Task[10];
+
+			for (int i = 0; i < P.Length; i++)
+			{
+				P[i] = new Task(() =>
+				{
+					for (int j = 0; j < CAP; j++)
+					{
+						try
+						{
+							if (cca.AppendIndex >= CAP) break;
+							var nextInt = Interlocked.Increment(ref next);
+							if (nextInt <= CAP) cca.Append(nextInt);
+							else break;
+						}
+						catch
+						{
+							break;
+						}
+					}
+				});
+			}
+
+			// Consumers
+			var C = new Task[10];
+
+			for (int i = 0; i < P.Length; i++)
+			{
+				C[i] = new Task(() =>
+				{
+					for (int j = 0; j < CAP; j++)
+					{
+						try
+						{
+							while (j > cca.AppendIndex)
+								Thread.Sleep(20);
+
+							var o = cca.Take(j);
+
+							if (o != null)
+							{
+								int v = (int)o;
+								Interlocked.Add(ref sum, v);
+							}
+						}
+						catch (InvariantException)
+						{
+							break;
+						}
+					}
+
+				});
+			}
+
+			for (int i = 0; i < 10; i++)
+			{
+				P[i].Start();
+				C[i].Start();
+			}
+
+			Task.WaitAll(P);
+			Task.WaitAll(C);
+
+			if (cca.Capacity != CAP)
+			{
+				FailureMessage = $"Wrong capacity {cca.Capacity}, expected {CAP}";
+				Passed = false;
+				return false;
+			}
+
+			for (int i = 0; i < CAP; i++)
+				if (cca[i] != null)
+				{
+					FailureMessage = $"Take at {i} failed. There is a value: {cca[i]}";
+					Passed = false;
+					return false;
+				}
+
+			if (sum != compareSum)
+			{
+				FailureMessage = "Take is wrong.";
+				Passed = false;
+				return false;
+			}
+
+			"Concurrent Append() and Take()".AsSuccess();
+
+			return true;
+		}
 	}
 }
