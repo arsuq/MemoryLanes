@@ -1,6 +1,9 @@
+
 # Memory Lanes
 
 > v1.1
+
+![](Logo128.jpg)
 
 ## Description 
 
@@ -81,7 +84,6 @@ public interface IMemoryHighway : IDisposable
 }
 ```
 
-<br>
 
 ### Reliable disposal
 
@@ -184,6 +186,44 @@ One may notice that the buffer lengths are limited to Int32.MaxValue everywhere
 in this API, so one couldn't use a MappedHighway with 4GB memory mapped file.
 The reason is having a consistency with the Memory<T> and Span<T> implementations.
 
+
+## Classes
+
+The library adds the following classes:
+
+In **System** namespace:
+
+- **Fragments**
+  - MemoryFragment (abstract)
+  - HeapFragment
+  - MappedFragment
+  - MarshalFragment
+  - MarshalSlot
+
+- **Lanes**
+  - MemoryLane (abstract)
+  - HeapLane
+  - MappedLane
+  - MarshalLane
+ 
+- **Highways**
+  - MemoryCarriage (abstract)
+  - IMemoryHighway (interface)
+  - HeapHighway
+  - MappedHighway
+  - MarhsalHighway
+	
+
+- MemoryLaneSettings
+
+- **Exceptions**
+  - MemoryLaneException
+  - InvariantException
+  - SynchronizationException
+
+In **System.Collections.Concurrent** namespace:
+
+- ConcurrentArray
 
 ## Summary
 

@@ -112,18 +112,22 @@ namespace System.Collections.Concurrent
 			// One call at a time
 			lock (shiftLock)
 			{
-				// It's the same
-				if (Drive == g) return g;
+				int old = -1;
 
-				// There must be no other resets anywhere
-				gearShift.Reset();
+				// It's not the same
+				if (Drive != g)
+				{
+					// There must be no other resets anywhere
+					gearShift.Reset();
 
-				var old = Interlocked.Exchange(ref direction, (int)g);
+					old = Interlocked.Exchange(ref direction, (int)g);
 
-				// Wait for all concurrent operations to finish
-				if (Volatile.Read(ref concurrentOps) > 0)
-					if (!gearShift.WaitOne(timeout))
-						throw new SynchronizationException(SynchronizationException.Code.SignalAwaitTimeout);
+					// Wait for all concurrent operations to finish
+					if (Volatile.Read(ref concurrentOps) > 0)
+						if (!gearShift.WaitOne(timeout))
+							throw new SynchronizationException(SynchronizationException.Code.SignalAwaitTimeout);
+				}
+				else old = (int)g;
 
 				// Give a chance to at least one function to be executed, in case 
 				// there are competing shifts.
@@ -403,18 +407,21 @@ namespace System.Collections.Concurrent
 			{
 				Interlocked.Increment(ref concurrentOps);
 
-				var d = Drive;
-				if (d != Gear.N && d != Gear.Straight)
+				try
+				{
+					var d = Drive;
+
+					if (d != Gear.N && d != Gear.Straight)
+						throw new InvalidOperationException("Wrong drive");
+
+					for (int b = 0; b < blocks.Length; b++)
+						for (int i = 0; i < BlockLength; i++)
+							blocks[b][i] = item;
+				}
+				finally
 				{
 					Interlocked.Decrement(ref concurrentOps);
-					throw new InvalidOperationException("Wrong drive");
 				}
-
-				for (int b = 0; b < blocks.Length; b++)
-					for (int i = 0; i < BlockLength; i++)
-						blocks[b][i] = item;
-
-				Interlocked.Decrement(ref concurrentOps);
 			}
 		}
 
@@ -502,6 +509,7 @@ namespace System.Collections.Concurrent
 			return newCap;
 		}
 
+		// Tracks the AppendIndex movement, the indexer is not counted as an op.
 		int concurrentOps = 0;
 		int capacity;
 		int appendIndex = -1;
