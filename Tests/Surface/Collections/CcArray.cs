@@ -228,6 +228,8 @@ namespace Tests.Surface.Collections
 
 			try
 			{
+				arr.OnGearShift += (g) => $"On gear shift {g}".AsInnerInfo();
+
 				Parallel.For(0, 200, (i) =>
 				{
 					var pos = arr.Append(i);
@@ -258,6 +260,7 @@ namespace Tests.Surface.Collections
 
 				arr.ShiftGear(ConcurrentArray<object>.Gear.P);
 				arr.Resize(0);
+				arr.OnGearShiftReset();
 
 				Parallel.For(0, 200, (i) =>
 				{

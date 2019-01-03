@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace System.Collections.Concurrent
 {
@@ -99,6 +100,23 @@ namespace System.Collections.Concurrent
 		/// </summary>
 		public Gear Drive => (Gear)Volatile.Read(ref direction);
 
+
+		/// <summary>
+		/// Will be triggered when the Drive changes. 
+		/// The callbacks are invoked in a new Task, wrapped in try/catch block, 
+		/// i.e. all exceptions are swallowed.
+		/// </summary>
+		public event Action<Gear> OnGearShift;
+
+		/// <summary>
+		/// Clears the subscribers.
+		/// </summary>
+		public void OnGearShiftReset()
+		{
+			foreach (Action<Gear> s in OnGearShift.GetInvocationList())
+				OnGearShift -= s;
+		}
+
 		/// <summary>
 		/// Blocks until the gear is shifted. 
 		/// </summary>
@@ -126,6 +144,16 @@ namespace System.Collections.Concurrent
 					if (Volatile.Read(ref concurrentOps) > 0)
 						if (!gearShift.WaitOne(timeout))
 							throw new SynchronizationException(SynchronizationException.Code.SignalAwaitTimeout);
+
+					if (OnGearShift != null)
+						Task.Run(() =>
+						{
+							try
+							{
+								OnGearShift(g);
+							}
+							catch { }
+						});
 				}
 				else old = (int)g;
 

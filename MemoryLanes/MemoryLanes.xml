@@ -81,6 +81,18 @@
             The allowed set of concurrent operations.
             </summary>
         </member>
+        <member name="E:System.Collections.Concurrent.ConcurrentArray`1.OnGearShift">
+            <summary>
+            Will be triggered when the Drive changes. 
+            The callbacks are invoked in a new Task, wrapped in try/catch block, 
+            i.e. all exceptions are swallowed.
+            </summary>
+        </member>
+        <member name="M:System.Collections.Concurrent.ConcurrentArray`1.OnGearShiftReset">
+            <summary>
+            Clears the subscribers.
+            </summary>
+        </member>
         <member name="M:System.Collections.Concurrent.ConcurrentArray`1.ShiftGear(System.Collections.Concurrent.ConcurrentArray{`0}.Gear,System.Action,System.Int32)">
             <summary>
             Blocks until the gear is shifted. 
