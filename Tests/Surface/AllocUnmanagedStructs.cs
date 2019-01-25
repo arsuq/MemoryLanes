@@ -21,7 +21,7 @@ namespace Tests.Surface
 	{
 		public string Info => "Tests allocation of structs on the unmanaged heap.";
 
-		public bool RequiresArgs => false;
+		public bool IndependentLaunchOnly => false;
 		public string FailureMessage => string.Empty;
 		public bool? Passed { get; private set; }
 		public bool IsComplete { get; private set; }

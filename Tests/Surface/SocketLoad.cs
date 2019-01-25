@@ -20,7 +20,7 @@ namespace Tests.Surface
 			"Example client: -mode c -mc 200 -ms 1024 -r" + Environment.NewLine +
 			"Example server: -mode s";
 
-		public bool RequiresArgs => true;
+		public bool IndependentLaunchOnly => true;
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
 		public bool IsComplete { get; private set; }

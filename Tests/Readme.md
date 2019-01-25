@@ -26,14 +26,14 @@ and launches the Run method of:
 - a specific test class if the *-ClassName* is provided as an argument and the ClassName 
  class exists 
 - every ITestSurface implementation which has default arguments, 
- i.e. RequiresArgs = false; this is the -all switch case  
+ i.e. IndependentLaunchOnly = false; this is the -all switch case  
 
 The ITestSurface has the following properties:
 
 ``` csharp
 string FailureMessage // Set for details if the test fails 
 bool? Passed // If not set the runner will trace the test as unknown
-bool RequiresArgs // False if there are default values to test with
+bool IndependentLaunchOnly // False if there are default values to test with
 string Info // The description of the test, including the switches 
 ```
 

@@ -19,7 +19,7 @@ namespace Tests.Surface.Collections
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
 		public bool IsComplete { get; private set; }
-		public bool RequiresArgs => false;
+		public bool IndependentLaunchOnly => false;
 
 		public async Task Run(IDictionary<string, List<string>> args)
 		{

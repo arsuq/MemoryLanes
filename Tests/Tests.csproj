@@ -15,7 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="TestSurface" Version="1.0.0" />
+    <PackageReference Include="TestSurface" Version="1.0.1" />
   </ItemGroup>
 
   <ItemGroup>
