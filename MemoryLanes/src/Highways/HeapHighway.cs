@@ -34,6 +34,8 @@ namespace System
 		public HeapHighway(MemoryLaneSettings stg)
 			: base(stg) => Create(DEF_HEAP_LANES);
 
+		public override HighwayType Type => HighwayType.Heap;
+
 		protected override bool createFragment(HeapLane ml, int size, ref HeapFragment f, int awaitMS) =>
 			ml.TryCreateFragment(size, ref f, awaitMS);
 

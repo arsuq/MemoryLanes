@@ -319,7 +319,10 @@ namespace System
 		// 2d0 remove the finalizer, it's useless.
 		~MemoryCarriage() => destroy(true);
 
+		public abstract HighwayType Type { get; }
+
 		protected readonly MemoryLaneSettings settings;
+
 		/// <summary>
 		/// Use to detect bad disposal behavior. 
 		/// </summary>
@@ -330,5 +333,13 @@ namespace System
 		ConcurrentArray<L> Lanes = null;
 
 		bool isDisposed;
+	}
+
+	public enum HighwayType
+	{
+		Unknown = 0,
+		Heap = 1,
+		Mapped = 2,
+		Marshal = 4
 	}
 }
