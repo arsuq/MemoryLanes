@@ -175,6 +175,25 @@ namespace System
 		}
 
 		/// <summary>
+		/// Sums the free space in all lanes.
+		/// </summary>
+		/// <returns>The total bytes left.</returns>
+		public int GetTotalFreeSpace()
+		{
+			var lc = Lanes.AppendIndex;
+			var bytes = 0;
+			for (int i = 0; i <= lc; i++)
+			{
+				var lane = Lanes[i];
+				if (lane != null)
+					bytes += (lane.LaneCapacity - lane.Offset);
+			}
+
+			return bytes;
+		}
+
+
+		/// <summary>
 		/// Gets the Lanes notNullsCount.
 		/// </summary>
 		/// <returns>The number of preallocated lanes.</returns>

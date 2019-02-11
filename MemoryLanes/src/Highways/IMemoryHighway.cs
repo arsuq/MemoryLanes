@@ -11,6 +11,7 @@ namespace System
 		MemoryFragment AllocFragment(int size, int awaitMS = -1);
 		int GetTotalActiveFragments();
 		int GetTotalCapacity();
+		int GetTotalFreeSpace();
 		int GetLanesCount();
 		int GetLastLaneIndex();
 		void FreeGhosts();
