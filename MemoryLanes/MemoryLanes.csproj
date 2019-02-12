@@ -19,4 +19,8 @@
     <NoWarn>1701;1702;1591</NoWarn>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DocumentationFile>C:\Github\MemoryLanes\MemoryLanes\MemoryLanes.xml</DocumentationFile>
+  </PropertyGroup>
+
 </Project>

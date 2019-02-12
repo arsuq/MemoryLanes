@@ -449,6 +449,217 @@
             Does not implement a finalizer!
             </summary>
         </member>
+        <member name="M:System.MemoryFragment.Write(System.Byte,System.Int32)">
+            <summary>
+            Writes the value starting at startpos.
+            </summary>
+            <param name="v">The value</param>
+            <param name="startpos">The index in the fragment window.</param>
+            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Write(System.Boolean,System.Int32)">
+            <summary>
+            Writes the value starting at startpos.
+            </summary>
+            <param name="v">The value</param>
+            <param name="startpos">The index in the fragment window.</param>
+            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Write(System.Char,System.Int32)">
+            <summary>
+            Writes the value starting at startpos.
+            </summary>
+            <param name="v">The value</param>
+            <param name="startpos">The index in the fragment window.</param>
+            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Write(System.Int16,System.Int32)">
+            <summary>
+            Writes the value starting at startpos.
+            </summary>
+            <param name="v">The value</param>
+            <param name="startpos">The index in the fragment window.</param>
+            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Write(System.Int32,System.Int32)">
+            <summary>
+            Writes the value starting at startpos.
+            </summary>
+            <param name="v">The value</param>
+            <param name="startpos">The index in the fragment window.</param>
+            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Write(System.UInt32,System.Int32)">
+            <summary>
+            Writes the value starting at startpos.
+            </summary>
+            <param name="v">The value</param>
+            <param name="startpos">The index in the fragment window.</param>
+            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Write(System.Int64,System.Int32)">
+            <summary>
+            Writes the value starting at startpos.
+            </summary>
+            <param name="v">The value</param>
+            <param name="startpos">The index in the fragment window.</param>
+            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Write(System.UInt64,System.Int32)">
+            <summary>
+            Writes the value starting at startpos.
+            </summary>
+            <param name="v">The value</param>
+            <param name="startpos">The index in the fragment window.</param>
+            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Write(System.Double,System.Int32)">
+            <summary>
+            Writes the value starting at startpos.
+            </summary>
+            <param name="v">The value</param>
+            <param name="startpos">The index in the fragment window.</param>
+            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Write(System.Guid,System.Int32)">
+            <summary>
+            Writes the value starting at startpos.
+            </summary>
+            <param name="v">The value</param>
+            <param name="startpos">The index in the fragment window.</param>
+            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Write(System.DateTime,System.Int32)">
+            <summary>
+            Writes the value starting at startpos.
+            </summary>
+            <param name="v">The value</param>
+            <param name="startpos">The index in the fragment window.</param>
+            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Write(System.Span{System.Byte},System.Int32)">
+            <summary>
+            Copies the span starting at startpos.
+            </summary>
+            <param name="bytes">The span to be copied</param>
+            <param name="startpos">The index in the fragment window.</param>
+            <returns>The new offset, i.e. startpos + the span length. If fails returns -startpos.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Read(System.Byte@,System.Int32)">
+            <summary>
+            Reads the value starting at startpos.
+            </summary>
+            <param name="v">The ref value to be updated.</param>
+            <param name="startpos">Index in the fragment window.</param>
+            <returns>The updated position as startpos + the value length.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Read(System.Boolean@,System.Int32)">
+            <summary>
+            Reads the value starting at startpos.
+            </summary>
+            <param name="v">The ref value to be updated.</param>
+            <param name="startpos">Index in the fragment window.</param>
+            <returns>The updated position as startpos + the value length.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Read(System.Char@,System.Int32)">
+            <summary>
+            Reads the value starting at startpos.
+            </summary>
+            <param name="v">The ref value to be updated.</param>
+            <param name="startpos">Index in the fragment window.</param>
+            <returns>The updated position as startpos + the value length.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Read(System.Int16@,System.Int32)">
+            <summary>
+            Reads the value starting at startpos.
+            </summary>
+            <param name="v">The ref value to be updated.</param>
+            <param name="startpos">Index in the fragment window.</param>
+            <returns>The updated position as startpos + the value length.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Read(System.Int32@,System.Int32)">
+            <summary>
+            Reads the value starting at startpos.
+            </summary>
+            <param name="v">The ref value to be updated.</param>
+            <param name="startpos">Index in the fragment window.</param>
+            <returns>The updated position as startpos + the value length.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Read(System.UInt32@,System.Int32)">
+            <summary>
+            Reads the value starting at startpos.
+            </summary>
+            <param name="v">The ref value to be updated.</param>
+            <param name="startpos">Index in the fragment window.</param>
+            <returns>The updated position as startpos + the value length.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Read(System.Int64@,System.Int32)">
+            <summary>
+            Reads the value starting at startpos.
+            </summary>
+            <param name="v">The ref value to be updated.</param>
+            <param name="startpos">Index in the fragment window.</param>
+            <returns>The updated position as startpos + the value length.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Read(System.UInt64@,System.Int32)">
+            <summary>
+            Reads the value starting at startpos.
+            </summary>
+            <param name="v">The ref value to be updated.</param>
+            <param name="startpos">Index in the fragment window.</param>
+            <returns>The updated position as startpos + the value length.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Read(System.Double@,System.Int32)">
+            <summary>
+            Reads the value starting at startpos.
+            </summary>
+            <param name="v">The ref value to be updated.</param>
+            <param name="startpos">Index in the fragment window.</param>
+            <returns>The updated position as startpos + the value length.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Read(System.Guid@,System.Int32)">
+            <summary>
+            Reads the value starting at startpos.
+            </summary>
+            <param name="v">The ref value to be updated.</param>
+            <param name="startpos">Index in the fragment window.</param>
+            <returns>The updated position as startpos + the value length.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Read(System.DateTime@,System.Int32)">
+            <summary>
+            Reads the value starting at startpos.
+            </summary>
+            <param name="v">The ref value to be updated.</param>
+            <param name="startpos">Index in the fragment window.</param>
+            <returns>The updated position as startpos + the value length.</returns>
+        </member>
+        <member name="M:System.MemoryFragment.Write(System.Byte[],System.Int32,System.Int32)">
+            <summary>Writes the bytes in data into the fragment storage.</summary>
+            <param name="data">The bytes to be written</param>
+            <param name="offset">The writing position in the fragment window.</param>
+            <param name="length">The amount of bytes to take from <c>data</c> (0-length).</param>
+            <returns>The new offset, i.e. <c>offset + length</c>.</returns>
+            <exception cref="T:System.ArgumentNullException">If data is null.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">If offset and length are out of range.</exception>
+            <exception cref="T:System.MemoryLaneException">If UseAccessChecks is on: 
+            AttemptToAccessWrongLaneCycle, AttemptToAccessDisposedLane, AttemptToAccessClosedLane
+            </exception>
+        </member>
+        <member name="M:System.MemoryFragment.Read(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Reads bytes from the fragment storage starting at offset and reading as long as <c>destination</c> is not filled up. 
+            The writing starts at destOffset and ends either at destination.Length or at fragment.Length - offset.
+            </summary>
+            <param name="destination">The read buffer.</param>
+            <param name="offset">The reading starts at offset.</param>
+            <param name="destOffset">The writing starts at destOffset.</param>
+            <returns>The new reading position = offset + the read bytes notNullsCount.</returns>
+            <exception cref="T:System.ArgumentNullException">If destination is null.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">For offset and destOffset.</exception>
+            <exception cref="T:System.MemoryLaneException">If UseAccessChecks is on: 
+            AttemptToAccessWrongLaneCycle, AttemptToAccessDisposedLane, AttemptToAccessClosedLane
+            </exception>
+        </member>
         <member name="F:System.MemoryFragment.useAccessChecks">
             <summary>
             If true checks whether the lane is closed, disposed or the cycle has not changed.
@@ -604,6 +815,12 @@
             Sums the lengths of all lanes.
             </summary>
             <returns>The total preallocated space for the highway.</returns>
+        </member>
+        <member name="M:System.MemoryCarriage`2.GetTotalFreeSpace">
+            <summary>
+            Sums the free space in all lanes.
+            </summary>
+            <returns>The total bytes left.</returns>
         </member>
         <member name="M:System.MemoryCarriage`2.GetLanesCount">
             <summary>
