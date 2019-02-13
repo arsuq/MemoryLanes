@@ -18,6 +18,36 @@ namespace System
 			laneCycle = lane.LaneCycle;
 		}
 
+		/// <summary>
+		/// Gets or sets a byte at index.
+		/// </summary>
+		/// <param name="index">The index</param>
+		/// <returns>The value at index</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If index is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
+		public byte this[int index]
+		{
+			get
+			{
+				if (index < 0 || index > Length)
+					throw new ArgumentOutOfRangeException("index");
+
+				laneCheck();
+
+				return Span()[index];
+			}
+			set
+			{
+				if (index < 0 || index > Length)
+					throw new ArgumentOutOfRangeException("index");
+
+				laneCheck();
+
+				Span()[index] = value;
+			}
+		}
+
 		#region Primitive Writes
 
 		/// <summary>
@@ -26,9 +56,18 @@ namespace System
 		/// <param name="v">The value</param>
 		/// <param name="startpos">The index in the fragment window.</param>
 		/// <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int Write(byte v, int startpos) =>
-			BitConverter.TryWriteBytes(Span().Slice(startpos), v) ? startpos + 1 : -startpos;
+		public int Write(byte v, int startpos)
+		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
+			return BitConverter.TryWriteBytes(Span().Slice(startpos), v) ? startpos + 1 : -startpos;
+		}
 
 		/// <summary>
 		/// Writes the value starting at startpos.
@@ -36,9 +75,18 @@ namespace System
 		/// <param name="v">The value</param>
 		/// <param name="startpos">The index in the fragment window.</param>
 		/// <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int Write(bool v, int startpos) =>
-			BitConverter.TryWriteBytes(Span().Slice(startpos), v) ? startpos + 1 : -startpos;
+		public int Write(bool v, int startpos)
+		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
+			return BitConverter.TryWriteBytes(Span().Slice(startpos), v) ? startpos + 1 : -startpos;
+		}
 
 		/// <summary>
 		/// Writes the value starting at startpos.
@@ -46,9 +94,18 @@ namespace System
 		/// <param name="v">The value</param>
 		/// <param name="startpos">The index in the fragment window.</param>
 		/// <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int Write(char v, int startpos) =>
-			BitConverter.TryWriteBytes(Span().Slice(startpos), v) ? startpos + 2 : -startpos;
+		public int Write(char v, int startpos)
+		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
+			return BitConverter.TryWriteBytes(Span().Slice(startpos), v) ? startpos + 2 : -startpos;
+		}
 
 		/// <summary>
 		/// Writes the value starting at startpos.
@@ -56,9 +113,18 @@ namespace System
 		/// <param name="v">The value</param>
 		/// <param name="startpos">The index in the fragment window.</param>
 		/// <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int Write(short v, int startpos) =>
-			BitConverter.TryWriteBytes(Span().Slice(startpos), v) ? startpos + 2 : -startpos;
+		public int Write(short v, int startpos)
+		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
+			return BitConverter.TryWriteBytes(Span().Slice(startpos), v) ? startpos + 2 : -startpos;
+		}
 
 		/// <summary>
 		/// Writes the value starting at startpos.
@@ -66,9 +132,18 @@ namespace System
 		/// <param name="v">The value</param>
 		/// <param name="startpos">The index in the fragment window.</param>
 		/// <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int Write(int v, int startpos) =>
-			BitConverter.TryWriteBytes(Span().Slice(startpos), v) ? startpos + 4 : -startpos;
+		public int Write(int v, int startpos)
+		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
+			return BitConverter.TryWriteBytes(Span().Slice(startpos), v) ? startpos + 4 : -startpos;
+		}
 
 		/// <summary>
 		/// Writes the value starting at startpos.
@@ -76,9 +151,18 @@ namespace System
 		/// <param name="v">The value</param>
 		/// <param name="startpos">The index in the fragment window.</param>
 		/// <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int Write(uint v, int startpos) =>
-			BitConverter.TryWriteBytes(Span().Slice(startpos), v) ? startpos + 4 : -startpos;
+		public int Write(uint v, int startpos)
+		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
+			return BitConverter.TryWriteBytes(Span().Slice(startpos), v) ? startpos + 4 : -startpos;
+		}
 
 		/// <summary>
 		/// Writes the value starting at startpos.
@@ -86,9 +170,18 @@ namespace System
 		/// <param name="v">The value</param>
 		/// <param name="startpos">The index in the fragment window.</param>
 		/// <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int Write(long v, int startpos) =>
-			BitConverter.TryWriteBytes(Span().Slice(startpos), v) ? startpos + 8 : -startpos;
+		public int Write(long v, int startpos)
+		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
+			return BitConverter.TryWriteBytes(Span().Slice(startpos), v) ? startpos + 8 : -startpos;
+		}
 
 		/// <summary>
 		/// Writes the value starting at startpos.
@@ -96,9 +189,18 @@ namespace System
 		/// <param name="v">The value</param>
 		/// <param name="startpos">The index in the fragment window.</param>
 		/// <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int Write(ulong v, int startpos) =>
-			BitConverter.TryWriteBytes(Span().Slice(startpos), v) ? startpos + 8 : -startpos;
+		public int Write(ulong v, int startpos)
+		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
+			return BitConverter.TryWriteBytes(Span().Slice(startpos), v) ? startpos + 8 : -startpos;
+		}
 
 		/// <summary>
 		/// Writes the value starting at startpos.
@@ -106,9 +208,18 @@ namespace System
 		/// <param name="v">The value</param>
 		/// <param name="startpos">The index in the fragment window.</param>
 		/// <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int Write(double v, int startpos) =>
-			BitConverter.TryWriteBytes(Span().Slice(startpos), v) ? startpos + 8 : -startpos;
+		public int Write(double v, int startpos)
+		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
+			return BitConverter.TryWriteBytes(Span().Slice(startpos), v) ? startpos + 8 : -startpos;
+		}
 
 		/// <summary>
 		/// Writes the value starting at startpos.
@@ -116,9 +227,18 @@ namespace System
 		/// <param name="v">The value</param>
 		/// <param name="startpos">The index in the fragment window.</param>
 		/// <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int Write(Guid v, int startpos) =>
-			v.TryWriteBytes(Span().Slice(startpos)) ? startpos + 16 : -startpos;
+		public int Write(Guid v, int startpos)
+		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
+			return v.TryWriteBytes(Span().Slice(startpos)) ? startpos + 16 : -startpos;
+		}
 
 		/// <summary>
 		/// Writes the value starting at startpos.
@@ -126,9 +246,18 @@ namespace System
 		/// <param name="v">The value</param>
 		/// <param name="startpos">The index in the fragment window.</param>
 		/// <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int Write(DateTime v, int startpos) =>
-			BitConverter.TryWriteBytes(Span().Slice(startpos), v.ToBinary()) ? startpos + 8 : -startpos;
+		public int Write(DateTime v, int startpos)
+		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
+			return BitConverter.TryWriteBytes(Span().Slice(startpos), v.ToBinary()) ? startpos + 8 : -startpos;
+		}
 
 		/// <summary>
 		/// Copies the span starting at startpos.
@@ -136,9 +265,18 @@ namespace System
 		/// <param name="bytes">The span to be copied</param>
 		/// <param name="startpos">The index in the fragment window.</param>
 		/// <returns>The new offset, i.e. startpos + the span length. If fails returns -startpos.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public int Write(Span<byte> bytes, int startpos) =>
-			bytes.TryCopyTo(Span().Slice(startpos)) ? startpos + bytes.Length : -startpos;
+		public int Write(Span<byte> bytes, int startpos)
+		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
+			return bytes.TryCopyTo(Span().Slice(startpos)) ? startpos + bytes.Length : -startpos;
+		}
 
 		#endregion
 
@@ -150,10 +288,18 @@ namespace System
 		/// <param name="v">The ref value to be updated.</param>
 		/// <param name="startpos">Index in the fragment window.</param>
 		/// <returns>The updated position as startpos + the value length.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int Read(ref byte v, int startpos)
 		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
 			v = Span()[startpos];
+
 			return startpos + 1;
 		}
 
@@ -163,10 +309,18 @@ namespace System
 		/// <param name="v">The ref value to be updated.</param>
 		/// <param name="startpos">Index in the fragment window.</param>
 		/// <returns>The updated position as startpos + the value length.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int Read(ref bool v, int startpos)
 		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
 			v = BitConverter.ToBoolean(Span().Slice(startpos, 1));
+
 			return startpos + 1;
 		}
 
@@ -176,10 +330,18 @@ namespace System
 		/// <param name="v">The ref value to be updated.</param>
 		/// <param name="startpos">Index in the fragment window.</param>
 		/// <returns>The updated position as startpos + the value length.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int Read(ref char v, int startpos)
 		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
 			v = BitConverter.ToChar(Span().Slice(startpos, 2));
+
 			return startpos + 2;
 		}
 
@@ -189,10 +351,18 @@ namespace System
 		/// <param name="v">The ref value to be updated.</param>
 		/// <param name="startpos">Index in the fragment window.</param>
 		/// <returns>The updated position as startpos + the value length.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int Read(ref short v, int startpos)
 		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
 			v = BitConverter.ToInt16(Span().Slice(startpos, 2));
+
 			return startpos + 2;
 		}
 
@@ -202,10 +372,18 @@ namespace System
 		/// <param name="v">The ref value to be updated.</param>
 		/// <param name="startpos">Index in the fragment window.</param>
 		/// <returns>The updated position as startpos + the value length.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int Read(ref int v, int startpos)
 		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
 			v = BitConverter.ToInt32(Span().Slice(startpos, 4));
+
 			return startpos + 4;
 		}
 
@@ -215,10 +393,18 @@ namespace System
 		/// <param name="v">The ref value to be updated.</param>
 		/// <param name="startpos">Index in the fragment window.</param>
 		/// <returns>The updated position as startpos + the value length.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int Read(ref uint v, int startpos)
 		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
 			v = BitConverter.ToUInt32(Span().Slice(startpos, 4));
+
 			return startpos + 4;
 		}
 
@@ -228,10 +414,18 @@ namespace System
 		/// <param name="v">The ref value to be updated.</param>
 		/// <param name="startpos">Index in the fragment window.</param>
 		/// <returns>The updated position as startpos + the value length.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int Read(ref long v, int startpos)
 		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
 			v = BitConverter.ToInt64(Span().Slice(startpos, 8));
+
 			return startpos + 8;
 		}
 
@@ -241,10 +435,18 @@ namespace System
 		/// <param name="v">The ref value to be updated.</param>
 		/// <param name="startpos">Index in the fragment window.</param>
 		/// <returns>The updated position as startpos + the value length.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int Read(ref ulong v, int startpos)
 		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
 			v = BitConverter.ToUInt64(Span().Slice(startpos, 8));
+
 			return startpos + 8;
 		}
 
@@ -254,10 +456,18 @@ namespace System
 		/// <param name="v">The ref value to be updated.</param>
 		/// <param name="startpos">Index in the fragment window.</param>
 		/// <returns>The updated position as startpos + the value length.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int Read(ref double v, int startpos)
 		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
 			v = BitConverter.ToDouble(Span().Slice(startpos, 8));
+
 			return startpos + 8;
 		}
 
@@ -267,10 +477,18 @@ namespace System
 		/// <param name="v">The ref value to be updated.</param>
 		/// <param name="startpos">Index in the fragment window.</param>
 		/// <returns>The updated position as startpos + the value length.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int Read(ref Guid v, int startpos)
 		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
 			v = new Guid(Span().Slice(startpos, 16));
+
 			return startpos + 16;
 		}
 
@@ -280,10 +498,18 @@ namespace System
 		/// <param name="v">The ref value to be updated.</param>
 		/// <param name="startpos">Index in the fragment window.</param>
 		/// <returns>The updated position as startpos + the value length.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int Read(ref DateTime v, int startpos)
 		{
+			if (startpos < 0 || startpos >= Length)
+				throw new ArgumentOutOfRangeException("startpos");
+
+			laneCheck();
 			v = DateTime.FromBinary(BitConverter.ToInt64(Span().Slice(startpos, 8)));
+
 			return startpos + 8;
 		}
 
@@ -320,6 +546,8 @@ namespace System
 		public abstract int Length { get; }
 		public abstract void Dispose();
 
+		public Span<T> ToSpan<T>() where T : struct => MemoryMarshal.Cast<byte, T>(Span());
+
 		public bool IsDisposed => isDisposed;
 		public int LaneCycle => laneCycle;
 
@@ -338,8 +566,18 @@ namespace System
 		/// </summary>
 		protected bool useAccessChecks = true;
 
-		public Span<T> ToSpan<T>() where T : struct =>
-			MemoryMarshal.Cast<byte, T>(Span());
+		/// <summary>
+		/// Gets the fragment Span. 
+		/// </summary>
+		/// <param name="f">The fragment.</param>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks is on: 
+		/// AttemptToAccessWrongLaneCycle, AttemptToAccessDisposedLane, AttemptToAccessClosedLane
+		/// </exception>
+		public static implicit operator Span<byte>(MemoryFragment f)
+		{
+			f.laneCheck();
+			return f.Span();
+		}
 
 		public MemoryLane Lane => lane;
 		protected MemoryLane lane;
