@@ -579,6 +579,20 @@ namespace System
 			return f.Span();
 		}
 
+		/// <summary>
+		/// Casts the fragment as ReadOnlySpan of bytes. 
+		/// </summary>
+		/// <param name="f">The fragment.</param>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks is on: 
+		/// AttemptToAccessWrongLaneCycle, AttemptToAccessDisposedLane, AttemptToAccessClosedLane
+		/// </exception>
+		public static implicit operator ReadOnlySpan<byte>(MemoryFragment f)
+		{
+			f.laneCheck();
+			return f.Span();
+		}
+
+
 		public MemoryLane Lane => lane;
 		protected MemoryLane lane;
 		protected readonly int laneCycle;

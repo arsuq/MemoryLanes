@@ -12,7 +12,7 @@ namespace System
 	/// </summary>
 	public class HeapFragment : MemoryFragment
 	{
-		public HeapFragment(Memory<byte> m, HeapLane lane, Action dtor) : base(lane, dtor)
+		internal HeapFragment(Memory<byte> m, HeapLane lane, Action dtor) : base(lane, dtor)
 		{
 			Memory = m;
 		}
@@ -105,6 +105,32 @@ namespace System
 		{
 			laneCheck();
 			return Memory.Span;
+		}
+
+		/// <summary>
+		/// Gets the fragment Memory. 
+		/// </summary>
+		/// <param name="f">The fragment.</param>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks is on: 
+		/// AttemptToAccessWrongLaneCycle, AttemptToAccessDisposedLane, AttemptToAccessClosedLane
+		/// </exception>
+		public static implicit operator Memory<byte>(HeapFragment f)
+		{
+			f.laneCheck();
+			return f.Memory;
+		}
+
+		/// <summary>
+		/// Casts the fragment as ReadOnlyMemory of bytes. 
+		/// </summary>
+		/// <param name="f">The fragment.</param>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks is on: 
+		/// AttemptToAccessWrongLaneCycle, AttemptToAccessDisposedLane, AttemptToAccessClosedLane
+		/// </exception>
+		public static implicit operator ReadOnlyMemory<byte>(HeapFragment f)
+		{
+			f.laneCheck();
+			return f.Memory;
 		}
 
 		public Memory<byte> Memory;

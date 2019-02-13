@@ -244,6 +244,24 @@
             AttemptToAccessWrongLaneCycle, AttemptToAccessDisposedLane, AttemptToAccessClosedLane
             </exception>
         </member>
+        <member name="M:System.HeapFragment.op_Implicit(System.HeapFragment)~System.Memory{System.Byte}">
+            <summary>
+            Gets the fragment Memory. 
+            </summary>
+            <param name="f">The fragment.</param>
+            <exception cref="T:System.MemoryLaneException">If UseAccessChecks is on: 
+            AttemptToAccessWrongLaneCycle, AttemptToAccessDisposedLane, AttemptToAccessClosedLane
+            </exception>
+        </member>
+        <member name="M:System.HeapFragment.op_Implicit(System.HeapFragment)~System.ReadOnlyMemory{System.Byte}">
+            <summary>
+            Casts the fragment as ReadOnlyMemory of bytes. 
+            </summary>
+            <param name="f">The fragment.</param>
+            <exception cref="T:System.MemoryLaneException">If UseAccessChecks is on: 
+            AttemptToAccessWrongLaneCycle, AttemptToAccessDisposedLane, AttemptToAccessClosedLane
+            </exception>
+        </member>
         <member name="T:System.MappedFragment">
             <summary>
             Represents a fragment of a memory mapped file.
@@ -748,6 +766,15 @@
         <member name="M:System.MemoryFragment.op_Implicit(System.MemoryFragment)~System.Span{System.Byte}">
             <summary>
             Gets the fragment Span. 
+            </summary>
+            <param name="f">The fragment.</param>
+            <exception cref="T:System.MemoryLaneException">If UseAccessChecks is on: 
+            AttemptToAccessWrongLaneCycle, AttemptToAccessDisposedLane, AttemptToAccessClosedLane
+            </exception>
+        </member>
+        <member name="M:System.MemoryFragment.op_Implicit(System.MemoryFragment)~System.ReadOnlySpan{System.Byte}">
+            <summary>
+            Casts the fragment as ReadOnlySpan of bytes. 
             </summary>
             <param name="f">The fragment.</param>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks is on: 

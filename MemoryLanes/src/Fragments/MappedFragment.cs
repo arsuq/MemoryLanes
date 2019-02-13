@@ -12,7 +12,7 @@ namespace System
 	/// </summary>
 	public class MappedFragment : MemoryFragment
 	{
-		public MappedFragment(long startIdx, int length, MemoryMappedViewAccessor va, MappedLane lane, Action dtor)
+		internal MappedFragment(long startIdx, int length, MemoryMappedViewAccessor va, MappedLane lane, Action dtor)
 			: base(lane, dtor)
 		{
 			StartIdx = startIdx;

@@ -12,7 +12,7 @@ namespace System
 	/// </summary>
 	public class MarshalLaneFragment : MemoryFragment
 	{
-		public MarshalLaneFragment(int startIdx, int length, IntPtr lPtr, MarshalLane lane, Action dtor) : base(lane, dtor)
+		internal MarshalLaneFragment(int startIdx, int length, IntPtr lPtr, MarshalLane lane, Action dtor) : base(lane, dtor)
 		{
 			if (startIdx < 0 || length < 0) throw new ArgumentOutOfRangeException("startIdx or length");
 			if (lPtr == null) throw new ArgumentOutOfRangeException("plane");
