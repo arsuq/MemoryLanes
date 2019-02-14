@@ -107,6 +107,8 @@ namespace System
 			return new Span<byte>(p, Length);
 		}
 
+		public override StorageType Type => StorageType.NativeHeapLane;
+
 		/// <summary>
 		/// Does not implement a finalizer because the resource is held by the lane.
 		/// </summary>

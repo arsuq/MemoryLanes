@@ -33,7 +33,7 @@ namespace System
 		public MarshalHighway(MemoryLaneSettings stg)
 			: base(stg) => Create(DEF_NHEAP_LANES);
 
-		public override HighwayType Type => HighwayType.Marshal;
+		public override StorageType Type => StorageType.NativeHeapLane;
 
 		protected override bool createFragment(MarshalLane ml, int size, ref MarshalLaneFragment f, int awaitMS) =>
 			ml.TryCreateFragment(size, ref f, awaitMS);

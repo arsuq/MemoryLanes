@@ -100,6 +100,8 @@ namespace System
 			}
 		}
 
+		public override StorageType Type => StorageType.MemoryMappedFileLane;
+
 		/// <summary>
 		/// Does not implement a finalizer because the resource is held by the lane.
 		/// </summary>

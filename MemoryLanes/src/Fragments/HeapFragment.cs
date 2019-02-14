@@ -77,6 +77,8 @@ namespace System
 			return offset + readLength;
 		}
 
+		public override StorageType Type => StorageType.ManagedHeapLane;
+
 		public override void Dispose()
 		{
 			if (!isDisposed)

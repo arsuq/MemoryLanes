@@ -479,254 +479,254 @@
         </member>
         <member name="M:System.MemoryFragment.Write(System.Byte,System.Int32)">
             <summary>
-            Writes the value starting at startpos.
+            Writes the value starting at idx.
             </summary>
             <param name="v">The value</param>
-            <param name="startpos">The index in the fragment window.</param>
-            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">The index in the fragment window.</param>
+            <returns>The new offset, i.e. idx + the value length in bytes. If fails returns -idx.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Write(System.Boolean,System.Int32)">
             <summary>
-            Writes the value starting at startpos.
+            Writes the value starting at idx.
             </summary>
             <param name="v">The value</param>
-            <param name="startpos">The index in the fragment window.</param>
-            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">The index in the fragment window.</param>
+            <returns>The new offset, i.e. idx + the value length in bytes. If fails returns -idx.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Write(System.Char,System.Int32)">
             <summary>
-            Writes the value starting at startpos.
+            Writes the value starting at idx.
             </summary>
             <param name="v">The value</param>
-            <param name="startpos">The index in the fragment window.</param>
-            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">The index in the fragment window.</param>
+            <returns>The new offset, i.e. idx + the value length in bytes. If fails returns -idx.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Write(System.Int16,System.Int32)">
             <summary>
-            Writes the value starting at startpos.
+            Writes the value starting at idx.
             </summary>
             <param name="v">The value</param>
-            <param name="startpos">The index in the fragment window.</param>
-            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">The index in the fragment window.</param>
+            <returns>The new offset, i.e. idx + the value length in bytes. If fails returns -idx.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Write(System.Int32,System.Int32)">
             <summary>
-            Writes the value starting at startpos.
+            Writes the value starting at idx.
             </summary>
             <param name="v">The value</param>
-            <param name="startpos">The index in the fragment window.</param>
-            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">The index in the fragment window.</param>
+            <returns>The new offset, i.e. idx + the value length in bytes. If fails returns -idx.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Write(System.UInt32,System.Int32)">
             <summary>
-            Writes the value starting at startpos.
+            Writes the value starting at idx.
             </summary>
             <param name="v">The value</param>
-            <param name="startpos">The index in the fragment window.</param>
-            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">The index in the fragment window.</param>
+            <returns>The new offset, i.e. idx + the value length in bytes. If fails returns -idx.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Write(System.Int64,System.Int32)">
             <summary>
-            Writes the value starting at startpos.
+            Writes the value starting at idx.
             </summary>
             <param name="v">The value</param>
-            <param name="startpos">The index in the fragment window.</param>
-            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">The index in the fragment window.</param>
+            <returns>The new offset, i.e. idx + the value length in bytes. If fails returns -idx.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Write(System.UInt64,System.Int32)">
             <summary>
-            Writes the value starting at startpos.
+            Writes the value starting at idx.
             </summary>
             <param name="v">The value</param>
-            <param name="startpos">The index in the fragment window.</param>
-            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">The index in the fragment window.</param>
+            <returns>The new offset, i.e. idx + the value length in bytes. If fails returns -idx.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Write(System.Double,System.Int32)">
             <summary>
-            Writes the value starting at startpos.
+            Writes the value starting at idx.
             </summary>
             <param name="v">The value</param>
-            <param name="startpos">The index in the fragment window.</param>
-            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">The index in the fragment window.</param>
+            <returns>The new offset, i.e. idx + the value length in bytes. If fails returns -idx.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Write(System.Guid,System.Int32)">
             <summary>
-            Writes the value starting at startpos.
+            Writes the value starting at idx.
             </summary>
             <param name="v">The value</param>
-            <param name="startpos">The index in the fragment window.</param>
-            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">The index in the fragment window.</param>
+            <returns>The new offset, i.e. idx + the value length in bytes. If fails returns -idx.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Write(System.DateTime,System.Int32)">
             <summary>
-            Writes the value starting at startpos.
+            Writes the value starting at idx.
             </summary>
             <param name="v">The value</param>
-            <param name="startpos">The index in the fragment window.</param>
-            <returns>The new offset, i.e. startpos + the value length in bytes. If fails returns -startpos.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">The index in the fragment window.</param>
+            <returns>The new offset, i.e. idx + the value length in bytes. If fails returns -idx.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Write(System.Span{System.Byte},System.Int32)">
             <summary>
-            Copies the span starting at startpos.
+            Copies the span starting at idx.
             </summary>
             <param name="bytes">The span to be copied</param>
-            <param name="startpos">The index in the fragment window.</param>
-            <returns>The new offset, i.e. startpos + the span length. If fails returns -startpos.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">The index in the fragment window.</param>
+            <returns>The new offset, i.e. idx + the span length. If fails returns -idx.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Read(System.Byte@,System.Int32)">
             <summary>
-            Reads the value starting at startpos.
+            Reads the value starting at idx.
             </summary>
             <param name="v">The ref value to be updated.</param>
-            <param name="startpos">Index in the fragment window.</param>
-            <returns>The updated position as startpos + the value length.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">Index in the fragment window.</param>
+            <returns>The updated position as idx + the value length.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Read(System.Boolean@,System.Int32)">
             <summary>
-            Reads the value starting at startpos.
+            Reads the value starting at idx.
             </summary>
             <param name="v">The ref value to be updated.</param>
-            <param name="startpos">Index in the fragment window.</param>
-            <returns>The updated position as startpos + the value length.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">Index in the fragment window.</param>
+            <returns>The updated position as idx + the value length.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Read(System.Char@,System.Int32)">
             <summary>
-            Reads the value starting at startpos.
+            Reads the value starting at idx.
             </summary>
             <param name="v">The ref value to be updated.</param>
-            <param name="startpos">Index in the fragment window.</param>
-            <returns>The updated position as startpos + the value length.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">Index in the fragment window.</param>
+            <returns>The updated position as idx + the value length.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Read(System.Int16@,System.Int32)">
             <summary>
-            Reads the value starting at startpos.
+            Reads the value starting at idx.
             </summary>
             <param name="v">The ref value to be updated.</param>
-            <param name="startpos">Index in the fragment window.</param>
-            <returns>The updated position as startpos + the value length.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">Index in the fragment window.</param>
+            <returns>The updated position as idx + the value length.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Read(System.Int32@,System.Int32)">
             <summary>
-            Reads the value starting at startpos.
+            Reads the value starting at idx.
             </summary>
             <param name="v">The ref value to be updated.</param>
-            <param name="startpos">Index in the fragment window.</param>
-            <returns>The updated position as startpos + the value length.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">Index in the fragment window.</param>
+            <returns>The updated position as idx + the value length.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Read(System.UInt32@,System.Int32)">
             <summary>
-            Reads the value starting at startpos.
+            Reads the value starting at idx.
             </summary>
             <param name="v">The ref value to be updated.</param>
-            <param name="startpos">Index in the fragment window.</param>
-            <returns>The updated position as startpos + the value length.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">Index in the fragment window.</param>
+            <returns>The updated position as idx + the value length.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Read(System.Int64@,System.Int32)">
             <summary>
-            Reads the value starting at startpos.
+            Reads the value starting at idx.
             </summary>
             <param name="v">The ref value to be updated.</param>
-            <param name="startpos">Index in the fragment window.</param>
-            <returns>The updated position as startpos + the value length.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">Index in the fragment window.</param>
+            <returns>The updated position as idx + the value length.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Read(System.UInt64@,System.Int32)">
             <summary>
-            Reads the value starting at startpos.
+            Reads the value starting at idx.
             </summary>
             <param name="v">The ref value to be updated.</param>
-            <param name="startpos">Index in the fragment window.</param>
-            <returns>The updated position as startpos + the value length.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">Index in the fragment window.</param>
+            <returns>The updated position as idx + the value length.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Read(System.Double@,System.Int32)">
             <summary>
-            Reads the value starting at startpos.
+            Reads the value starting at idx.
             </summary>
             <param name="v">The ref value to be updated.</param>
-            <param name="startpos">Index in the fragment window.</param>
-            <returns>The updated position as startpos + the value length.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">Index in the fragment window.</param>
+            <returns>The updated position as idx + the value length.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Read(System.Guid@,System.Int32)">
             <summary>
-            Reads the value starting at startpos.
+            Reads the value starting at idx.
             </summary>
             <param name="v">The ref value to be updated.</param>
-            <param name="startpos">Index in the fragment window.</param>
-            <returns>The updated position as startpos + the value length.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">Index in the fragment window.</param>
+            <returns>The updated position as idx + the value length.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Read(System.DateTime@,System.Int32)">
             <summary>
-            Reads the value starting at startpos.
+            Reads the value starting at idx.
             </summary>
             <param name="v">The ref value to be updated.</param>
-            <param name="startpos">Index in the fragment window.</param>
-            <returns>The updated position as startpos + the value length.</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">If startpos is out of range</exception>
+            <param name="idx">Index in the fragment window.</param>
+            <returns>The updated position as idx + the value length.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
@@ -756,6 +756,11 @@
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks is on: 
             AttemptToAccessWrongLaneCycle, AttemptToAccessDisposedLane, AttemptToAccessClosedLane
             </exception>
+        </member>
+        <member name="P:System.MemoryFragment.Type">
+            <summary>
+            The fragment memory type.
+            </summary>
         </member>
         <member name="F:System.MemoryFragment.useAccessChecks">
             <summary>

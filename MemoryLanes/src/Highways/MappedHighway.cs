@@ -35,7 +35,7 @@ namespace System
 		public MappedHighway(MemoryLaneSettings stg)
 			: base(stg) => Create(DEF_MMF_LANES);
 
-		public override HighwayType Type => HighwayType.Mapped;
+		public override StorageType Type => StorageType.MemoryMappedFileLane;
 
 		protected override bool createFragment(MappedLane ml, int size, ref MappedFragment f, int awaitMS) =>
 			ml.TryCreateFragment(size, ref f, awaitMS);

@@ -16,7 +16,7 @@ namespace System
 		int GetLastLaneIndex();
 		void FreeGhosts();
 		long LastAllocTickAnyLane { get; }
-		HighwayType Type { get; }
+		StorageType Type { get; }
 		IReadOnlyList<MemoryLane> GetLanes();
 		MemoryLane this[int index] { get; }
 		string FullTrace();

@@ -132,6 +132,8 @@ namespace System
 
 		public override Span<byte> Span() => Span(false);
 
+		public override StorageType Type => StorageType.NativeHeapSlot;
+
 		/// <summary>
 		/// Does not implement a finalizer!
 		/// </summary>

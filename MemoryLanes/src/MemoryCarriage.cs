@@ -20,7 +20,7 @@ namespace System
 			settings = stg ?? throw new ArgumentNullException();
 
 			if (settings.RegisterForProcessExitCleanup)
-				AppDomain.CurrentDomain.ProcessExit += (s, e) => destroy();
+				AppDomain.CurrentDomain.ProcessExit += (s, e) => Dispose();
 
 			if (stg.MaxLanesCount < 1000)
 				Lanes = new ConcurrentArray<L>(stg.MaxLanesCount, 1);
@@ -141,7 +141,20 @@ namespace System
 		/// <returns></returns>
 		public MemoryFragment AllocFragment(int size, int awaitMS) => Alloc(size, awaitMS);
 
-		public virtual void Dispose() => destroy();
+		public virtual void Dispose()
+		{
+			if (!Volatile.Read(ref isDisposed))
+			{
+				try
+				{
+					if (Lanes != null && Lanes.ItemsCount > 0)
+						foreach (var lane in Lanes.Items())
+							lane.Dispose();
+				}
+				catch { }
+				Volatile.Write(ref isDisposed, true);
+			}
+		}
 
 		/// <summary>
 		/// Returns an aggregate of all active fragments in all lanes.
@@ -192,20 +205,17 @@ namespace System
 			return bytes;
 		}
 
-
 		/// <summary>
 		/// Gets the Lanes notNullsCount.
 		/// </summary>
 		/// <returns>The number of preallocated lanes.</returns>
 		public int GetLanesCount() => Lanes.ItemsCount;
 
-
 		/// <summary>
 		/// Returns the array.AppendIndex value, i.e. the furthest index in the Lanes array.
 		/// </summary>
 		/// <returns>The number of preallocated lanes.</returns>
 		public int GetLastLaneIndex() => Lanes.AppendIndex;
-
 
 		/// <summary>
 		/// Creates a new List instance with the selection of all non null cells in the underlying array.
@@ -300,26 +310,7 @@ namespace System
 			return ml;
 		}
 
-		void destroy(bool isGC = false)
-		{
-			if (!Volatile.Read(ref isDisposed))
-			{
-				try
-				{
-					if (Lanes != null && Lanes.ItemsCount > 0)
-						foreach (var lane in Lanes.Items())
-							lane.Dispose();
-				}
-				catch { }
-				if (!isGC) GC.SuppressFinalize(this);
-				Volatile.Write(ref isDisposed, true);
-			}
-		}
-
-		// 2d0 remove the finalizer, it's useless.
-		~MemoryCarriage() => destroy(true);
-
-		public abstract HighwayType Type { get; }
+		public abstract StorageType Type { get; }
 
 		protected readonly MemoryLaneSettings settings;
 
@@ -335,11 +326,12 @@ namespace System
 		bool isDisposed;
 	}
 
-	public enum HighwayType
+	public enum StorageType
 	{
 		Unknown = 0,
-		Heap = 1,
-		Mapped = 2,
-		Marshal = 4
+		ManagedHeapLane = 1,
+		MemoryMappedFileLane = 2,
+		NativeHeapLane = 4,
+		NativeHeapSlot = 8
 	}
 }
