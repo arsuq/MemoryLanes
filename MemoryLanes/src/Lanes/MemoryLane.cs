@@ -7,6 +7,10 @@ using System.Threading;
 
 namespace System
 {
+	/// <summary>
+	/// A reusable memory storage with incremental allocation and ref-counted disposing behavior.
+	/// Uses MemoryFragment objects as allocation blocks.
+	/// </summary>
 	public abstract class MemoryLane : IDisposable
 	{
 		public struct FragmentRange
@@ -45,6 +49,11 @@ namespace System
 			TrackGhosts = 1
 		}
 
+		/// <summary>
+		/// Creates a lane with the provided capacity and disposal mode.
+		/// </summary>
+		/// <param name="capacity">The number of bytes.</param>
+		/// <param name="dm">Use IDispose</param>
 		public MemoryLane(int capacity, DisposalMode dm)
 		{
 			if (capacity < MemoryLaneSettings.MIN_CAPACITY || capacity > MemoryLaneSettings.MAX_CAPACITY)
@@ -59,6 +68,13 @@ namespace System
 			}
 		}
 
+		/// <summary>
+		/// Attempts to allocate a fragment range in the remaining lane space.
+		/// </summary>
+		/// <param name="size">The requested length.</param>
+		/// <param name="frag">A data bag.</param>
+		/// <param name="awaitMS">Provide a spinlock wait in ms.</param>
+		/// <returns>True if the space was successfully taken.</returns>
 		public bool Alloc(int size, ref FragmentRange frag, int awaitMS = -1)
 		{
 			var result = false;
@@ -169,6 +185,12 @@ namespace System
 			resetOne(cycle);
 		}
 
+		/// <summary>
+		/// Tracks the provided fragment for cleanup if its Dispose method is never called 
+		/// and the object is GC-ed.
+		/// </summary>
+		/// <param name="f">The fragment to be tracked.</param>
+		/// <param name="allocationIdx">The allocation index.</param>
 		protected void track(MemoryFragment f, int allocationIdx)
 		{
 			if (Disposal == DisposalMode.TrackGhosts)
@@ -257,14 +279,40 @@ namespace System
 		public virtual string FullTrace() =>
 			$"[{Offset}/{LaneCapacity} #{Allocations} C:{LaneCycle} T:{DateTime.Now.Ticks - LastAllocTick} {(IsClosed ? "off" : "on")}]";
 
+		/// <summary>
+		/// The lane capacity in bytes.
+		/// </summary>
 		public abstract int LaneCapacity { get; }
 		public abstract void Dispose();
 
+		/// <summary>
+		/// The lane offset index.
+		/// </summary>
 		public int Offset => Volatile.Read(ref offset);
+
+		/// <summary>
+		/// The number of allocations so far. Resets to zero on a new cycle.
+		/// </summary>
 		public int Allocations => Volatile.Read(ref allocations);
+
+		/// <summary>
+		/// The last allocation timer tick.
+		/// </summary>
 		public long LastAllocTick => Volatile.Read(ref lastAllocTick);
+
+		/// <summary>
+		/// If the lane is closed. This is flag is not related with IsDisposed.
+		/// </summary>
 		public bool IsClosed => Volatile.Read(ref isClosed) > 0;
+
+		/// <summary>
+		/// The current lane cycle, i.e. number of resets.
+		/// </summary>
 		public int LaneCycle => Volatile.Read(ref laneCycle);
+
+		/// <summary>
+		/// If true the underlying memory storage is released.
+		/// </summary>
 		public bool IsDisposed => Volatile.Read(ref isDisposed);
 
 		public const int ALLOC_AWAIT_MS = 10;

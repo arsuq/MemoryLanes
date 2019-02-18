@@ -10,15 +10,18 @@ namespace System
 	/// <summary>
 	/// Represents a slice of unmanaged memory. 
 	/// This object is not part of a MemoryLane and its lifetime does not affect other MemoryFragment instances.
-	/// Use the MarshalSlot for large and/or long living data, which would fragment the memory lanes 
-	/// by preventing reset, or burden the GC and the managed heap if allocated there.
+	/// Use the MarshalSlot for large and/or long living data which would fragment the memory lanes 
+	/// with slow resets.
 	/// </summary>
 	/// <remarks>
-	/// This class has multiple accessors with different meaning and one should be careful not to mix the Read/Writes 
-	/// with Span() and the Store/Load/Reserve methods.
+	/// Be careful not to mix the Read/Write accessors with Span() and the Store/Load/Reserve methods.
 	/// </remarks>
 	public class MarshalSlot : MemoryFragment
 	{
+		/// <summary>
+		/// Allocates the requested amount of native memory space.
+		/// </summary>
+		/// <param name="length">The number of bytes.</param>
 		public MarshalSlot(int length)
 		{
 			if (length < 0) throw new ArgumentOutOfRangeException("length");
@@ -130,6 +133,10 @@ namespace System
 			return *p;
 		}
 
+		/// <summary>
+		/// Makes a span over the whole fragment.
+		/// </summary>
+		/// <returns>The span structure.</returns>
 		public override Span<byte> Span() => Span(false);
 
 		public override StorageType Type => StorageType.NativeHeapSlot;
@@ -150,6 +157,9 @@ namespace System
 			}
 		}
 
+		/// <summary>
+		/// The fragment length.
+		/// </summary>
 		public override int Length => length;
 
 		readonly int length;

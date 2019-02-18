@@ -44,8 +44,10 @@ namespace System
 		/// MemoryLaneSettings.MIN_CAPACITY - MemoryLaneSettings.MAX_CAPACITY interval.
 		/// </exception>
 		/// <exception cref="System.ArgumentOutOfRangeException">If notNullsCount is outside the 1-MemoryLaneSettings.MAX_COUNT interval </exception>
+		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
 		public void Create(int count)
 		{
+			if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");
 			if (count < 1 || count > MemoryLaneSettings.MAX_COUNT) throw new ArgumentOutOfRangeException("notNullsCount");
 
 			for (int i = 0; i < count; i++)
@@ -65,8 +67,10 @@ namespace System
 		/// MemoryLaneSettings.MIN_CAPACITY - MemoryLaneSettings.MAX_CAPACITY interval.
 		/// </exception>
 		/// <exception cref="System.ArgumentNullException">When the laneSizes is either null or has zero items.</exception>
+		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
 		public void Create(params int[] laneSizes)
 		{
+			if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");
 			if (laneSizes == null || laneSizes.Length < 1) throw new ArgumentNullException("laneSizes");
 
 			foreach (var ls in laneSizes)
@@ -78,7 +82,7 @@ namespace System
 		/// </summary>
 		/// <param name="size">The number of bytes to allocate.</param>
 		/// <param name="awaitMS">The lane lock await in milliseconds, by default awaits forever (-1)</param>
-		/// <returns>The fragment structure.</returns>
+		/// <returns>A new fragment.</returns>
 		/// <exception cref="System.ArgumentOutOfRangeException">
 		/// If size is negative or greater than MemoryLaneSettings.MAX_CAPACITY.
 		/// </exception>
@@ -87,8 +91,10 @@ namespace System
 		/// Code.NewLaneAllocFail: after an unsuccessful attempt to allocate a fragment in a dedicated new lane.
 		/// One should never see this one!
 		/// </exception>
+		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
 		public F Alloc(int size, int awaitMS = -1)
 		{
+			if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");
 			if (Lanes == null || Lanes.Capacity == 0) throw new MemoryLaneException(MemoryLaneException.Code.NotInitialized);
 			if (size < 0 || size > MemoryLaneSettings.MAX_CAPACITY) throw new ArgumentOutOfRangeException("size");
 
@@ -138,7 +144,16 @@ namespace System
 		/// </summary>
 		/// <param name="size">The desired buffer length.</param>
 		/// <param name="awaitMS">By default the allocation awaits other allocations on the same lane.</param>
-		/// <returns></returns>
+		/// <returns>A new fragment.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">
+		/// If size is negative or greater than MemoryLaneSettings.MAX_CAPACITY.
+		/// </exception>
+		/// <exception cref="System.MemoryLaneException">
+		/// Code.NotInitialized: when the lanes are not initialized.
+		/// Code.NewLaneAllocFail: after an unsuccessful attempt to allocate a fragment in a dedicated new lane.
+		/// One should never see this one!
+		/// </exception>
+		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
 		public MemoryFragment AllocFragment(int size, int awaitMS) => Alloc(size, awaitMS);
 
 		public virtual void Dispose()
@@ -160,8 +175,11 @@ namespace System
 		/// Returns an aggregate of all active fragments in all lanes.
 		/// </summary>
 		/// <returns>The number of active fragments</returns>
+		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
 		public int GetTotalActiveFragments()
 		{
+			if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");
+
 			// It's fine not to lock because the lanes could only increase
 			var lc = Lanes.AppendIndex;
 			var c = 0;
@@ -176,8 +194,11 @@ namespace System
 		/// Sums the lengths of all lanes.
 		/// </summary>
 		/// <returns>The total preallocated space for the highway.</returns>
+		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
 		public int GetTotalCapacity()
 		{
+			if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");
+
 			var lc = Lanes.AppendIndex;
 			var cap = 0;
 			for (int i = 0; i <= lc; i++)
@@ -191,8 +212,11 @@ namespace System
 		/// Sums the free space in all lanes.
 		/// </summary>
 		/// <returns>The total bytes left.</returns>
+		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
 		public int GetTotalFreeSpace()
 		{
+			if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");
+
 			var lc = Lanes.AppendIndex;
 			var bytes = 0;
 			for (int i = 0; i <= lc; i++)
@@ -209,13 +233,25 @@ namespace System
 		/// Gets the Lanes notNullsCount.
 		/// </summary>
 		/// <returns>The number of preallocated lanes.</returns>
-		public int GetLanesCount() => Lanes.ItemsCount;
+		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
+		public int GetLanesCount()
+		{
+			if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");
+
+			return Lanes.ItemsCount;
+		}
 
 		/// <summary>
 		/// Returns the array.AppendIndex value, i.e. the furthest index in the Lanes array.
 		/// </summary>
 		/// <returns>The number of preallocated lanes.</returns>
-		public int GetLastLaneIndex() => Lanes.AppendIndex;
+		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
+		public int GetLastLaneIndex()
+		{
+			if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");
+
+			return Lanes.AppendIndex;
+		}
 
 		/// <summary>
 		/// Creates a new List instance with the selection of all non null cells in the underlying array.
@@ -223,33 +259,53 @@ namespace System
 		/// one may consider using the indexer instead.
 		/// </summary>
 		/// <returns>A read only list of MemoryLane objects.</returns>
-		public IReadOnlyList<MemoryLane> GetLanes() => new List<MemoryLane>(Lanes.Items());
+		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
+		public IReadOnlyList<MemoryLane> GetLanes()
+		{
+			if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");
+
+			return new List<MemoryLane>(Lanes.Items());
+		}
 
 		/// <summary>
-		/// Get a specific lane.
+		/// Gets a specific lane.
 		/// </summary>
 		/// <param name="index">The index must be less than the LastLaneIndex value. </param>
 		/// <returns>The Lane</returns>
+		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
 		public L this[int index]
 		{
 			get
 			{
+				if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");
 				if (index < 0 || index > Lanes.AppendIndex) throw new ArgumentOutOfRangeException("index");
+
 				return Lanes[index];
 			}
 		}
 
-		MemoryLane IMemoryHighway.this[int index] => this[index];
+		/// <summary>
+		/// When overridden returns the highway storage type.
+		/// </summary>
+		public abstract StorageType Type { get; }
 
-		int freeGhostsGate = 0;
+		/// <summary>
+		/// True if the Highway is disposed.
+		/// </summary>
+		public bool IsDisposed => isDisposed;
+
+		MemoryLane IMemoryHighway.this[int index] => this[index];
 
 		/// <summary>
 		/// Triggers FreeGhosts() on all lanes.
 		/// </summary>
+		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
 		public void FreeGhosts()
 		{
 			if (settings.Disposal != MemoryLane.DisposalMode.TrackGhosts)
 				throw new MemoryLaneException(MemoryLaneException.Code.IncorrectDisposalMode);
+
+			if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");
 
 			if (Interlocked.CompareExchange(ref freeGhostsGate, 1, 0) < 1)
 			{
@@ -265,8 +321,15 @@ namespace System
 			}
 		}
 
+		/// <summary>
+		/// Prints all lanes status.
+		/// </summary>
+		/// <returns>An info string.</returns>
+		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
 		public virtual string FullTrace()
 		{
+			if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");
+
 			var lc = Lanes.ItemsCount;
 			var lines = new string[lc + 3];
 			var i = 0;
@@ -310,20 +373,18 @@ namespace System
 			return ml;
 		}
 
-		public abstract StorageType Type { get; }
-
 		protected readonly MemoryLaneSettings settings;
 
 		/// <summary>
-		/// Use to detect bad disposal behavior. 
+		/// The last allocation time. 
 		/// </summary>
 		public long LastAllocTickAnyLane => Thread.VolatileRead(ref lastAllocTickAnyLane);
 
 		long lastAllocTickAnyLane;
+		int freeGhostsGate = 0;
+		bool isDisposed;
 
 		ConcurrentArray<L> Lanes = null;
-
-		bool isDisposed;
 	}
 
 	public enum StorageType

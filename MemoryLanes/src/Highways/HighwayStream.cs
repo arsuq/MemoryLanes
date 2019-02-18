@@ -7,11 +7,15 @@ namespace MemoryLanes.src.Highways
 {
 	public class HighwayStream : Stream
 	{
+		public HighwayStream(IMemoryHighway hw)
+		{
+			Highway = hw ?? throw new ArgumentNullException();
+
+		}
+
 		public override bool CanRead => true;
-
 		public override bool CanSeek => true;
-
-		public override bool CanWrite => throw new NotImplementedException();
+		public override bool CanWrite => true;
 
 		public override long Length => throw new NotImplementedException();
 
@@ -41,5 +45,7 @@ namespace MemoryLanes.src.Highways
 		{
 			throw new NotImplementedException();
 		}
+
+		public readonly IMemoryHighway Highway;
 	}
 }
