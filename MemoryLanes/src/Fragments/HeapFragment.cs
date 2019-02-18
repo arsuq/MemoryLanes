@@ -30,7 +30,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override int Write(byte[] data, int offset, int length)
 		{
-			laneCheck();
+			LaneCheck();
 
 			if (data == null) throw new ArgumentNullException("data");
 			if (length < 0 || length > data.Length) throw new ArgumentOutOfRangeException("length");
@@ -60,7 +60,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override int Read(byte[] destination, int offset, int destOffset = 0)
 		{
-			laneCheck();
+			LaneCheck();
 
 			if (destination == null) throw new ArgumentNullException("destination");
 			if (offset < 0 || offset >= Memory.Length) throw new ArgumentOutOfRangeException("offset");
@@ -105,7 +105,7 @@ namespace System
 		/// </exception>
 		public override Span<byte> Span()
 		{
-			laneCheck();
+			LaneCheck();
 			return Memory.Span;
 		}
 
@@ -118,7 +118,7 @@ namespace System
 		/// </exception>
 		public static implicit operator Memory<byte>(HeapFragment f)
 		{
-			f.laneCheck();
+			f.LaneCheck();
 			return f.Memory;
 		}
 
@@ -131,7 +131,7 @@ namespace System
 		/// </exception>
 		public static implicit operator ReadOnlyMemory<byte>(HeapFragment f)
 		{
-			f.laneCheck();
+			f.LaneCheck();
 			return f.Memory;
 		}
 

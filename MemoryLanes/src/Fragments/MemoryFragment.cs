@@ -2,6 +2,7 @@
    License, v. 2.0. If a copy of the MPL was not distributed with this
    file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
@@ -33,7 +34,7 @@ namespace System
 				if (index < 0 || index > Length)
 					throw new ArgumentOutOfRangeException("index");
 
-				laneCheck();
+				LaneCheck();
 
 				return Span()[index];
 			}
@@ -42,7 +43,7 @@ namespace System
 				if (index < 0 || index > Length)
 					throw new ArgumentOutOfRangeException("index");
 
-				laneCheck();
+				LaneCheck();
 
 				Span()[index] = value;
 			}
@@ -65,7 +66,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			return BitConverter.TryWriteBytes(Span().Slice(idx), v) ? idx + 1 : -idx;
 		}
 
@@ -84,7 +85,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			return BitConverter.TryWriteBytes(Span().Slice(idx), v) ? idx + 1 : -idx;
 		}
 
@@ -103,7 +104,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			return BitConverter.TryWriteBytes(Span().Slice(idx), v) ? idx + 2 : -idx;
 		}
 
@@ -122,7 +123,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			return BitConverter.TryWriteBytes(Span().Slice(idx), v) ? idx + 2 : -idx;
 		}
 
@@ -141,7 +142,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			return BitConverter.TryWriteBytes(Span().Slice(idx), v) ? idx + 4 : -idx;
 		}
 
@@ -160,7 +161,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			return BitConverter.TryWriteBytes(Span().Slice(idx), v) ? idx + 4 : -idx;
 		}
 
@@ -179,7 +180,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			return BitConverter.TryWriteBytes(Span().Slice(idx), v) ? idx + 8 : -idx;
 		}
 
@@ -198,7 +199,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			return BitConverter.TryWriteBytes(Span().Slice(idx), v) ? idx + 8 : -idx;
 		}
 
@@ -217,7 +218,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			return BitConverter.TryWriteBytes(Span().Slice(idx), v) ? idx + 8 : -idx;
 		}
 
@@ -236,7 +237,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			return v.TryWriteBytes(Span().Slice(idx)) ? idx + 16 : -idx;
 		}
 
@@ -255,7 +256,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			return BitConverter.TryWriteBytes(Span().Slice(idx), v.ToBinary()) ? idx + 8 : -idx;
 		}
 
@@ -274,7 +275,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			return bytes.TryCopyTo(Span().Slice(idx)) ? idx + bytes.Length : -idx;
 		}
 
@@ -297,7 +298,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			v = Span()[idx];
 
 			return idx + 1;
@@ -318,7 +319,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			v = BitConverter.ToBoolean(Span().Slice(idx, 1));
 
 			return idx + 1;
@@ -339,7 +340,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			v = BitConverter.ToChar(Span().Slice(idx, 2));
 
 			return idx + 2;
@@ -360,7 +361,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			v = BitConverter.ToInt16(Span().Slice(idx, 2));
 
 			return idx + 2;
@@ -381,7 +382,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			v = BitConverter.ToInt32(Span().Slice(idx, 4));
 
 			return idx + 4;
@@ -402,7 +403,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			v = BitConverter.ToUInt32(Span().Slice(idx, 4));
 
 			return idx + 4;
@@ -423,7 +424,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			v = BitConverter.ToInt64(Span().Slice(idx, 8));
 
 			return idx + 8;
@@ -444,7 +445,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			v = BitConverter.ToUInt64(Span().Slice(idx, 8));
 
 			return idx + 8;
@@ -465,7 +466,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			v = BitConverter.ToDouble(Span().Slice(idx, 8));
 
 			return idx + 8;
@@ -486,7 +487,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			v = new Guid(Span().Slice(idx, 16));
 
 			return idx + 16;
@@ -507,7 +508,7 @@ namespace System
 			if (idx < 0 || idx >= Length)
 				throw new ArgumentOutOfRangeException("idx");
 
-			laneCheck();
+			LaneCheck();
 			v = DateTime.FromBinary(BitConverter.ToInt64(Span().Slice(idx, 8)));
 
 			return idx + 8;
@@ -553,11 +554,17 @@ namespace System
 
 		public Span<T> ToSpan<T>() where T : struct => MemoryMarshal.Cast<byte, T>(Span());
 
+		/// <summary>
+		/// Creates a stream with the fragment as a storage.
+		/// </summary>
+		/// <returns>The fragment stream</returns>
+		public FragmentStream ToStream() => new FragmentStream(this);
+
 		public bool IsDisposed => isDisposed;
 		public int LaneCycle => laneCycle;
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		protected void laneCheck()
+		public void LaneCheck()
 		{
 			if (!useAccessChecks) return;
 			if (LaneCycle != Lane.LaneCycle) throw new MemoryLaneException(MemoryLaneException.Code.AttemptToAccessWrongLaneCycle);
@@ -580,7 +587,7 @@ namespace System
 		/// </exception>
 		public static implicit operator Span<byte>(MemoryFragment f)
 		{
-			f.laneCheck();
+			f.LaneCheck();
 			return f.Span();
 		}
 
@@ -593,7 +600,7 @@ namespace System
 		/// </exception>
 		public static implicit operator ReadOnlySpan<byte>(MemoryFragment f)
 		{
-			f.laneCheck();
+			f.LaneCheck();
 			return f.Span();
 		}
 

@@ -201,6 +201,65 @@
             one can create different allocation size vs. capacity curves.
             </remarks>
         </member>
+        <member name="T:System.IO.FragmentStream">
+            <summary>
+            A stream object with a fragment as a memory storage.
+            </summary>
+        </member>
+        <member name="M:System.IO.FragmentStream.#ctor(System.MemoryFragment)">
+            <summary>
+            Creates a stream objects.
+            </summary>
+            <param name="frag"></param>
+            <exception cref="T:System.ArgumentNullException">If frag is null.</exception>
+            <exception cref="T:System.ObjectDisposedException">If the fragment is disposed.</exception>
+        </member>
+        <member name="M:System.IO.FragmentStream.Flush">
+            <summary>
+            Does nothing.
+            </summary>
+        </member>
+        <member name="M:System.IO.FragmentStream.Read(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            The standard stream Read. 
+            The count could be cut twice: 
+            First to buffer.Length - offset if the buffer slice from offset is smaller than count.
+            Second to stream's Length - Position if count reaches beyond the capacity.
+            </summary>
+            <param name="buffer">Where to write.</param>
+            <param name="offset">Start index in buffer.</param>
+            <param name="count">Number of bytes to read.</param>
+            <returns>The number of read bytes.</returns>
+            <exception cref="T:System.ArgumentNullException">If buffer is null.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">If offset or count are negative.</exception>
+        </member>
+        <member name="M:System.IO.FragmentStream.Write(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Writes the buffer slice from offset to offset + count into the stream.
+            Unlike Read doesn't cut the count but throws because it's void.
+            </summary>
+            <param name="buffer">The source bytes.</param>
+            <param name="offset">Starting index in buffer.</param>
+            <param name="count">Number of bytes to take.</param>
+            <exception cref="T:System.ArgumentNullException">If buffer is null.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">
+            If offset or count are negative or count reaches beyond the fragment capacity.</exception>
+            <exception cref="T:System.ArgumentException">If the buffer slice from offset is smaller than count.</exception>
+        </member>
+        <member name="M:System.IO.FragmentStream.Seek(System.Int64,System.IO.SeekOrigin)">
+            <summary>
+            Moves the current position.
+            </summary>
+            <param name="offset">Number of bytes.</param>
+            <param name="origin">Use negative numbers with SeekOrigin.End</param>
+            <returns>The Position value.</returns>
+        </member>
+        <member name="M:System.IO.FragmentStream.SetLength(System.Int64)">
+            <summary>
+            Will shrink the stream length, but not the fragment.
+            </summary>
+            <param name="value"></param>
+        </member>
         <member name="T:System.HeapFragment">
             <summary>
             Represents a slice of a heap allocated buffer
@@ -762,6 +821,12 @@
             The fragment memory type.
             </summary>
         </member>
+        <member name="M:System.MemoryFragment.ToStream">
+            <summary>
+            Creates a stream with the fragment as a storage.
+            </summary>
+            <returns>The fragment stream</returns>
+        </member>
         <member name="F:System.MemoryFragment.useAccessChecks">
             <summary>
             If true checks whether the lane is closed, disposed or the cycle has not changed.
@@ -859,6 +924,62 @@
             </summary>
             <param name="stg">Generic settings for all MemoryCarriage derivatives.</param>
             <param name="lanes">The initial setup.</param>
+        </member>
+        <member name="T:System.MemoryLane.DisposalMode">
+            <summary>
+            Determines the way lanes deal with fragment deallocation.
+            </summary>
+        </member>
+        <member name="F:System.MemoryLane.DisposalMode.IDispose">
+            <summary>
+            If the consumer forgets to call dispose on a fragment,
+            the lane will never reset unless forced.
+            </summary>
+        </member>
+        <member name="F:System.MemoryLane.DisposalMode.TrackGhosts">
+            <summary>
+            The lane will track all fragments into a special collection
+            of weak refs, so when the GC collects the non-disposed fragments
+            the lane can deallocate the correct amount and reset. 
+            The triggering of the deallocation - FreeGhosts() is consumers responsibility.
+            </summary>
+        </member>
+        <member name="M:System.MemoryLane.FreeGhosts">
+            <summary>
+            Triggers deallocation of the tracked not-disposed and GC collected fragments. 
+            Does nothing if the fragments are still alive. 
+            </summary>
+            <remarks>
+            This method is racing both the allocations and the reset. If the lane is reset 
+            FreeGhosts() returns immediately. The check is made on every iteration before the resetOne() call.
+            </remarks>
+            <returns>The number of deallocations.</returns>
+            <exception cref="T:System.MemoryLaneException">Code: IncorrectDisposalMode</exception>
+        </member>
+        <member name="M:System.MemoryLane.free(System.Int32,System.Int32)">
+            <summary>
+            Free is called from the fragment's Dispose method.
+            </summary>
+            <param name="cycle">The lane cycle given to the fragment at creation time.</param>
+        </member>
+        <member name="M:System.MemoryLane.Force(System.Boolean,System.Boolean)">
+            <summary>
+            Resets the offset and allocations of the lane or closes the lane or all at once (one lock).
+            </summary>
+            <remarks>
+            Resetting the offset may lead to unpredictable behavior if you attempt to read or write
+            with any active fragments. The MemoryFragment's Read/Write and Span() methods assert the 
+            correctness of the lane cycle, but one may already have a Span for the previous cycle,
+            and using it will override the lane on write and yield corrupt data on read.
+            </remarks>
+            <param name="close">True to close the lane.</param>
+            <param name="reset">True to reset the offset and the allocations to 0.</param>
+        </member>
+        <member name="M:System.MemoryLane.FullTrace">
+            <summary>
+            Traces the Allocations, LaneCycle, Capacity, Offset, LasrtAllocTick and IsClosed properties.
+            </summary>
+            <returns>A formatted string: [offset/cap #allocations C:LaneCycle T:lastAllocTick on/off]</returns>
         </member>
         <member name="T:System.MemoryCarriage`2">
             <summary>
@@ -978,62 +1099,6 @@
             <summary>
             Use to detect bad disposal behavior. 
             </summary>
-        </member>
-        <member name="T:System.MemoryLane.DisposalMode">
-            <summary>
-            Determines the way lanes deal with fragment deallocation.
-            </summary>
-        </member>
-        <member name="F:System.MemoryLane.DisposalMode.IDispose">
-            <summary>
-            If the consumer forgets to call dispose on a fragment,
-            the lane will never reset unless forced.
-            </summary>
-        </member>
-        <member name="F:System.MemoryLane.DisposalMode.TrackGhosts">
-            <summary>
-            The lane will track all fragments into a special collection
-            of weak refs, so when the GC collects the non-disposed fragments
-            the lane can deallocate the correct amount and reset. 
-            The triggering of the deallocation - FreeGhosts() is consumers responsibility.
-            </summary>
-        </member>
-        <member name="M:System.MemoryLane.FreeGhosts">
-            <summary>
-            Triggers deallocation of the tracked not-disposed and GC collected fragments. 
-            Does nothing if the fragments are still alive. 
-            </summary>
-            <remarks>
-            This method is racing both the allocations and the reset. If the lane is reset 
-            FreeGhosts() returns immediately. The check is made on every iteration before the resetOne() call.
-            </remarks>
-            <returns>The number of deallocations.</returns>
-            <exception cref="T:System.MemoryLaneException">Code: IncorrectDisposalMode</exception>
-        </member>
-        <member name="M:System.MemoryLane.free(System.Int32,System.Int32)">
-            <summary>
-            Free is called from the fragment's Dispose method.
-            </summary>
-            <param name="cycle">The lane cycle given to the fragment at creation time.</param>
-        </member>
-        <member name="M:System.MemoryLane.Force(System.Boolean,System.Boolean)">
-            <summary>
-            Resets the offset and allocations of the lane or closes the lane or all at once (one lock).
-            </summary>
-            <remarks>
-            Resetting the offset may lead to unpredictable behavior if you attempt to read or write
-            with any active fragments. The MemoryFragment's Read/Write and Span() methods assert the 
-            correctness of the lane cycle, but one may already have a Span for the previous cycle,
-            and using it will override the lane on write and yield corrupt data on read.
-            </remarks>
-            <param name="close">True to close the lane.</param>
-            <param name="reset">True to reset the offset and the allocations to 0.</param>
-        </member>
-        <member name="M:System.MemoryLane.FullTrace">
-            <summary>
-            Traces the Allocations, LaneCycle, Capacity, Offset, LasrtAllocTick and IsClosed properties.
-            </summary>
-            <returns>A formatted string: [offset/cap #allocations C:LaneCycle T:lastAllocTick on/off]</returns>
         </member>
         <member name="F:System.MemoryLaneSettings.OnMaxLaneReached">
             <summary>

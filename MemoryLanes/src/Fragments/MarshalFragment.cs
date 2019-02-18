@@ -39,7 +39,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override int Write(byte[] data, int offset, int length)
 		{
-			laneCheck();
+			LaneCheck();
 
 			if (data == null) throw new ArgumentNullException("data");
 			if (length < 0 || length > data.Length) throw new ArgumentOutOfRangeException("length");
@@ -72,7 +72,7 @@ namespace System
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public override int Read(byte[] destination, int offset, int destOffset = 0)
 		{
-			laneCheck();
+			LaneCheck();
 
 			if (destination == null) throw new ArgumentNullException("destination");
 			if (offset < 0 || offset >= Length) throw new ArgumentOutOfRangeException("offset");
@@ -100,7 +100,7 @@ namespace System
 		/// </exception>
 		public override unsafe Span<byte> Span()
 		{
-			laneCheck();
+			LaneCheck();
 
 			byte* p = (byte*)lanePtr;
 			p += StartIdx;

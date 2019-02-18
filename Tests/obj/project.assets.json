@@ -208,15 +208,6 @@
           "build/netstandard2.0/NETStandard.Library.targets": {}
         }
       },
-      "TestSurface/1.0.3": {
-        "type": "package",
-        "compile": {
-          "lib/netstandard2.0/TestSurface.dll": {}
-        },
-        "runtime": {
-          "lib/netstandard2.0/TestSurface.dll": {}
-        }
-      },
       "MemoryLanes/1.1.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v2.1",
@@ -225,6 +216,16 @@
         },
         "runtime": {
           "bin/placeholder/MemoryLanes.dll": {}
+        }
+      },
+      "TestSurface/1.0.3": {
+        "type": "project",
+        "framework": ".NETStandard,Version=v2.0",
+        "compile": {
+          "bin/placeholder/TestSurface.dll": {}
+        },
+        "runtime": {
+          "bin/placeholder/TestSurface.dll": {}
         }
       }
     }
@@ -700,23 +701,15 @@
         "netstandard.library.nuspec"
       ]
     },
-    "TestSurface/1.0.3": {
-      "sha512": "Pylke7rPsQHog9yaDATrjovHZan51Yrtp5Q28g9tHQx6By2er1olyr7NfpnmnByJL7rhwCaXLf3jXKVIeWdjyw==",
-      "type": "package",
-      "path": "testsurface/1.0.3",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "lib/netstandard2.0/TestSurface.dll",
-        "lib/netstandard2.0/TestSurface.xml",
-        "testsurface.1.0.3.nupkg.sha512",
-        "testsurface.nuspec"
-      ]
-    },
     "MemoryLanes/1.1.0": {
       "type": "project",
       "path": "../MemoryLanes/MemoryLanes.csproj",
       "msbuildProject": "../MemoryLanes/MemoryLanes.csproj"
+    },
+    "TestSurface/1.0.3": {
+      "type": "project",
+      "path": "../../TestSurface/TestSurface.csproj",
+      "msbuildProject": "../../TestSurface/TestSurface.csproj"
     }
   },
   "projectFileDependencyGroups": {
@@ -758,6 +751,9 @@
           "projectReferences": {
             "C:\\Github\\MemoryLanes\\MemoryLanes\\MemoryLanes.csproj": {
               "projectPath": "C:\\Github\\MemoryLanes\\MemoryLanes\\MemoryLanes.csproj"
+            },
+            "C:\\Github\\TestSurface\\TestSurface.csproj": {
+              "projectPath": "C:\\Github\\TestSurface\\TestSurface.csproj"
             }
           }
         }
@@ -775,10 +771,6 @@
             "target": "Package",
             "version": "[2.1.0, )",
             "autoReferenced": true
-          },
-          "TestSurface": {
-            "target": "Package",
-            "version": "[1.0.3, )"
           }
         },
         "imports": [
