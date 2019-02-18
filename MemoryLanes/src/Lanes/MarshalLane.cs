@@ -8,33 +8,60 @@ using System.Threading;
 
 namespace System
 {
+	/// <summary>
+	/// A memory lane using the unmanaged process heap.
+	/// </summary>
 	public class MarshalLane : MemoryLane
 	{
+		/// <summary>
+		/// Creates the lane with the desired capacity.
+		/// This method allocates so expect OutOfMemoryException.
+		/// </summary>
+		/// <param name="capacity">The number of bytes.</param>
+		/// <param name="dm">The ghost tracking switch.</param>
+		/// <exception cref="OutOfMemoryException">Guess what.</exception>
 		public MarshalLane(int capacity, DisposalMode dm) : base(capacity, dm)
 		{
 			lanePtr = Marshal.AllocHGlobal(capacity);
-			Capacity = capacity;
+			this.capacity = capacity;
 		}
 
+		/// <summary>
+		/// Blocks a fragment of the lane.
+		/// </summary>
+		/// <param name="size">Number of bytes.</param>
+		/// <param name="awaitMS">Waiting for the operation in milliseconds. By default is indefinitely.</param>
+		/// <returns>A MarshalLaneFragment if succeeds, null if fails.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryCreateFragment(int size, ref MarshalLaneFragment frag, int awaitMS = -1)
+		public MarshalLaneFragment AllocMarshalFragment(int size, int awaitMS = -1)
 		{
 			var fr = new FragmentRange();
 
 			if (Alloc(size, ref fr, awaitMS))
 			{
-				frag = new MarshalLaneFragment(
+				var frag = new MarshalLaneFragment(
 					fr.Offset, fr.Length, lanePtr, this,
 					() => free(laneCycle, fr.Allocation));
 
 				if (Disposal == DisposalMode.TrackGhosts)
 					track(frag, fr.Allocation);
 
-				return true;
+				return frag;
 			}
-			else return false;
+			else return null;
 		}
 
+		/// <summary>
+		/// Calls AllocMarshalFragment() with the same args.
+		/// </summary>
+		/// <returns>Null if fails.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override MemoryFragment Alloc(int size, int awaitMS = -1) =>
+			AllocMarshalFragment(size, awaitMS);
+
+		/// <summary>
+		/// Frees the native memory.
+		/// </summary>
 		public override void Dispose() => destroy(false);
 
 		void destroy(bool isGC)
@@ -48,11 +75,19 @@ namespace System
 			}
 		}
 
+		/// <summary>
+		/// This lane uses a finalizer to cleanup the native memory
+		/// in case the object is not manually disposed and is GCed.
+		/// This is very leaky!
+		/// </summary>
 		~MarshalLane() => destroy(true);
 
-		public override int LaneCapacity => Capacity;
-		public readonly int Capacity;
+		/// <summary>
+		/// The total allocated space.
+		/// </summary>
+		public override int LaneCapacity => capacity;
 
+		readonly int capacity;
 		IntPtr lanePtr;
 	}
 }

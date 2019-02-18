@@ -1044,6 +1044,143 @@
             <param name="stg">Generic settings for all MemoryCarriage derivatives.</param>
             <param name="lanes">The initial setup.</param>
         </member>
+        <member name="T:System.HeapLane">
+            <summary>
+            A memory lane backed by the managed heap.
+            </summary>
+        </member>
+        <member name="M:System.HeapLane.#ctor(System.Int32,System.MemoryLane.DisposalMode)">
+            <summary>
+            Creates a lane with the specified capacity.
+            </summary>
+            <param name="capacity">The amount of bytes to allocate.</param>
+            <param name="dm">Use IDispoise.</param>
+        </member>
+        <member name="M:System.HeapLane.AllocHeapFragment(System.Int32,System.Int32)">
+            <summary>
+            Tries to block the size amount of bytes on the remaining lane space.
+            </summary>
+            <param name="size">The number of bytes.</param>
+            <param name="awaitMS">Milliseconds to wait at the lane gate. By default waits indefinitely.</param>
+            <returns>Null if fails.</returns>
+        </member>
+        <member name="M:System.HeapLane.Alloc(System.Int32,System.Int32)">
+            <summary>
+            Calls AllocHeapFragment with the given arguments.
+            </summary>
+            <param name="size">The desired size.</param>
+            <param name="awaitMS">By default waits indefinitely.</param>
+            <returns>Null if fails.</returns>
+        </member>
+        <member name="M:System.HeapLane.Dispose">
+            <summary>
+            Nulls the lane.
+            </summary>
+        </member>
+        <member name="P:System.HeapLane.LaneCapacity">
+            <summary>
+            Returns zero if the lane is null.
+            </summary>
+        </member>
+        <member name="T:System.MappedLane">
+            <summary>
+            A memory lane backed by a memory mapped file. 
+            </summary>
+        </member>
+        <member name="M:System.MappedLane.#ctor(System.Int32)">
+            <summary>
+            Creates a new lane with IDispose mode.
+            </summary>
+            <param name="capacity">The lane length.</param>
+        </member>
+        <member name="M:System.MappedLane.#ctor(System.Int32,System.String,System.MemoryLane.DisposalMode)">
+            <summary>
+            Creates a new lane.
+            </summary>
+            <param name="capacity">The length in bytes.</param>
+            <param name="filename">If not provided it's auto generated as MMF-#KB-ID</param>
+            <param name="dm">Toggle lost fragments tracking</param>
+        </member>
+        <member name="M:System.MappedLane.AllocMappedFragment(System.Int32,System.Int32)">
+            <summary>
+            Tries to allocate the desired amount of bytes on the remaining lane space.
+            </summary>
+            <param name="size">Length in bytes.</param>
+            <param name="awaitMS">Milliseconds to wait at the lane gate. By default is -1, i.e. forever.</param>
+            <returns>Null if fails.</returns>
+        </member>
+        <member name="M:System.MappedLane.Alloc(System.Int32,System.Int32)">
+            <summary>
+            Calls AllocMappedFragment() with the given args.
+            </summary>
+            <returns>A casted MappedFragment if succeeds, null if fails.</returns>
+        </member>
+        <member name="M:System.MappedLane.Dispose">
+            <summary>
+            Deletes the mapped file.
+            </summary>
+        </member>
+        <member name="M:System.MappedLane.Finalize">
+            <summary>
+            The mapped lane uses a finalizer to delete the file
+            in case it's not properly disposed.
+            </summary>
+        </member>
+        <member name="P:System.MappedLane.LaneCapacity">
+            <summary>
+            The capacity set in the ctor.
+            </summary>
+        </member>
+        <member name="F:System.MappedLane.FileID">
+            <summary>
+            The memory mapped file name.
+            </summary>
+        </member>
+        <member name="T:System.MarshalLane">
+            <summary>
+            A memory lane using the unmanaged process heap.
+            </summary>
+        </member>
+        <member name="M:System.MarshalLane.#ctor(System.Int32,System.MemoryLane.DisposalMode)">
+            <summary>
+            Creates the lane with the desired capacity.
+            This method allocates so expect OutOfMemoryException.
+            </summary>
+            <param name="capacity">The number of bytes.</param>
+            <param name="dm">The ghost tracking switch.</param>
+            <exception cref="T:System.OutOfMemoryException">Guess what.</exception>
+        </member>
+        <member name="M:System.MarshalLane.AllocMarshalFragment(System.Int32,System.Int32)">
+            <summary>
+            Blocks a fragment of the lane.
+            </summary>
+            <param name="size">Number of bytes.</param>
+            <param name="awaitMS">Waiting for the operation in milliseconds. By default is indefinitely.</param>
+            <returns>A MarshalLaneFragment if succeeds, null if fails.</returns>
+        </member>
+        <member name="M:System.MarshalLane.Alloc(System.Int32,System.Int32)">
+            <summary>
+            Calls AllocMarshalFragment() with the same args.
+            </summary>
+            <returns>Null if fails.</returns>
+        </member>
+        <member name="M:System.MarshalLane.Dispose">
+            <summary>
+            Frees the native memory.
+            </summary>
+        </member>
+        <member name="M:System.MarshalLane.Finalize">
+            <summary>
+            This lane uses a finalizer to cleanup the native memory
+            in case the object is not manually disposed and is GCed.
+            This is very leaky!
+            </summary>
+        </member>
+        <member name="P:System.MarshalLane.LaneCapacity">
+            <summary>
+            The total allocated space.
+            </summary>
+        </member>
         <member name="T:System.MemoryLane">
             <summary>
             A reusable memory storage with incremental allocation and ref-counted disposing behavior.
@@ -1075,6 +1212,20 @@
             </summary>
             <param name="capacity">The number of bytes.</param>
             <param name="dm">Use IDispose</param>
+        </member>
+        <member name="M:System.MemoryLane.Alloc(System.Int32,System.Int32)">
+            <summary>
+            Creates a new memory fragment if there is enough space on the lane.
+            </summary>
+            <remarks>
+            Calling Alloc directly on the lane competes with other potential highway calls, 
+            thus making more contention at the lane gate spin-lock. Consider using a small 
+            awaitMS value to avoid CPU spikes.
+            </remarks>
+            <param name="size">The requested length.</param>
+            <param name="awaitMS">Will bail after awaitMS milliseconds at the lane gate.
+            By default waits indefinitely.</param>
+            <returns>Null if fails.</returns>
         </member>
         <member name="M:System.MemoryLane.Alloc(System.Int32,System.MemoryLane.FragmentRange@,System.Int32)">
             <summary>
@@ -1241,6 +1392,12 @@
             </exception>
             <exception cref="T:System.ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
         </member>
+        <member name="M:System.MemoryCarriage`2.Dispose">
+            <summary>
+            Calls Dispose to all lanes individually and switches the IsDisposed flag to true,
+            All methods will throw ObjectDisposedException after that.
+            </summary>
+        </member>
         <member name="M:System.MemoryCarriage`2.GetTotalActiveFragments">
             <summary>
             Returns an aggregate of all active fragments in all lanes.
@@ -1292,6 +1449,7 @@
             <param name="index">The index must be less than the LastLaneIndex value. </param>
             <returns>The Lane</returns>
             <exception cref="T:System.ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">If the index is out of bounds.</exception>
         </member>
         <member name="P:System.MemoryCarriage`2.Type">
             <summary>
@@ -1302,6 +1460,15 @@
             <summary>
             True if the Highway is disposed.
             </summary>
+        </member>
+        <member name="P:System.MemoryCarriage`2.System#IMemoryHighway#Item(System.Int32)">
+            <summary>
+            Get a lane by index.
+            </summary>
+            <param name="index">The lane index.</param>
+            <returns>A memory lane.</returns>
+            <exception cref="T:System.ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">If the index is out of bounds.</exception>
         </member>
         <member name="M:System.MemoryCarriage`2.FreeGhosts">
             <summary>
@@ -1319,6 +1486,11 @@
         <member name="P:System.MemoryCarriage`2.LastAllocTickAnyLane">
             <summary>
             The last allocation time. 
+            </summary>
+        </member>
+        <member name="T:System.StorageType">
+            <summary>
+            Types of memory storage.
             </summary>
         </member>
         <member name="F:System.MemoryLaneSettings.OnMaxLaneReached">

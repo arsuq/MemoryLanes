@@ -1,0 +1,49 @@
+﻿~~~~~~~~~~~~~~~~~~~~~
+MemoryLanes v1.2
+~~~~~~~~~~~~~~~~~~~~~
+
+
+FEATURES/MILESTONES
+=====================
+
+[+] HighwayStream
+
+
+TASKS                                                                 
+=====================
+
+[+] <HighwayStream> to auto alloc fragment tiles on write, setLength etc.
+[>] The Alloc Tracker.Append can't be inside a spin gate.
+[+] Check the CCArray
+
+TESTS
+=====================
+
+
+
+BUGS
+=====================
+
+
+
+LEGEND
+=====================
+
+<name> - feature, milestone
+[]  - in backlog, not scheduled
+[+] - approved
+[@] - currently at 
+[%] - in progress
+[x] - done
+[-] - dropped, abandoned
+[i] - ignore
+[>] - do next
+[h] - halted
+[b] - blocked by another task
+[!] - important, with priority
+[c] - consider, change
+[?] - unclear
+[p] - problem
+[Y] - fork
+(x) - explanation regarding changing the status: 
+      (x) why closed, (p) why marked as problem etc.. 

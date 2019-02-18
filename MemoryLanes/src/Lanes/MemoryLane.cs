@@ -69,6 +69,20 @@ namespace System
 		}
 
 		/// <summary>
+		/// Creates a new memory fragment if there is enough space on the lane.
+		/// </summary>
+		/// <remarks>
+		/// Calling Alloc directly on the lane competes with other potential highway calls, 
+		/// thus making more contention at the lane gate spin-lock. Consider using a small 
+		/// awaitMS value to avoid CPU spikes.
+		/// </remarks>
+		/// <param name="size">The requested length.</param>
+		/// <param name="awaitMS">Will bail after awaitMS milliseconds at the lane gate.
+		/// By default waits indefinitely.</param>
+		/// <returns>Null if fails.</returns>
+		public abstract MemoryFragment Alloc(int size, int awaitMS = -1);
+
+		/// <summary>
 		/// Attempts to allocate a fragment range in the remaining lane space.
 		/// </summary>
 		/// <param name="size">The requested length.</param>
@@ -103,6 +117,7 @@ namespace System
 					{
 						// If the lane can't track more fragments, bail
 						// and let Alloc() check the next lane
+						// 2d0: Tracker.Append is too complex to be inside a spin lock!
 						if (Tracker.TotalMaxCapacity >= allocations + 1) Tracker.Append(null);
 						else bail = true;
 					}

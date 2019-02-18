@@ -37,8 +37,8 @@ namespace System
 
 		public override StorageType Type => StorageType.MemoryMappedFileLane;
 
-		protected override bool createFragment(MappedLane ml, int size, ref MappedFragment f, int awaitMS) =>
-			ml.TryCreateFragment(size, ref f, awaitMS);
+		protected override MappedFragment createFragment(MappedLane ml, int size, int awaitMS) =>
+			ml.AllocMappedFragment(size, awaitMS);
 
 		protected override MappedLane createLane(int size) => new MappedLane(size, null, settings.Disposal);
 

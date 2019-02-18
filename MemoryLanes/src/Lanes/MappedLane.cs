@@ -9,10 +9,23 @@ using System.Threading;
 
 namespace System
 {
+	/// <summary>
+	/// A memory lane backed by a memory mapped file. 
+	/// </summary>
 	public class MappedLane : MemoryLane
 	{
+		/// <summary>
+		/// Creates a new lane with IDispose mode.
+		/// </summary>
+		/// <param name="capacity">The lane length.</param>
 		public MappedLane(int capacity) : this(capacity, null, DisposalMode.IDispose) { }
 
+		/// <summary>
+		/// Creates a new lane.
+		/// </summary>
+		/// <param name="capacity">The length in bytes.</param>
+		/// <param name="filename">If not provided it's auto generated as MMF-#KB-ID</param>
+		/// <param name="dm">Toggle lost fragments tracking</param>
 		public MappedLane(int capacity, string filename, DisposalMode dm) : base(capacity, dm)
 		{
 			laneCapacity = capacity;
@@ -22,23 +35,39 @@ namespace System
 			mmva = mmf.CreateViewAccessor();
 		}
 
+		/// <summary>
+		/// Tries to allocate the desired amount of bytes on the remaining lane space.
+		/// </summary>
+		/// <param name="size">Length in bytes.</param>
+		/// <param name="awaitMS">Milliseconds to wait at the lane gate. By default is -1, i.e. forever.</param>
+		/// <returns>Null if fails.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryCreateFragment(int size, ref MappedFragment frag, int awaitMS = -1)
+		public MappedFragment AllocMappedFragment(int size, int awaitMS = -1)
 		{
 			var fr = new FragmentRange();
 
 			if (Alloc(size, ref fr, awaitMS))
 			{
-				frag = new MappedFragment(fr.Offset, fr.Length, mmva, this, () => free(laneCycle, fr.Allocation));
+				var frag = new MappedFragment(fr.Offset, fr.Length, mmva, this, () => free(laneCycle, fr.Allocation));
 
 				if (Disposal == DisposalMode.TrackGhosts)
 					track(frag, fr.Allocation);
 
-				return true;
+				return frag;
 			}
-			else return false;
+			else return null;
 		}
 
+		/// <summary>
+		/// Calls AllocMappedFragment() with the given args.
+		/// </summary>
+		/// <returns>A casted MappedFragment if succeeds, null if fails.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override MemoryFragment Alloc(int size, int awaitMS = -1) => AllocMappedFragment(size, awaitMS);
+
+		/// <summary>
+		/// Deletes the mapped file.
+		/// </summary>
 		public override void Dispose() => destroy();
 
 		void destroy(bool isGC = false)
@@ -57,10 +86,22 @@ namespace System
 			}
 		}
 
+		/// <summary>
+		/// The mapped lane uses a finalizer to delete the file
+		/// in case it's not properly disposed.
+		/// </summary>
 		~MappedLane() => destroy(true);
 
+		/// <summary>
+		/// The capacity set in the ctor.
+		/// </summary>
 		public override int LaneCapacity => laneCapacity;
+
+		/// <summary>
+		/// The memory mapped file name.
+		/// </summary>
 		public readonly string FileID;
+
 		readonly int laneCapacity;
 		MemoryMappedFile mmf;
 		MemoryMappedViewAccessor mmva;

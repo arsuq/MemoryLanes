@@ -107,10 +107,16 @@ namespace System
 				for (var i = 0; i <= Lanes.AppendIndex; i++)
 				{
 					var lane = Lanes[i];
-					if (lane != null && createFragment(lane, size, ref frag, awaitMS))
+
+					if (lane != null)
 					{
-						Interlocked.Exchange(ref lastAllocTickAnyLane, DateTime.Now.Ticks);
-						return frag;
+						frag = createFragment(lane, size, awaitMS);
+
+						if (frag != null)
+						{
+							Interlocked.Exchange(ref lastAllocTickAnyLane, DateTime.Now.Ticks);
+							return frag;
+						}
 					}
 				}
 
@@ -123,13 +129,13 @@ namespace System
 			// The consumer can infer that by checking if the fragment is null.
 			if (ml != null)
 			{
-				if (!createFragment(ml, size, ref frag, awaitMS))
-					throw new MemoryLaneException(
-						MemoryLaneException.Code.NewLaneAllocFail,
-						string.Format("Failed to allocate {0} bytes on a dedicated lane.", size));
+				frag = createFragment(ml, size, awaitMS);
+
+				if (frag == null) throw new MemoryLaneException(
+					MemoryLaneException.Code.NewLaneAllocFail,
+					string.Format("Failed to allocate {0} bytes on a dedicated lane.", size));
 
 				Lanes.Append(ml);
-
 				Interlocked.Exchange(ref lastAllocTickAnyLane, DateTime.Now.Ticks);
 			}
 
@@ -156,6 +162,10 @@ namespace System
 		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
 		public MemoryFragment AllocFragment(int size, int awaitMS) => Alloc(size, awaitMS);
 
+		/// <summary>
+		/// Calls Dispose to all lanes individually and switches the IsDisposed flag to true,
+		/// All methods will throw ObjectDisposedException after that.
+		/// </summary>
 		public virtual void Dispose()
 		{
 			if (!Volatile.Read(ref isDisposed))
@@ -273,6 +283,7 @@ namespace System
 		/// <param name="index">The index must be less than the LastLaneIndex value. </param>
 		/// <returns>The Lane</returns>
 		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
+		/// <exception cref="ArgumentOutOfRangeException">If the index is out of bounds.</exception>
 		public L this[int index]
 		{
 			get
@@ -294,6 +305,13 @@ namespace System
 		/// </summary>
 		public bool IsDisposed => isDisposed;
 
+		/// <summary>
+		/// Get a lane by index.
+		/// </summary>
+		/// <param name="index">The lane index.</param>
+		/// <returns>A memory lane.</returns>
+		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
+		/// <exception cref="ArgumentOutOfRangeException">If the index is out of bounds.</exception>
 		MemoryLane IMemoryHighway.this[int index] => this[index];
 
 		/// <summary>
@@ -344,7 +362,7 @@ namespace System
 			return string.Join(Environment.NewLine, lines);
 		}
 
-		protected abstract bool createFragment(L ml, int size, ref F f, int awaitMS);
+		protected abstract F createFragment(L ml, int size, int awaitMS);
 		protected abstract L createLane(int size);
 
 		L allocLane(int capacity, bool hidden = false)
@@ -387,6 +405,9 @@ namespace System
 		ConcurrentArray<L> Lanes = null;
 	}
 
+	/// <summary>
+	/// Types of memory storage.
+	/// </summary>
 	public enum StorageType
 	{
 		Unknown = 0,

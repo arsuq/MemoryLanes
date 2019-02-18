@@ -6,32 +6,62 @@ using System.Runtime.CompilerServices;
 
 namespace System
 {
+	/// <summary>
+	/// A memory lane backed by the managed heap.
+	/// </summary>
 	public class HeapLane : MemoryLane
 	{
+		/// <summary>
+		/// Creates a lane with the specified capacity.
+		/// </summary>
+		/// <param name="capacity">The amount of bytes to allocate.</param>
+		/// <param name="dm">Use IDispoise.</param>
 		public HeapLane(int capacity, DisposalMode dm) : base(capacity, dm)
 		{
 			lane = new byte[capacity];
 		}
 
+		/// <summary>
+		/// Tries to block the size amount of bytes on the remaining lane space.
+		/// </summary>
+		/// <param name="size">The number of bytes.</param>
+		/// <param name="awaitMS">Milliseconds to wait at the lane gate. By default waits indefinitely.</param>
+		/// <returns>Null if fails.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public bool TryCreateFragment(int size, ref HeapFragment frag, int awaitMS = -1)
+		public HeapFragment AllocHeapFragment(int size, int awaitMS = -1)
 		{
 			var fr = new FragmentRange();
 
 			if (Alloc(size, ref fr, awaitMS))
 			{
 				var mem = new Memory<byte>(lane, fr.Offset, fr.Length);
-				frag = new HeapFragment(mem, this, () => free(laneCycle, fr.Allocation));
+				var frag = new HeapFragment(mem, this, () => free(laneCycle, fr.Allocation));
 
 				if (Disposal == DisposalMode.TrackGhosts)
 					track(frag, fr.Allocation);
 
-				return true;
+				return frag;
 			}
-			else return false;
+			else return null;
 		}
 
+		/// <summary>
+		/// Calls AllocHeapFragment with the given arguments.
+		/// </summary>
+		/// <param name="size">The desired size.</param>
+		/// <param name="awaitMS">By default waits indefinitely.</param>
+		/// <returns>Null if fails.</returns>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public override MemoryFragment Alloc(int size, int awaitMS = -1) => AllocHeapFragment(size, awaitMS);
+
+		/// <summary>
+		/// Nulls the lane.
+		/// </summary>
 		public override void Dispose() { lane = null; }
+
+		/// <summary>
+		/// Returns zero if the lane is null.
+		/// </summary>
 		public override int LaneCapacity => lane != null ? lane.Length : 0;
 
 		byte[] lane;
