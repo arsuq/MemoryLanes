@@ -208,6 +208,15 @@
           "build/netstandard2.0/NETStandard.Library.targets": {}
         }
       },
+      "TestSurface/1.0.4": {
+        "type": "package",
+        "compile": {
+          "lib/netstandard2.0/TestSurface.dll": {}
+        },
+        "runtime": {
+          "lib/netstandard2.0/TestSurface.dll": {}
+        }
+      },
       "MemoryLanes/1.2.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v2.2",
@@ -216,16 +225,6 @@
         },
         "runtime": {
           "bin/placeholder/MemoryLanes.dll": {}
-        }
-      },
-      "TestSurface/1.0.3": {
-        "type": "project",
-        "framework": ".NETStandard,Version=v2.0",
-        "compile": {
-          "bin/placeholder/TestSurface.dll": {}
-        },
-        "runtime": {
-          "bin/placeholder/TestSurface.dll": {}
         }
       }
     }
@@ -699,22 +698,30 @@
         "netstandard.library.nuspec"
       ]
     },
+    "TestSurface/1.0.4": {
+      "sha512": "F4VdsXdmrhpWWnUrSd0kRFZ6hCObdT9Z/J2O6hUsxLx7oRGfHBEq8UzAvnd57oXjZX8RSrz6LqPr/fGiRL65UQ==",
+      "type": "package",
+      "path": "testsurface/1.0.4",
+      "files": [
+        ".nupkg.metadata",
+        ".signature.p7s",
+        "lib/netstandard2.0/TestSurface.dll",
+        "lib/netstandard2.0/TestSurface.xml",
+        "testsurface.1.0.4.nupkg.sha512",
+        "testsurface.nuspec"
+      ]
+    },
     "MemoryLanes/1.2.0": {
       "type": "project",
       "path": "../MemoryLanes/MemoryLanes.csproj",
       "msbuildProject": "../MemoryLanes/MemoryLanes.csproj"
-    },
-    "TestSurface/1.0.3": {
-      "type": "project",
-      "path": "../../TestSurface/TestSurface.csproj",
-      "msbuildProject": "../../TestSurface/TestSurface.csproj"
     }
   },
   "projectFileDependencyGroups": {
     ".NETCoreApp,Version=v2.2": [
       "MemoryLanes >= 1.2.0",
       "Microsoft.NETCore.App >= 2.2.0",
-      "TestSurface >= 1.0.3"
+      "TestSurface >= 1.0.4"
     ]
   },
   "packageFolders": {
@@ -749,9 +756,6 @@
           "projectReferences": {
             "C:\\Github\\MemoryLanes\\MemoryLanes\\MemoryLanes.csproj": {
               "projectPath": "C:\\Github\\MemoryLanes\\MemoryLanes\\MemoryLanes.csproj"
-            },
-            "C:\\Github\\TestSurface\\TestSurface.csproj": {
-              "projectPath": "C:\\Github\\TestSurface\\TestSurface.csproj"
             }
           }
         }
@@ -770,6 +774,10 @@
             "target": "Package",
             "version": "[2.2.0, )",
             "autoReferenced": true
+          },
+          "TestSurface": {
+            "target": "Package",
+            "version": "[1.0.4, )"
           }
         },
         "imports": [
