@@ -91,7 +91,7 @@ public interface IMemoryHighway : IDisposable
 
 The current version implements two disposal modes, which could be set in the MemoryLaneSettings constructor:
 
-- **IDispose (default)** In this mode the consumer *must* call *Dispose()* from each fragment in order 
+- **FragmentDispose (default)** In this mode the consumer *must* call *Dispose()* from each fragment in order 
 	to reset the lane. The only other option to unfreeze a lane is to *Force()* reset it which is unsafe.
 
 - **TrackGhosts** In order to dispose the correct number of lost fragments, each lane tracks them with 

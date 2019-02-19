@@ -7,14 +7,14 @@ namespace System
 {
 	public class MemoryLaneSettings
 	{
-		public MemoryLaneSettings(int defLaneCapacity, int maxLanesCount, MemoryLane.DisposalMode dm)
+		public MemoryLaneSettings(int defLaneCapacity, int maxLanesCount, MemoryLaneResetMode dm)
 			: this(defLaneCapacity, maxLanesCount, defLaneCapacity * maxLanesCount, dm) { }
 
 		public MemoryLaneSettings(
 			int defLaneCapacity = DEF_LANE_CAPACITY,
 			int maxLanesCount = MAX_COUNT,
 			long maxTotalBytes = MAX_CAPACITY,
-			MemoryLane.DisposalMode dm = MemoryLane.DisposalMode.IDispose)
+			MemoryLaneResetMode dm = MemoryLaneResetMode.FragmentDispose)
 		{
 			if (defLaneCapacity > MIN_CAPACITY && defLaneCapacity < MAX_CAPACITY)
 				DefaultCapacity = defLaneCapacity;
@@ -94,6 +94,6 @@ namespace System
 		/// <summary>
 		/// Specifies the disposal mode.
 		/// </summary>
-		public readonly MemoryLane.DisposalMode Disposal;
+		public readonly MemoryLaneResetMode Disposal;
 	}
 }

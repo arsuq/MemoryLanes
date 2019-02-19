@@ -16,7 +16,7 @@ namespace System
 		/// </summary>
 		/// <param name="capacity">The amount of bytes to allocate.</param>
 		/// <param name="dm">Use IDispoise.</param>
-		public HeapLane(int capacity, DisposalMode dm) : base(capacity, dm)
+		public HeapLane(int capacity, MemoryLaneResetMode dm) : base(capacity, dm)
 		{
 			lane = new byte[capacity];
 		}
@@ -37,7 +37,7 @@ namespace System
 				var mem = new Memory<byte>(lane, fr.Offset, fr.Length);
 				var frag = new HeapFragment(mem, this, () => free(laneCycle, fr.Allocation));
 
-				if (Disposal == DisposalMode.TrackGhosts)
+				if (ResetMode == MemoryLaneResetMode.TrackGhosts)
 					track(frag, fr.Allocation);
 
 				return frag;

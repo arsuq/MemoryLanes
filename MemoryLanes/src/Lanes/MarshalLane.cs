@@ -20,7 +20,7 @@ namespace System
 		/// <param name="capacity">The number of bytes.</param>
 		/// <param name="dm">The ghost tracking switch.</param>
 		/// <exception cref="OutOfMemoryException">Guess what.</exception>
-		public MarshalLane(int capacity, DisposalMode dm) : base(capacity, dm)
+		public MarshalLane(int capacity, MemoryLaneResetMode dm) : base(capacity, dm)
 		{
 			lanePtr = Marshal.AllocHGlobal(capacity);
 			this.capacity = capacity;
@@ -43,7 +43,7 @@ namespace System
 					fr.Offset, fr.Length, lanePtr, this,
 					() => free(laneCycle, fr.Allocation));
 
-				if (Disposal == DisposalMode.TrackGhosts)
+				if (ResetMode == MemoryLaneResetMode.TrackGhosts)
 					track(frag, fr.Allocation);
 
 				return frag;

@@ -13,55 +13,19 @@ namespace System
 	/// </summary>
 	public abstract class MemoryLane : IDisposable
 	{
-		public struct FragmentRange
-		{
-			public FragmentRange(int offset, int length, int allocation)
-			{
-				Offset = offset;
-				Length = length;
-				Allocation = allocation;
-			}
-
-			public int EndOffset => Offset + Length;
-
-			// Should be long, but Memory<T> uses int for now
-			public int Offset;
-			public int Length;
-			public int Allocation;
-		}
-
-		/// <summary>
-		/// Determines the way lanes deal with fragment deallocation.
-		/// </summary>
-		public enum DisposalMode : int
-		{
-			/// <summary>
-			/// If the consumer forgets to call dispose on a fragment,
-			/// the lane will never reset unless forced.
-			/// </summary>
-			IDispose = 0,
-			/// <summary>
-			/// The lane will track all fragments into a special collection
-			/// of weak refs, so when the GC collects the non-disposed fragments
-			/// the lane can deallocate the correct amount and reset. 
-			/// The triggering of the deallocation - FreeGhosts() is consumers responsibility.
-			/// </summary>
-			TrackGhosts = 1
-		}
-
 		/// <summary>
 		/// Creates a lane with the provided capacity and disposal mode.
 		/// </summary>
 		/// <param name="capacity">The number of bytes.</param>
-		/// <param name="dm">Use IDispose</param>
-		public MemoryLane(int capacity, DisposalMode dm)
+		/// <param name="rm">FragmentDispose</param>
+		public MemoryLane(int capacity, MemoryLaneResetMode rm)
 		{
 			if (capacity < MemoryLaneSettings.MIN_CAPACITY || capacity > MemoryLaneSettings.MAX_CAPACITY)
 				throw new MemoryLaneException(MemoryLaneException.Code.SizeOutOfRange);
 
-			Disposal = dm;
+			ResetMode = rm;
 
-			if (dm == DisposalMode.TrackGhosts)
+			if (rm == MemoryLaneResetMode.TrackGhosts)
 			{
 				var side = 1 + (int)Math.Sqrt(capacity / TRACKER_ASSUMED_MIN_FRAG_SIZE_BYTES);
 				Tracker = new ConcurrentArray<WeakReference<MemoryFragment>>(side, side);
@@ -89,7 +53,7 @@ namespace System
 		/// <param name="frag">A data bag.</param>
 		/// <param name="awaitMS">Provide a spinlock wait in ms.</param>
 		/// <returns>True if the space was successfully taken.</returns>
-		public bool Alloc(int size, ref FragmentRange frag, int awaitMS = -1)
+		internal bool Alloc(int size, ref FragmentRange frag, int awaitMS = -1)
 		{
 			var result = false;
 			var isLocked = false;
@@ -113,7 +77,7 @@ namespace System
 
 					// Just makes the slot, then the derived lane will set it 
 					// at 'Allocations' position.
-					if (Disposal == DisposalMode.TrackGhosts)
+					if (ResetMode == MemoryLaneResetMode.TrackGhosts)
 					{
 						// If the lane can't track more fragments, bail
 						// and let Alloc() check the next lane
@@ -152,7 +116,7 @@ namespace System
 		/// <exception cref="System.MemoryLaneException">Code: IncorrectDisposalMode</exception>
 		public int FreeGhosts()
 		{
-			if (Disposal != DisposalMode.TrackGhosts)
+			if (ResetMode != MemoryLaneResetMode.TrackGhosts)
 				throw new MemoryLaneException(MemoryLaneException.Code.IncorrectDisposalMode);
 
 			int freed = 0;
@@ -194,7 +158,7 @@ namespace System
 		/// <param name="cycle">The lane cycle given to the fragment at creation time.</param>
 		protected void free(int cycle, int allocation)
 		{
-			if (Disposal == DisposalMode.TrackGhosts && cycle == LaneCycle)
+			if (ResetMode == MemoryLaneResetMode.TrackGhosts && cycle == LaneCycle)
 				Tracker[allocation] = null;
 
 			resetOne(cycle);
@@ -208,7 +172,7 @@ namespace System
 		/// <param name="allocationIdx">The allocation index.</param>
 		protected void track(MemoryFragment f, int allocationIdx)
 		{
-			if (Disposal == DisposalMode.TrackGhosts)
+			if (ResetMode == MemoryLaneResetMode.TrackGhosts)
 			{
 				if (f.LaneCycle == LaneCycle)
 					Tracker[allocationIdx] = new WeakReference<MemoryFragment>(f);
@@ -238,7 +202,7 @@ namespace System
 						Interlocked.Increment(ref laneCycle);
 
 						// AppendIndex shift
-						if (Disposal == DisposalMode.TrackGhosts)
+						if (ResetMode == MemoryLaneResetMode.TrackGhosts)
 							Tracker.MoveAppendIndex(0, true);
 
 						result = true;
@@ -278,7 +242,7 @@ namespace System
 					Interlocked.Exchange(ref offset, 0);
 					Interlocked.Exchange(ref allocations, 0);
 
-					if (Disposal == DisposalMode.TrackGhosts)
+					if (ResetMode == MemoryLaneResetMode.TrackGhosts)
 						Tracker.MoveAppendIndex(0, true);
 				}
 
@@ -339,7 +303,7 @@ namespace System
 		protected long lastAllocTick;
 		protected int laneCycle;
 
-		public readonly DisposalMode Disposal;
+		public readonly MemoryLaneResetMode ResetMode;
 
 		// The Tracker index is the Allocation index of the fragment
 		ConcurrentArray<WeakReference<MemoryFragment>> Tracker = null;
@@ -347,7 +311,42 @@ namespace System
 		SpinLock allocGate = new SpinLock();
 		SpinLock resetGate = new SpinLock();
 		int freeGhostsGate;
-
 		int isClosed;
+	}
+
+	/// <summary>
+	/// Determines the way lanes deal with fragment deallocation.
+	/// </summary>
+	public enum MemoryLaneResetMode : int
+	{
+		/// <summary>
+		/// If the consumer forgets to call dispose on a fragment,
+		/// the lane will never reset unless forced.
+		/// </summary>
+		FragmentDispose = 0,
+		/// <summary>
+		/// The lane will track all fragments into a special collection
+		/// of weak refs, so when the GC collects the non-disposed fragments
+		/// the lane can deallocate the correct amount and reset. 
+		/// The triggering of the deallocation - FreeGhosts() is consumers responsibility.
+		/// </summary>
+		TrackGhosts = 1
+	}
+
+	internal struct FragmentRange
+	{
+		public FragmentRange(int offset, int length, int allocation)
+		{
+			Offset = offset;
+			Length = length;
+			Allocation = allocation;
+		}
+
+		public int EndOffset => Offset + Length;
+
+		// Should be long, but Memory<T> uses int for now
+		public int Offset;
+		public int Length;
+		public int Allocation;
 	}
 }

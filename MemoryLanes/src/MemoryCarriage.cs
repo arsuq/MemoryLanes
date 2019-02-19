@@ -320,7 +320,7 @@ namespace System
 		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
 		public void FreeGhosts()
 		{
-			if (settings.Disposal != MemoryLane.DisposalMode.TrackGhosts)
+			if (settings.Disposal != MemoryLaneResetMode.TrackGhosts)
 				throw new MemoryLaneException(MemoryLaneException.Code.IncorrectDisposalMode);
 
 			if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");

@@ -107,7 +107,7 @@ namespace Tests.Surface
 
 		bool freeGhosts(List<string> opt)
 		{
-			var stg = new MemoryLaneSettings(1024, 3, MemoryLane.DisposalMode.TrackGhosts);
+			var stg = new MemoryLaneSettings(1024, 3, MemoryLaneResetMode.TrackGhosts);
 			var iH = new Dictionary<string, IMemoryHighway>();
 
 			iH.Add("mh", new HeapHighway(stg, 1024, 1024));

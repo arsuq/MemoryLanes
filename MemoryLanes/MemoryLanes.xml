@@ -1049,7 +1049,7 @@
             A memory lane backed by the managed heap.
             </summary>
         </member>
-        <member name="M:System.HeapLane.#ctor(System.Int32,System.MemoryLane.DisposalMode)">
+        <member name="M:System.HeapLane.#ctor(System.Int32,System.MemoryLaneResetMode)">
             <summary>
             Creates a lane with the specified capacity.
             </summary>
@@ -1089,11 +1089,11 @@
         </member>
         <member name="M:System.MappedLane.#ctor(System.Int32)">
             <summary>
-            Creates a new lane with IDispose mode.
+            Creates a new lane with FragmentDispose mode.
             </summary>
             <param name="capacity">The lane length.</param>
         </member>
-        <member name="M:System.MappedLane.#ctor(System.Int32,System.String,System.MemoryLane.DisposalMode)">
+        <member name="M:System.MappedLane.#ctor(System.Int32,System.String,System.MemoryLaneResetMode)">
             <summary>
             Creates a new lane.
             </summary>
@@ -1141,7 +1141,7 @@
             A memory lane using the unmanaged process heap.
             </summary>
         </member>
-        <member name="M:System.MarshalLane.#ctor(System.Int32,System.MemoryLane.DisposalMode)">
+        <member name="M:System.MarshalLane.#ctor(System.Int32,System.MemoryLaneResetMode)">
             <summary>
             Creates the lane with the desired capacity.
             This method allocates so expect OutOfMemoryException.
@@ -1187,31 +1187,12 @@
             Uses MemoryFragment objects as allocation blocks.
             </summary>
         </member>
-        <member name="T:System.MemoryLane.DisposalMode">
-            <summary>
-            Determines the way lanes deal with fragment deallocation.
-            </summary>
-        </member>
-        <member name="F:System.MemoryLane.DisposalMode.IDispose">
-            <summary>
-            If the consumer forgets to call dispose on a fragment,
-            the lane will never reset unless forced.
-            </summary>
-        </member>
-        <member name="F:System.MemoryLane.DisposalMode.TrackGhosts">
-            <summary>
-            The lane will track all fragments into a special collection
-            of weak refs, so when the GC collects the non-disposed fragments
-            the lane can deallocate the correct amount and reset. 
-            The triggering of the deallocation - FreeGhosts() is consumers responsibility.
-            </summary>
-        </member>
-        <member name="M:System.MemoryLane.#ctor(System.Int32,System.MemoryLane.DisposalMode)">
+        <member name="M:System.MemoryLane.#ctor(System.Int32,System.MemoryLaneResetMode)">
             <summary>
             Creates a lane with the provided capacity and disposal mode.
             </summary>
             <param name="capacity">The number of bytes.</param>
-            <param name="dm">Use IDispose</param>
+            <param name="rm">FragmentDispose</param>
         </member>
         <member name="M:System.MemoryLane.Alloc(System.Int32,System.Int32)">
             <summary>
@@ -1227,7 +1208,7 @@
             By default waits indefinitely.</param>
             <returns>Null if fails.</returns>
         </member>
-        <member name="M:System.MemoryLane.Alloc(System.Int32,System.MemoryLane.FragmentRange@,System.Int32)">
+        <member name="M:System.MemoryLane.Alloc(System.Int32,System.FragmentRange@,System.Int32)">
             <summary>
             Attempts to allocate a fragment range in the remaining lane space.
             </summary>
@@ -1314,6 +1295,25 @@
         <member name="P:System.MemoryLane.IsDisposed">
             <summary>
             If true the underlying memory storage is released.
+            </summary>
+        </member>
+        <member name="T:System.MemoryLaneResetMode">
+            <summary>
+            Determines the way lanes deal with fragment deallocation.
+            </summary>
+        </member>
+        <member name="F:System.MemoryLaneResetMode.FragmentDispose">
+            <summary>
+            If the consumer forgets to call dispose on a fragment,
+            the lane will never reset unless forced.
+            </summary>
+        </member>
+        <member name="F:System.MemoryLaneResetMode.TrackGhosts">
+            <summary>
+            The lane will track all fragments into a special collection
+            of weak refs, so when the GC collects the non-disposed fragments
+            the lane can deallocate the correct amount and reset. 
+            The triggering of the deallocation - FreeGhosts() is consumers responsibility.
             </summary>
         </member>
         <member name="T:System.MemoryCarriage`2">

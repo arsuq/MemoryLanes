@@ -15,10 +15,10 @@ namespace System
 	public class MappedLane : MemoryLane
 	{
 		/// <summary>
-		/// Creates a new lane with IDispose mode.
+		/// Creates a new lane with FragmentDispose mode.
 		/// </summary>
 		/// <param name="capacity">The lane length.</param>
-		public MappedLane(int capacity) : this(capacity, null, DisposalMode.IDispose) { }
+		public MappedLane(int capacity) : this(capacity, null, MemoryLaneResetMode.FragmentDispose) { }
 
 		/// <summary>
 		/// Creates a new lane.
@@ -26,7 +26,7 @@ namespace System
 		/// <param name="capacity">The length in bytes.</param>
 		/// <param name="filename">If not provided it's auto generated as MMF-#KB-ID</param>
 		/// <param name="dm">Toggle lost fragments tracking</param>
-		public MappedLane(int capacity, string filename, DisposalMode dm) : base(capacity, dm)
+		public MappedLane(int capacity, string filename, MemoryLaneResetMode dm) : base(capacity, dm)
 		{
 			laneCapacity = capacity;
 			if (string.IsNullOrEmpty(filename)) FileID = string.Format("MMF-{0}K-{1}", capacity / 1024, Guid.NewGuid().ToString().Substring(0, 8));
@@ -50,7 +50,7 @@ namespace System
 			{
 				var frag = new MappedFragment(fr.Offset, fr.Length, mmva, this, () => free(laneCycle, fr.Allocation));
 
-				if (Disposal == DisposalMode.TrackGhosts)
+				if (ResetMode == MemoryLaneResetMode.TrackGhosts)
 					track(frag, fr.Allocation);
 
 				return frag;
