@@ -9,7 +9,7 @@ namespace System
 {
 	/// <summary>
 	/// A reusable memory storage with incremental allocation and ref-counted disposing behavior.
-	/// Uses MemoryFragment objects as allocation blocks.
+	/// Uses MemoryFragment objects for access to the allocated blocks.
 	/// </summary>
 	public abstract class MemoryLane : IDisposable
 	{
@@ -36,9 +36,7 @@ namespace System
 		/// Creates a new memory fragment if there is enough space on the lane.
 		/// </summary>
 		/// <remarks>
-		/// Calling Alloc directly on the lane competes with other potential highway calls, 
-		/// thus making more contention at the lane gate spin-lock. Consider using a small 
-		/// awaitMS value to avoid CPU spikes.
+		/// Calling Alloc directly on the lane competes with other potential highway calls.
 		/// </remarks>
 		/// <param name="size">The requested length.</param>
 		/// <param name="awaitMS">Will bail after awaitMS milliseconds at the lane gate.
@@ -56,16 +54,22 @@ namespace System
 		internal bool Alloc(int size, ref FragmentRange frag, int awaitMS = -1)
 		{
 			var result = false;
-			var isLocked = false;
+			var pass = false;
 			var CAP = LaneCapacity;
 
 			// Quick fail
 			if (isDisposed || Offset + size >= CAP || IsClosed) return result;
 
-			// Wait, allocations are serialized
-			allocGate.TryEnter(awaitMS, ref isLocked);
+			// Ghost tracking is slower and needs event synchronization
+			var track = ResetMode == MemoryLaneResetMode.TrackGhosts;
 
-			if (isLocked)
+			// The allocations are serialized.
+			// Spin if not tracking ghost fragments, otherwise 
+			// wait in the lobby for a signal or bail after awaitMS 
+			if (!track) spinGate.TryEnter(awaitMS, ref pass);
+			else pass = allocLobby.WaitOne(awaitMS);
+
+			if (pass)
 			{
 				// Volatile read
 				var oldoffset = Offset;
@@ -77,11 +81,10 @@ namespace System
 
 					// Just makes the slot, then the derived lane will set it 
 					// at 'Allocations' position.
-					if (ResetMode == MemoryLaneResetMode.TrackGhosts)
+					if (track)
 					{
 						// If the lane can't track more fragments, bail
 						// and let Alloc() check the next lane
-						// 2d0: Tracker.Append is too complex to be inside a spin lock!
 						if (Tracker.TotalMaxCapacity >= allocations + 1) Tracker.Append(null);
 						else bail = true;
 					}
@@ -98,7 +101,9 @@ namespace System
 					}
 				}
 
-				allocGate.Exit();
+				// The lane reset mode is read-only hence incorrect lock release is not possible.
+				if (track) allocLobby.Set();
+				else spinGate.Exit();
 			}
 
 			return result;
@@ -183,12 +188,13 @@ namespace System
 
 		bool resetOne(int cycle)
 		{
-			bool isLocked = false;
+			bool pass = false;
 			bool result = false;
 
-			resetGate.Enter(ref isLocked);
+			// It's OK to spin here since there are just a few instructions ahead.
+			resetGate.TryEnter(SPIN_GATE_BAIL_MS, ref pass);
 
-			if (isLocked)
+			if (pass)
 			{
 				// Enter only if it's the correct lane cycle and there are allocations
 				if (LaneCycle == cycle || Allocations > 0)
@@ -201,7 +207,7 @@ namespace System
 						Interlocked.Exchange(ref offset, 0);
 						Interlocked.Increment(ref laneCycle);
 
-						// AppendIndex shift
+						// The AppendIndex shift is just an Interlocked.Exchange when forced
 						if (ResetMode == MemoryLaneResetMode.TrackGhosts)
 							Tracker.MoveAppendIndex(0, true);
 
@@ -213,6 +219,8 @@ namespace System
 
 				resetGate.Exit();
 			}
+			else throw new SynchronizationException(SynchronizationException.Code.LockAcquisition,
+				$"Failed to pass the resetGate in {SPIN_GATE_BAIL_MS}ms. ");
 
 			return result;
 		}
@@ -231,7 +239,7 @@ namespace System
 		public void Force(bool close, bool reset = false)
 		{
 			bool isLocked = false;
-			allocGate.Enter(ref isLocked);
+			spinGate.Enter(ref isLocked);
 
 			if (isLocked)
 			{
@@ -246,7 +254,7 @@ namespace System
 						Tracker.MoveAppendIndex(0, true);
 				}
 
-				allocGate.Exit();
+				spinGate.Exit();
 			}
 			else throw new SynchronizationException(SynchronizationException.Code.LockAcquisition);
 		}
@@ -294,7 +302,8 @@ namespace System
 		/// </summary>
 		public bool IsDisposed => Volatile.Read(ref isDisposed);
 
-		public const int ALLOC_AWAIT_MS = 10;
+		public const int SPIN_GATE_AWAIT_MS = 10;
+		public const int SPIN_GATE_BAIL_MS = 80;
 		public const int TRACKER_ASSUMED_MIN_FRAG_SIZE_BYTES = 32;
 
 		protected bool isDisposed;
@@ -308,8 +317,9 @@ namespace System
 		// The Tracker index is the Allocation index of the fragment
 		ConcurrentArray<WeakReference<MemoryFragment>> Tracker = null;
 
-		SpinLock allocGate = new SpinLock();
+		SpinLock spinGate = new SpinLock();
 		SpinLock resetGate = new SpinLock();
+		AutoResetEvent allocLobby = new AutoResetEvent(true);
 		int freeGhostsGate;
 		int isClosed;
 	}

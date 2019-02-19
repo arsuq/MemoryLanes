@@ -34,21 +34,19 @@ public abstract class MemoryFragment : IDisposable
 	public abstract Span<byte> Span();
 	public abstract int Length { get; }
 	public abstract void Dispose();
+	public abstract StorageType Type { get; } 
+	public byte this[int index]...
+	public Span<T> ToSpan<T>()...
+	public FragmentStream ToStream()...
+	public MemoryLane Lane { get; }..
+	...
+	// Primitive reads and writes 
 }
 ```
 
- At first it might seem that the fragment should be a structure. It's not for these reasons:
-
-- it's very likely that the fragments will be boxed anyway (async)
-- it's natural to share fragments among threads
-- one could subclass a fragment
-- reliable disposal, that is ref counting and resetting a lane when no Dispose is called
-
-
 Similar to the thread stack deallocation, the MemoryLane cleanup is just an
-offset reset, however that could only happen when there are no active fragments, 
-i.e. the MemoryLane's active Fragments counter must be zero, 
-which means that the lifetime of the oldest fragment determines the reset time of the lane.
+offset reset, however that could only happen when there are no active fragments,
+which means that the lifetime of the last fragment determines the reset time of the lane.
   
 
 ![](MemoryLanes.png)
@@ -57,7 +55,7 @@ which means that the lifetime of the oldest fragment determines the reset time o
 Due to the unpredictable fragment disposal time, using the lanes directly is not ideal.
 A **MemoryCarriage** is a multi-lane allocator which is responsible for:
 
-* allocating the requested slice on any lane, starting from the oldest to the newest 
+* allocating the requested slice on any lane, iterated in order 
 * creating new lanes when there is no space in any of the current lanes
 
 
@@ -69,7 +67,7 @@ if the initial capacities are greater that 80K, which is true by default (2 lane
 * A **MarshalHighway** - allocates a buffer on the native heap using the Marshal.AllocHGlobal()
 * A **MappedHighway** - uses a memory mapped file as a storage   
 
-or cast them to an **IMemoryHighway** interface:
+or cast them to the **IMemoryHighway** interface:
 
 ```csharp
 public interface IMemoryHighway : IDisposable
@@ -77,8 +75,13 @@ public interface IMemoryHighway : IDisposable
 	MemoryFragment AllocFragment(int size, int awaitMS = -1);
 	int GetTotalActiveFragments();
 	int GetTotalCapacity();
+	int GetTotalFreeSpace();
 	int GetLanesCount();
+	int GetLastLaneIndex();
+	void FreeGhosts();
 	long LastAllocTickAnyLane { get; }
+	bool IsDisposed { get; }
+	StorageType Type { get; }
 	IReadOnlyList<MemoryLane> GetLanes();
 	MemoryLane this[int index] { get; }
 }
@@ -87,62 +90,61 @@ public interface IMemoryHighway : IDisposable
 
 ### Reliable disposal
 
-> From v1.1 
 
-The current version implements two disposal modes, which could be set in the MemoryLaneSettings constructor:
+There are two disposal modes, which could be set in the MemoryLaneSettings constructor:
 
-- **FragmentDispose (default)** In this mode the consumer *must* call *Dispose()* from each fragment in order 
-	to reset the lane. The only other option to unfreeze a lane is to *Force()* reset it which is unsafe.
+- **FragmentDispose (default)** In this mode the consumer *must* dispose all fragments in order 
+	to reset the lane. The only other option to unfreeze a lane is to *Force()* reset it, which is unsafe.
 
 - **TrackGhosts** In order to dispose the correct number of lost fragments, each lane tracks them with 
-   weak references and resets one allocation for every GC-ed and non disposed fragment. In this mode the
-   consumer should still dispose despite that it's not required because the lane reset is dependent on the GC 
-   as long as there is one ghost fragment. If the consumer properly disposes all fragments, this mode behaves
-   as IDispiose with the overhead of the tracking.
+   weak references and resets one allocation for every GC-ed and non disposed fragment. Even in this mode,
+   one should still dispose for as long as there is one ghost fragment the lane reset is dependent on a GC pass.
+   If the consumer disposes all fragments properly, this mode behaves as the FragmentDispose mode with the
+   additional tracking overhead.
+
+> The overhead is the usage of kernel synchronization due to the weak ref structures that are 
+> allocated along with the fragments. The FragmentDispose mode spins. 
 
    The *TrackGhosts* mode shifts the responsibility from Disposing to launching the cleanup function with a 
    timer or in any other way. The MemoryCarriage as well the MemoryLane classes have a *FreeGhosts()* method
    which is multi-call protected, so it's safe to call it more than once.
 
-   In general forgetting to call Dispose on a fragment is considered a bug, however if the consumers of the
-   fragments are unknown, i.e. other libraries or teams, the only safe assumption one could make
-   is to expect a bad disposal.
+   In general, forgetting to call Dispose on a fragment should be considered a bug. However if the consumers of the
+   fragments are unknown the only safe assumption one could make is to expect a bad disposal.
 
-<br>
+
 
 ## Usage scenarios
 
 The original purpose for the lanes is message assembling in socket communication, which
 involves fast allocation and deallocation of memory. In most cases the received bytes are 
 immediately converted into a managed heap object and then discarded. With proper framing
-one could make use of the different storage locations by redirecting to a heap highway 
-for small messages and to a mapped highway when working with tens or hundreds of megabytes of data. 
+one could make use of the different storage locations by using a heap highway for small messages
+and a mapped highway when working with megabytes of data. 
 
 ### Consistent fragment lifetime
 
-In cases when the lifetime of the fragments is predictable a two lane highway works fine. 
-The second lane is needed when there is a very high load of concurrent allocations preventing reset by
-always having at least one active fragment. When the first lane is full the MemoryCarriage will
-shift the allocations to the next one, providing a small time interval of no allocations for
-the first lane allowing it to reset.
+In cases when the lifetime of the fragments is short a two lane highway works fine. 
+The second lane is needed for very high loads of concurrent allocations which prevents resetting by
+always appending new fragments. When the first lane is full the MemoryCarriage will
+shift the allocations to the next one, allowing the first to reset.
 
 ### Unpredictable fragment lifetime 
 
 In network communication there is no delivery guarantee so the two lanes initial layout would be too optimistic
-regarding the fragment disposal behavior. Sometimes even small messages can be delivered 
+for expecting predictable fragment disposal. Sometimes even small messages can be delivered 
 in snail pace due to connectivity problems. In such cases having a dedicated highway per client 
-is one option for reducing the probability of having a pinned lane. Another possible solution is using a highway with multiple 
-short lanes, expecting long living fragments and infrequent resets, that way the amount of locked
-bytes is constrained to a value that seems reasonable.
+is one option to reduce the probability of having a pinned lane. Alternatively, one may use a highway 
+with multiple short lanes, expecting long living fragments and infrequent resets. That way the amount of locked
+bytes is constrained to a value that seems reasonable in the specific case.
 
-![](UnpredictableFragmentLifetime.png)
+![](PinnedLane.png)
 
 Example: Two 8M lanes could be structured as 8 2M lanes, assuming that one can
 redirect larger than 2M messages to another highway, otherwise the MemoryCarriage will 
-continuously append new lanes with the Min(default size, requested size), ignoring all
-2M lanes. 
+continuously append new lanes with the requested size, ignoring all 2M lanes. 
 
-Alternatively to the lanes API one could use the native heap directly through the 
+Additionally to the lanes API one could use the native heap directly through the 
 **MarshalSlot** class. It is a MemoryFragment thus having the same Read/Write/Span
 accessors, but it is not part of any lane and doesn't affect other fragments. 
 
@@ -179,19 +181,24 @@ In GhostTracking disposal mode the lane will stop allocating fragments if there 
 free tracking slots available. This number is not a setting for configuration simplicity, it's
 calculated as  lane.Capacity in bytes / 32, assuming that fragments with less than 32 bytes 
 will be larger than the fragment itself hence totally useless as they'll pollute the managed heap.
-For example the default lane 0 in a a highway has a capacity of 8M and 8_000_000/32 = 250_000
-maximum tracking slots. Note that these are not preallocated, just limited to that number. 
+For example, the lane 0 in a highway (default ctor) has a maximum of 8_000_000/32 = 250_000 tracking slots.
+Note that only sqrt(n)*2 of them are preallocated initially, i.e. 500 and will grow by 500 up to the limit.
+
+> Internally the weak references are stored in a ConcurrentArray, which by default creates an array of arrays 
+> with a side of sqrt(capacity). The CCArray doesn't copy bytes when growing since the sub-array slots
+> are preallocated, however it requires a total capacity value in its constructor.  
 
 One may notice that the buffer lengths are limited to Int32.MaxValue everywhere 
 in this API, so one couldn't use a MappedHighway with 4GB memory mapped file.
-The reason is having a consistency with the Memory<T> and Span<T> implementations.
+The reason is compatibility with the Memory<T> and Span<T> implementations.
 
 
 ## Classes
 
 The library adds the following classes:
 
-In **System** namespace:
+
+In the **System** namespace:
 
 - **Fragments**
   - MemoryFragment (abstract)
@@ -221,7 +228,7 @@ In **System** namespace:
   - InvariantException
   - SynchronizationException
 
-In **System.Collections.Concurrent** namespace:
+In the **System.Collections.Concurrent** namespace:
 
 - ConcurrentArray
 

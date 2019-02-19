@@ -552,6 +552,11 @@ namespace System
 		/// </summary>
 		public abstract StorageType Type { get; }
 
+		/// <summary>
+		/// Casts the fragment bytes as a span of T
+		/// </summary>
+		/// <typeparam name="T">The casting struct</typeparam>
+		/// <returns>A span of structs</returns>
 		public Span<T> ToSpan<T>() where T : struct => MemoryMarshal.Cast<byte, T>(Span());
 
 		/// <summary>
