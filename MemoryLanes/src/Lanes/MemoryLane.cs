@@ -85,7 +85,7 @@ namespace System
 					{
 						// If the lane can't track more fragments, bail
 						// and let Alloc() check the next lane
-						if (Tracker.TotalMaxCapacity >= allocations + 1) Tracker.Append(null);
+						if (Tracker.Capacity >= allocations + 1) Tracker.Append(null);
 						else bail = true;
 					}
 

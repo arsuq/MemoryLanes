@@ -102,8 +102,8 @@ There are two disposal modes, which could be set in the MemoryLaneSettings const
    If the consumer disposes all fragments properly, this mode behaves as the FragmentDispose mode with the
    additional tracking overhead.
 
-> The overhead is the usage of kernel synchronization due to the weak ref structures that are 
-> allocated along with the fragments. The FragmentDispose mode spins. 
+> The overhead is a longer allocation path including the creation of weak ref structures as well as the usage 
+> of heavier kernel synchronization. The FragmentDispose mode spins. 
 
    The *TrackGhosts* mode shifts the responsibility from Disposing to launching the cleanup function with a 
    timer or in any other way. The MemoryCarriage as well the MemoryLane classes have a *FreeGhosts()* method
@@ -177,16 +177,16 @@ When any of these thresholds is reached (MaxLanesCount or MaxTotalAllocatedBytes
 default the corresponding error code is thrown. If the delegates are not null and return true
 the allocation will simply fail, returning null instead of a fragment instance.
 
+### Tracking limits
+
 In GhostTracking disposal mode the lane will stop allocating fragments if there is no more
 free tracking slots available. This number is not a setting for configuration simplicity, it's
 calculated as  lane.Capacity in bytes / 32, assuming that fragments with less than 32 bytes 
 will be larger than the fragment itself hence totally useless as they'll pollute the managed heap.
 For example, the lane 0 in a highway (default ctor) has a maximum of 8_000_000/32 = 250_000 tracking slots.
-Note that only sqrt(n)*2 of them are preallocated initially, i.e. 500 and will grow by 500 up to the limit.
+Note that only sqrt(n) of them are preallocated initially, i.e. 500 and will grow by 500 up to the limit.
 
-> Internally the weak references are stored in a ConcurrentArray, which by default creates an array of arrays 
-> with a side of sqrt(capacity). The CCArray doesn't copy bytes when growing since the sub-array slots
-> are preallocated, however it requires a total capacity value in its constructor.  
+### Size limits
 
 One may notice that the buffer lengths are limited to Int32.MaxValue everywhere 
 in this API, so one couldn't use a MappedHighway with 4GB memory mapped file.

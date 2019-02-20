@@ -27,6 +27,9 @@ namespace Tests.Surface.Collections
 			{
 				var rdm = new Random();
 				var arr = new ConcurrentArray<object>(10, 40);
+				
+				// The sqrt ctor
+				//var arr = new ConcurrentArray<object>(400);
 
 				if (!parallelAppend(rdm, arr)) return;
 				if (!parallelAppendRemoveLast(rdm, arr)) return;
@@ -50,7 +53,7 @@ namespace Tests.Surface.Collections
 		bool customExpand()
 		{
 			var ccaexp = new ConcurrentArray<object>(10, 100, 1,
-				(ca) => ca.Capacity < 20 ? ca.Capacity * 2 : Convert.ToInt32(ca.Capacity * 1.5));
+				(ca) => ca.AllocatedSlots < 20 ? ca.AllocatedSlots * 2 : Convert.ToInt32(ca.AllocatedSlots * 1.5));
 
 			for (int i = 0; i < 50; i++)
 			{
@@ -58,20 +61,20 @@ namespace Tests.Surface.Collections
 
 				if (i == 10)
 				{
-					if (ccaexp.Capacity != 20)
+					if (ccaexp.AllocatedSlots != 20)
 					{
 						Passed = false;
-						FailureMessage = $"Expansion is wrong, Expected 20, got {ccaexp.Capacity}";
+						FailureMessage = $"Expansion is wrong, Expected 20, got {ccaexp.AllocatedSlots}";
 						return false;
 					}
 				}
 
 				if (i == 20)
 				{
-					if (ccaexp.Capacity != 30)
+					if (ccaexp.AllocatedSlots != 30)
 					{
 						Passed = false;
-						FailureMessage = $"Expansion is wrong, Expected 30, got {ccaexp.Capacity}";
+						FailureMessage = $"Expansion is wrong, Expected 30, got {ccaexp.AllocatedSlots}";
 						return false;
 					}
 				}
@@ -84,13 +87,13 @@ namespace Tests.Surface.Collections
 
 		bool expand(ConcurrentArray<object> arr)
 		{
-			var doubleCap = arr.Capacity * 2;
+			var doubleCap = arr.AllocatedSlots * 2;
 			arr.Resize(doubleCap);
 
-			if (arr.Capacity != doubleCap)
+			if (arr.AllocatedSlots != doubleCap)
 			{
 				Passed = false;
-				FailureMessage = $"The Capacity is wrong. Expected {doubleCap} got {arr.Capacity}";
+				FailureMessage = $"The Capacity is wrong. Expected {doubleCap} got {arr.AllocatedSlots}";
 				return false;
 			}
 
@@ -101,7 +104,7 @@ namespace Tests.Surface.Collections
 
 		bool shrink(ConcurrentArray<object> arr)
 		{
-			var oldCap = arr.Capacity;
+			var oldCap = arr.AllocatedSlots;
 			var newCap = oldCap / 3;
 
 			arr.ShiftGear(ConcurrentArray<object>.Gear.P);
@@ -111,10 +114,10 @@ namespace Tests.Surface.Collections
 			if (newCap % arr.BlockLength != 0) newCapTilesCount++;
 			var newCapTiled = newCapTilesCount * arr.BlockLength;
 
-			if (arr.Capacity != newCapTiled)
+			if (arr.AllocatedSlots != newCapTiled)
 			{
 				Passed = false;
-				FailureMessage = $"The Capacity is wrong. Expected {newCapTiled} got {arr.Capacity}";
+				FailureMessage = $"The Capacity is wrong. Expected {newCapTiled} got {arr.AllocatedSlots}";
 				return false;
 			}
 
@@ -310,7 +313,7 @@ namespace Tests.Surface.Collections
 		bool take()
 		{
 			var cca = new ConcurrentArray<object>(1000, 1000);
-			var CAP = cca.TotalMaxCapacity;
+			var CAP = cca.Capacity;
 			int next = 0, sum = 0;
 			int compareSum = (CAP / 2) * (1 + CAP);
 
@@ -378,9 +381,9 @@ namespace Tests.Surface.Collections
 			Task.WaitAll(P);
 			Task.WaitAll(C);
 
-			if (cca.Capacity != CAP)
+			if (cca.AllocatedSlots != CAP)
 			{
-				FailureMessage = $"Wrong capacity {cca.Capacity}, expected {CAP}";
+				FailureMessage = $"Wrong AllocatedSlots {cca.AllocatedSlots}, expected {CAP}";
 				Passed = false;
 				return false;
 			}

@@ -7,16 +7,18 @@ FEATURES/MILESTONES
 =====================
 
 [+] HighwayStream
-
+[+] Auto collapse
+[+] Ghost buster
 
 TASKS                                                                 
 =====================
 
 [+] <HighwayStream> to auto alloc fragment tiles on write, setLength etc.
-[@] The Alloc Tracker.Append can't be inside a spin gate.
-[>] awaitMS DEF value
+[x] The Alloc Tracker.Append can't be inside a spin gate.
+[x] awaitMS DEF value
 [c] Highway random lane alloc.
-[+] Check the CCArray
+[x] Check the CCArray
+
 
 TESTS
 =====================

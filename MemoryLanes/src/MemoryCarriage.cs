@@ -95,7 +95,7 @@ namespace System
 		public F Alloc(int size, int awaitMS = -1)
 		{
 			if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");
-			if (Lanes == null || Lanes.Capacity == 0) throw new MemoryLaneException(MemoryLaneException.Code.NotInitialized);
+			if (Lanes == null || Lanes.AllocatedSlots == 0) throw new MemoryLaneException(MemoryLaneException.Code.NotInitialized);
 			if (size < 0 || size > MemoryLaneSettings.MAX_CAPACITY) throw new ArgumentOutOfRangeException("size");
 
 			F frag = null;
