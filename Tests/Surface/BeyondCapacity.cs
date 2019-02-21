@@ -43,7 +43,7 @@ namespace Tests.Surface
 			if (args.ContainsKey("-count")) allocArgs.Count = int.Parse(args["-count"][0]);
 			if (args.ContainsKey("-size")) allocArgs.Count = int.Parse(args["-size"][0]);
 
-			var defHwCap = MemoryLaneSettings.DEF_LANE_CAPACITY * 1.5;
+			var defHwCap = HighwaySettings.DefaultLaneCapacity * 1.5;
 
 			if (allocArgs.Count * allocArgs.Size < defHwCap)
 			{

@@ -51,8 +51,8 @@ namespace Tests.Surface
 
 			Print.Trace(allocArgs.FullTrace(), ConsoleColor.Cyan, ConsoleColor.Black, null);
 
-			var stg_ignore = new MemoryLaneSettings(8_000_000, 2, 10_000_000);
-			var stg_throw = new MemoryLaneSettings(8_000_000, 2, 10_000_000);
+			var stg_ignore = new HighwaySettings(8_000_000, 2, 10_000_000);
+			var stg_throw = new HighwaySettings(8_000_000, 2, 10_000_000);
 
 			stg_ignore.OnMaxLaneReached = () =>
 			{

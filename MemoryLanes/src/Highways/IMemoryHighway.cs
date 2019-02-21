@@ -17,14 +17,14 @@ namespace System
 		/// </summary>
 		/// <remarks>
 		/// By default the allocation awaits other allocations on the same lane, pass awaitMS > 0 in 
-		/// order to skip a lane. Note however than the MemoryLaneSettings.NoWaitLapsBeforeNewLane controls 
+		/// order to skip a lane. Note however than the HighwaySettings.NoWaitLapsBeforeNewLane controls 
 		/// how many cycles around all lanes should be made before allocating a new lane.
 		/// </remarks>
 		/// <param name="size">The desired buffer length.</param>
 		/// <param name="awaitMS">By default the allocation awaits other allocations on the same lane.</param>
 		/// <returns>A new fragment.</returns>
 		/// <exception cref="System.ArgumentOutOfRangeException">
-		/// If size is negative or greater than MemoryLaneSettings.MAX_CAPACITY.
+		/// If size is negative or greater than HighwaySettings.MAX_CAPACITY.
 		/// </exception>
 		/// <exception cref="System.MemoryLaneException">
 		/// Code.NotInitialized: when the lanes are not initialized.

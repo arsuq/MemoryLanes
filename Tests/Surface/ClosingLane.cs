@@ -27,7 +27,7 @@ namespace Tests.Surface
 			var opt = args["-store"];
 			opt.AssertNothingOutsideThese("mh", "mmf", "nh");
 
-			var stg = new MemoryLaneSettings(2000, 8, 10000);
+			var stg = new HighwaySettings(2000, 8, 10000);
 			var iH = new Dictionary<string, IMemoryHighway>();
 
 			iH.Add("mh", new HeapHighway(stg, 2000, 2000, 2000));

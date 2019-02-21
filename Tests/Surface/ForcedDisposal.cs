@@ -27,7 +27,7 @@
 //			var opt = args["-store"];
 //			opt.AssertNothingOutsideThese("mh", "mmf", "nh");
 
-//			var ms = new MemoryLaneSettings(1024, 1, 1024);
+//			var ms = new HighwaySettings(1024, 1, 1024);
 
 //			// Will allocate 100 fragments with WeakRef tracking and will dispose half of them,
 //			// the other half will be manually reset by calling lane.ResetOne().

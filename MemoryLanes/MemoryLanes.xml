@@ -1024,6 +1024,67 @@
             AttemptToAccessWrongLaneCycle, AttemptToAccessDisposedLane, AttemptToAccessClosedLane
             </exception>
         </member>
+        <member name="F:System.HighwaySettings.OnMaxLaneReached">
+            <summary>
+            Will be invoked if the MaxLanesCount threshold is reached.
+            The MemoryCarriage would expect a boolean response indicating whether to swallow the 
+            exception and return null as fragment or throw MemoryLaneException with code MaxLanesCountReached.
+            </summary>
+            <exception cref="T:System.MemoryLaneException">Code.MaxLanesCountReached</exception>
+        </member>
+        <member name="F:System.HighwaySettings.OnMaxTotalBytesReached">
+            <summary>
+            A handler for the case of allocating more than MaxTotalAllocatedBytes in all lanes.
+            Pass true in order to suppress the exception and just receive null as fragment.
+            </summary>
+            <exception cref="T:System.MemoryLaneException">Code.MaxTotalAllocBytesReached</exception>
+        </member>
+        <member name="F:System.HighwaySettings.NextCapacity">
+            <summary>
+            If set, the function may specify different than the default capacity based on 
+            the current number of lanes. By default always returns the DefaultCapacity value.
+            </summary>
+        </member>
+        <member name="P:System.HighwaySettings.DefaultLaneCapacity">
+            <summary>
+            If not provided in the ctor this value will be used when allocating
+            new lanes in the highway. 
+            The default value is 8M.
+            </summary>
+        </member>
+        <member name="F:System.HighwaySettings.NoWaitLapsBeforeNewLane">
+            <summary>
+            Controls how many full cycles around all lanes should be made and fail to enter the 
+            lock with the specified awaitMS before creating a new lane.
+            The default value is 2.
+            </summary>
+        </member>
+        <member name="F:System.HighwaySettings.DefaultCapacity">
+            <summary>
+            If the allocator fail to find a free slice in any lane, 
+            a new one will be created with DefaultCapacity bytes in length.
+            </summary>
+        </member>
+        <member name="F:System.HighwaySettings.MaxLanesCount">
+            <summary>
+            Can be used with the OnMaxLaneReached handler as an alerting mechanism.
+            </summary>
+        </member>
+        <member name="F:System.HighwaySettings.MaxTotalAllocatedBytes">
+            <summary>
+            This is the aggregated capacity in all lanes, not the actual active fragments.
+            </summary>
+        </member>
+        <member name="F:System.HighwaySettings.RegisterForProcessExitCleanup">
+            <summary>
+            Will trigger a Dispose() before process exits. True by default.
+            </summary>
+        </member>
+        <member name="F:System.HighwaySettings.Disposal">
+            <summary>
+            Specifies the disposal mode.
+            </summary>
+        </member>
         <member name="T:System.HeapHighway">
             <summary>
             Allocates memory lanes on the large object heap (if the length is > 80K).
@@ -1036,11 +1097,11 @@
         </member>
         <member name="M:System.HeapHighway.#ctor(System.Int32[])">
             <summary>
-            Creates new lanes with the specified lengths and a default MemoryLaneSettings instance.
+            Creates new lanes with the specified lengths and a default HighwaySettings instance.
             </summary>
             <param name="lanes">The initial layout.</param>
         </member>
-        <member name="M:System.HeapHighway.#ctor(System.MemoryLaneSettings,System.Int32[])">
+        <member name="M:System.HeapHighway.#ctor(System.HighwaySettings,System.Int32[])">
             <summary>
             Creates new lanes with the specified lengths and settings.
             When needed, the MemoryCarriage will create the new lanes with settings.DefaultCapacity in length.
@@ -1059,14 +1120,14 @@
             </summary>
             <remarks>
             By default the allocation awaits other allocations on the same lane, pass awaitMS > 0 in 
-            order to skip a lane. Note however than the MemoryLaneSettings.NoWaitLapsBeforeNewLane controls 
+            order to skip a lane. Note however than the HighwaySettings.NoWaitLapsBeforeNewLane controls 
             how many cycles around all lanes should be made before allocating a new lane.
             </remarks>
             <param name="size">The desired buffer length.</param>
             <param name="awaitMS">By default the allocation awaits other allocations on the same lane.</param>
             <returns>A new fragment.</returns>
             <exception cref="T:System.ArgumentOutOfRangeException">
-            If size is negative or greater than MemoryLaneSettings.MAX_CAPACITY.
+            If size is negative or greater than HighwaySettings.MAX_CAPACITY.
             </exception>
             <exception cref="T:System.MemoryLaneException">
             Code.NotInitialized: when the lanes are not initialized.
@@ -1172,12 +1233,12 @@
         </member>
         <member name="M:System.MappedHighway.#ctor(System.Int32[])">
             <summary>
-            Creates new lanes with the specified lengths and a default MemoryLaneSettings instance.
+            Creates new lanes with the specified lengths and a default HighwaySettings instance.
             Note that every lane is one memory mapped file.
             </summary>
             <param name="lanes">The initial layout.</param>
         </member>
-        <member name="M:System.MappedHighway.#ctor(System.MemoryLaneSettings,System.Int32[])">
+        <member name="M:System.MappedHighway.#ctor(System.HighwaySettings,System.Int32[])">
             <summary>
             Creates new lanes with the specified lengths and settings.
             When needed, the MemoryCarriage will create the new lanes with settings.DefaultCapacity in length.
@@ -1198,11 +1259,11 @@
         </member>
         <member name="M:System.MarshalHighway.#ctor(System.Int32[])">
             <summary>
-            Creates new lanes with the specified lengths and a default MemoryLaneSettings instance.
+            Creates new lanes with the specified lengths and a default HighwaySettings instance.
             </summary>
             <param name="lanes">The initial layout.</param>
         </member>
-        <member name="M:System.MarshalHighway.#ctor(System.MemoryLaneSettings,System.Int32[])">
+        <member name="M:System.MarshalHighway.#ctor(System.HighwaySettings,System.Int32[])">
             <summary>
             Creates new lanes with the specified lengths and settings.
             When needed, the MemoryCarriage will create the new lanes with settings.DefaultCapacity in length.
@@ -1489,7 +1550,7 @@
         </member>
         <member name="M:System.MemoryCarriage`2.Create(System.Int32)">
             <summary>
-            Creates new lanes with the default capacity from the MemoryLaneSettings. 
+            Creates new lanes with the default capacity from the HighwaySettings. 
             </summary>
             <param name="count">Number of lanes to create.</param>
             <exception cref="T:System.MemoryLaneException">
@@ -1498,9 +1559,9 @@
             Code.MaxTotalAllocBytesReached: when the total lanes capacity is greater than MaxTotalAllocatedBytes AND
             the OnMaxTotalBytesReached handler is either null or returns false, meaning "do not ignore".
             Code.SizeOutOfRange: when at least one of the lengths is outside the 
-            MemoryLaneSettings.MIN_CAPACITY - MemoryLaneSettings.MAX_CAPACITY interval.
+            HighwaySettings.MIN_CAPACITY - HighwaySettings.MAX_CAPACITY interval.
             </exception>
-            <exception cref="T:System.ArgumentOutOfRangeException">If notNullsCount is outside the 1-MemoryLaneSettings.MAX_COUNT interval </exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">If notNullsCount is outside the 1-HighwaySettings.MAX_LANE_COUNT interval </exception>
             <exception cref="T:System.ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
         </member>
         <member name="M:System.MemoryCarriage`2.Create(System.Int32[])">
@@ -1514,7 +1575,7 @@
             Code.MaxTotalAllocBytesReached: when the total lanes capacity is greater than MaxTotalAllocatedBytes AND
             the OnMaxTotalBytesReached handler is either null or returns false, meaning "do not ignore".
             Code.SizeOutOfRange: when at least one of the lengths is outside the 
-            MemoryLaneSettings.MIN_CAPACITY - MemoryLaneSettings.MAX_CAPACITY interval.
+            HighwaySettings.MIN_CAPACITY - HighwaySettings.MAX_CAPACITY interval.
             </exception>
             <exception cref="T:System.ArgumentNullException">When the laneSizes is either null or has zero items.</exception>
             <exception cref="T:System.ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
@@ -1527,7 +1588,7 @@
             <param name="awaitMS">The lane lock await in milliseconds, by default awaits forever (-1)</param>
             <returns>A new fragment.</returns>
             <exception cref="T:System.ArgumentOutOfRangeException">
-            If size is negative or greater than MemoryLaneSettings.MAX_CAPACITY.
+            If size is negative or greater than HighwaySettings.MAX_CAPACITY.
             </exception>
             <exception cref="T:System.MemoryLaneException">
             Code.NotInitialized: when the lanes are not initialized.
@@ -1540,14 +1601,14 @@
             <summary>
             Allocates a memory fragment on any of the existing lanes or on a new one.
             By default the allocation awaits other allocations on the same lane, pass awaitMS > 0 in
-            order to skip a lane. Note however than the MemoryLaneSettings.NoWaitLapsBeforeNewLane controls
+            order to skip a lane. Note however than the HighwaySettings.NoWaitLapsBeforeNewLane controls
             how many cycles around all lanes should be made before allocating a new lane.
             </summary>
             <param name="size">The desired buffer length.</param>
             <param name="awaitMS">By default the allocation awaits other allocations on the same lane.</param>
             <returns>A new fragment.</returns>
             <exception cref="T:System.ArgumentOutOfRangeException">
-            If size is negative or greater than MemoryLaneSettings.MAX_CAPACITY.
+            If size is negative or greater than HighwaySettings.MAX_CAPACITY.
             </exception>
             <exception cref="T:System.MemoryLaneException">
             Code.NotInitialized: when the lanes are not initialized.
@@ -1662,60 +1723,6 @@
         <member name="T:System.StorageType">
             <summary>
             Types of memory storage.
-            </summary>
-        </member>
-        <member name="F:System.MemoryLaneSettings.OnMaxLaneReached">
-            <summary>
-            Will be invoked if the MaxLanesCount threshold is reached.
-            The MemoryCarriage would expect a boolean response indicating whether to swallow the 
-            exception and return null as fragment or throw MemoryLaneException with code MaxLanesCountReached.
-            </summary>
-            <exception cref="T:System.MemoryLaneException">Code.MaxLanesCountReached</exception>
-        </member>
-        <member name="F:System.MemoryLaneSettings.OnMaxTotalBytesReached">
-            <summary>
-            A handler for the case of allocating more than MaxTotalAllocatedBytes in all lanes.
-            Pass true in order to suppress the exception and just receive null as fragment.
-            </summary>
-            <exception cref="T:System.MemoryLaneException">Code.MaxTotalAllocBytesReached</exception>
-        </member>
-        <member name="F:System.MemoryLaneSettings.NextCapacity">
-            <summary>
-            If set, the function may specify different than the default capacity based on 
-            the current number of lanes. By default always returns the DefaultCapacity value.
-            </summary>
-        </member>
-        <member name="F:System.MemoryLaneSettings.NoWaitLapsBeforeNewLane">
-            <summary>
-            Controls how many full cycles around all lanes should be made and fail to enter the 
-            lock with the specified awaitMS before creating a new lane.
-            The default value is 2.
-            </summary>
-        </member>
-        <member name="F:System.MemoryLaneSettings.DefaultCapacity">
-            <summary>
-            If the allocator fail to find a free slice in any lane, 
-            a new one will be created with DefaultCapacity bytes in length.
-            </summary>
-        </member>
-        <member name="F:System.MemoryLaneSettings.MaxLanesCount">
-            <summary>
-            Can be used with the OnMaxLaneReached handler as an alerting mechanism.
-            </summary>
-        </member>
-        <member name="F:System.MemoryLaneSettings.MaxTotalAllocatedBytes">
-            <summary>
-            This is the aggregated capacity in all lanes, not the actual active fragments.
-            </summary>
-        </member>
-        <member name="F:System.MemoryLaneSettings.RegisterForProcessExitCleanup">
-            <summary>
-            Will trigger a Dispose() before process exits. True by default.
-            </summary>
-        </member>
-        <member name="F:System.MemoryLaneSettings.Disposal">
-            <summary>
-            Specifies the disposal mode.
             </summary>
         </member>
     </members>

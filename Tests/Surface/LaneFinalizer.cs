@@ -22,7 +22,7 @@ namespace Tests.Surface
 
 		public async Task Run(IDictionary<string, List<string>> args)
 		{
-			var ms = new MemoryLaneSettings(1024);
+			var ms = new HighwaySettings(1024);
 			
 			// so that no refs are held 
 			ms.RegisterForProcessExitCleanup = false;

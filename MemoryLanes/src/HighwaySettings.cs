@@ -5,24 +5,26 @@
 
 namespace System
 {
-	public class MemoryLaneSettings
+	public class HighwaySettings
 	{
-		public MemoryLaneSettings(int defLaneCapacity, int maxLanesCount, MemoryLaneResetMode dm)
+		public HighwaySettings(int defLaneCapacity, int maxLanesCount, MemoryLaneResetMode dm)
 			: this(defLaneCapacity, maxLanesCount, defLaneCapacity * maxLanesCount, dm) { }
 
-		public MemoryLaneSettings(
-			int defLaneCapacity = DEF_LANE_CAPACITY,
-			int maxLanesCount = MAX_COUNT,
+		public HighwaySettings(
+			int defLaneCapacity = 0,
+			int maxLanesCount = MAX_LANE_COUNT,
 			long maxTotalBytes = MAX_CAPACITY,
 			MemoryLaneResetMode dm = MemoryLaneResetMode.FragmentDispose)
 		{
+			if (defLaneCapacity == 0) defLaneCapacity = DefaultLaneCapacity;
+
 			if (defLaneCapacity > MIN_CAPACITY && defLaneCapacity < MAX_CAPACITY)
 				DefaultCapacity = defLaneCapacity;
 			else throw new MemoryLaneException(
 				MemoryLaneException.Code.MissingOrInvalidArgument,
 				"Invalid max capacity value.");
 
-			if (maxLanesCount > 0 || maxLanesCount <= MAX_COUNT)
+			if (maxLanesCount > 0 || maxLanesCount <= MAX_LANE_COUNT)
 				MaxLanesCount = maxLanesCount;
 			else throw new MemoryLaneException(
 				MemoryLaneException.Code.MissingOrInvalidArgument,
@@ -59,11 +61,25 @@ namespace System
 		/// </summary>
 		public Func<int, int> NextCapacity;
 
-		public const int MAX_COUNT = 5000;
+		public const int MAX_LANE_COUNT = 5000;
 		public const int MIN_CAPACITY = 1023;
 		public const int MAX_CAPACITY = 2_000_000_000;
-		public const int DEF_LANE_CAPACITY = 8_000_000;
 
+		/// <summary>
+		/// If not provided in the ctor this value will be used when allocating
+		/// new lanes in the highway. 
+		/// The default value is 8M.
+		/// </summary>
+		public static int DefaultLaneCapacity
+		{
+			get => def_base_capacity;
+			set
+			{
+				if (value < MIN_CAPACITY || value > MAX_CAPACITY) throw new ArgumentOutOfRangeException();
+
+				def_base_capacity = value;
+			}
+		}
 
 		/// <summary>
 		/// Controls how many full cycles around all lanes should be made and fail to enter the 
@@ -97,5 +113,7 @@ namespace System
 		/// Specifies the disposal mode.
 		/// </summary>
 		public readonly MemoryLaneResetMode Disposal;
+
+		static int def_base_capacity = 8_000_000;
 	}
 }

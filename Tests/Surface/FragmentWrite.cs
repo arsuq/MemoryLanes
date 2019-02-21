@@ -23,7 +23,7 @@ namespace Tests.Surface
 			var opt = args["-store"];
 			opt.AssertNothingOutsideThese("mh", "mmf", "nh");
 
-			var stg = new MemoryLaneSettings(1024, 2);
+			var stg = new HighwaySettings(1024, 2);
 			var iH = new Dictionary<string, IMemoryHighway>();
 
 			var LEN = stg.DefaultCapacity;

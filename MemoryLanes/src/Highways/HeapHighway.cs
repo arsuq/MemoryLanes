@@ -15,11 +15,11 @@ namespace System
 		public HeapHighway() : this(DEF_HEAP_LANES) { }
 
 		/// <summary>
-		/// Creates new lanes with the specified lengths and a default MemoryLaneSettings instance.
+		/// Creates new lanes with the specified lengths and a default HighwaySettings instance.
 		/// </summary>
 		/// <param name="lanes">The initial layout.</param>
 		public HeapHighway(params int[] lanes)
-			: base(new MemoryLaneSettings()) => Create(lanes);
+			: base(new HighwaySettings()) => Create(lanes);
 
 		/// <summary>
 		/// Creates new lanes with the specified lengths and settings.
@@ -27,11 +27,11 @@ namespace System
 		/// </summary>
 		/// <param name="stg">Generic settings for all MemoryCarriage derivatives.</param>
 		/// <param name="lanes">The initial setup.</param>
-		public HeapHighway(MemoryLaneSettings stg, params int[] lanes)
+		public HeapHighway(HighwaySettings stg, params int[] lanes)
 			: base(stg) => Create(lanes);
 
 
-		public HeapHighway(MemoryLaneSettings stg)
+		public HeapHighway(HighwaySettings stg)
 			: base(stg) => Create(DEF_HEAP_LANES);
 
 		public override StorageType Type => StorageType.ManagedHeapLane;

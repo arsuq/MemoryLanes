@@ -44,7 +44,7 @@ namespace Tests.Surface
 			};
 
 			var H = new Dictionary<string, IMemoryHighway>();
-			var ms = new MemoryLaneSettings(300_000, 300, 700_000_000);
+			var ms = new HighwaySettings(300_000, 300, 700_000_000);
 			var lanes = new int[10];
 			Array.Fill(lanes, 300_000);
 

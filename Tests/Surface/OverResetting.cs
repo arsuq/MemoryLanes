@@ -27,7 +27,7 @@ namespace Tests.Surface
 			var opt = args["-store"];
 			opt.AssertNothingOutsideThese("mh", "mmf", "nh");
 
-			var ms = new MemoryLaneSettings(1024, 1, 1024);
+			var ms = new HighwaySettings(1024, 1, 1024);
 
 			// Allocates 100 fragments and continuously resets one, while 
 			// new fragments are allocated. 

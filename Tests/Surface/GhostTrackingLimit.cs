@@ -35,7 +35,7 @@ namespace Tests.Surface
 
 		bool skipLaneWhenMaxedOut(List<string> opt)
 		{
-			var stg = new MemoryLaneSettings(1024, 2, MemoryLaneResetMode.TrackGhosts);
+			var stg = new HighwaySettings(1024, 2, MemoryLaneResetMode.TrackGhosts);
 			var iH = new Dictionary<string, IMemoryHighway>();
 
 			var LEN = stg.DefaultCapacity;

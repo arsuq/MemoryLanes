@@ -20,7 +20,7 @@ namespace System
 		/// <param name="rm">FragmentDispose</param>
 		public MemoryLane(int capacity, MemoryLaneResetMode rm)
 		{
-			if (capacity < MemoryLaneSettings.MIN_CAPACITY || capacity > MemoryLaneSettings.MAX_CAPACITY)
+			if (capacity < HighwaySettings.MIN_CAPACITY || capacity > HighwaySettings.MAX_CAPACITY)
 				throw new MemoryLaneException(MemoryLaneException.Code.SizeOutOfRange);
 
 			ResetMode = rm;

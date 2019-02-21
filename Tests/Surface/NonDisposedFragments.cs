@@ -37,7 +37,7 @@ namespace Tests.Surface
 
 		bool reset(List<string> opt)
 		{
-			var stg = new MemoryLaneSettings(4000, 8, 10000);
+			var stg = new HighwaySettings(4000, 8, 10000);
 			var iH = new Dictionary<string, IMemoryHighway>();
 
 			iH.Add("mh", new HeapHighway(stg, 4000));
@@ -107,7 +107,7 @@ namespace Tests.Surface
 
 		bool freeGhosts(List<string> opt)
 		{
-			var stg = new MemoryLaneSettings(1024, 3, MemoryLaneResetMode.TrackGhosts);
+			var stg = new HighwaySettings(1024, 3, MemoryLaneResetMode.TrackGhosts);
 			var iH = new Dictionary<string, IMemoryHighway>();
 
 			iH.Add("mh", new HeapHighway(stg, 1024, 1024));

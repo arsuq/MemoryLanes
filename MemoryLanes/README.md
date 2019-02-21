@@ -91,7 +91,7 @@ public interface IMemoryHighway : IDisposable
 ### Reliable disposal
 
 
-There are two disposal modes, which could be set in the MemoryLaneSettings constructor:
+There are two disposal modes, which could be set in the HighwaySettings constructor:
 
 - **FragmentDispose (default)** In this mode the consumer *must* dispose all fragments in order 
 	to reset the lane. The only other option to unfreeze a lane is to *Force()* reset it, which is unsafe.
@@ -152,16 +152,16 @@ accessors, but it is not part of any lane and doesn't affect other fragments.
 ## Highway limits
 
 Using the MemoryCarriage is somewhat similar to a stack allocation, although the space isn't fixed,
-unless you configure it to be so by passing an instance of the **MemoryLaneSettings** class in the
+unless you configure it to be so by passing an instance of the **HighwaySettings** class in the
 Highway constructor.
 
 ```csharp
-public class MemoryLaneSettings
+public class HighwaySettings
 {
 	public Func<bool> OnMaxLaneReached;
 	public Func<bool> OnMaxTotalBytesReached;
 
-	public const int MAX_COUNT = 5000;
+	public const int MAX_LANE_COUNT = 5000;
 	public const int MIN_CAPACITY = 1023;
 	public const int MAX_CAPACITY = 2_000_000_000;
 
@@ -221,7 +221,7 @@ In the **System** namespace:
   - MarhsalHighway
 	
 
-- MemoryLaneSettings
+- HighwaySettings
 
 - **Exceptions**
   - MemoryLaneException

@@ -16,7 +16,7 @@ namespace System
 	/// <typeparam name="F">The corresponding fragment type</typeparam>
 	public abstract class MemoryCarriage<L, F> : IMemoryHighway, IDisposable where L : MemoryLane where F : MemoryFragment
 	{
-		public MemoryCarriage(MemoryLaneSettings stg)
+		public MemoryCarriage(HighwaySettings stg)
 		{
 			settings = stg ?? throw new ArgumentNullException();
 
@@ -33,7 +33,7 @@ namespace System
 		}
 
 		/// <summary>
-		/// Creates new lanes with the default capacity from the MemoryLaneSettings. 
+		/// Creates new lanes with the default capacity from the HighwaySettings. 
 		/// </summary>
 		/// <param name="count">Number of lanes to create.</param>
 		/// <exception cref="System.MemoryLaneException">
@@ -42,14 +42,14 @@ namespace System
 		/// Code.MaxTotalAllocBytesReached: when the total lanes capacity is greater than MaxTotalAllocatedBytes AND
 		/// the OnMaxTotalBytesReached handler is either null or returns false, meaning "do not ignore".
 		/// Code.SizeOutOfRange: when at least one of the lengths is outside the 
-		/// MemoryLaneSettings.MIN_CAPACITY - MemoryLaneSettings.MAX_CAPACITY interval.
+		/// HighwaySettings.MIN_CAPACITY - HighwaySettings.MAX_CAPACITY interval.
 		/// </exception>
-		/// <exception cref="System.ArgumentOutOfRangeException">If notNullsCount is outside the 1-MemoryLaneSettings.MAX_COUNT interval </exception>
+		/// <exception cref="System.ArgumentOutOfRangeException">If notNullsCount is outside the 1-HighwaySettings.MAX_LANE_COUNT interval </exception>
 		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
 		public void Create(int count)
 		{
 			if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");
-			if (count < 1 || count > MemoryLaneSettings.MAX_COUNT) throw new ArgumentOutOfRangeException("notNullsCount");
+			if (count < 1 || count > HighwaySettings.MAX_LANE_COUNT) throw new ArgumentOutOfRangeException("notNullsCount");
 
 			for (int i = 0; i < count; i++)
 				allocLane(settings.DefaultCapacity);
@@ -65,7 +65,7 @@ namespace System
 		/// Code.MaxTotalAllocBytesReached: when the total lanes capacity is greater than MaxTotalAllocatedBytes AND
 		/// the OnMaxTotalBytesReached handler is either null or returns false, meaning "do not ignore".
 		/// Code.SizeOutOfRange: when at least one of the lengths is outside the 
-		/// MemoryLaneSettings.MIN_CAPACITY - MemoryLaneSettings.MAX_CAPACITY interval.
+		/// HighwaySettings.MIN_CAPACITY - HighwaySettings.MAX_CAPACITY interval.
 		/// </exception>
 		/// <exception cref="System.ArgumentNullException">When the laneSizes is either null or has zero items.</exception>
 		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
@@ -85,7 +85,7 @@ namespace System
 		/// <param name="awaitMS">The lane lock await in milliseconds, by default awaits forever (-1)</param>
 		/// <returns>A new fragment.</returns>
 		/// <exception cref="System.ArgumentOutOfRangeException">
-		/// If size is negative or greater than MemoryLaneSettings.MAX_CAPACITY.
+		/// If size is negative or greater than HighwaySettings.MAX_CAPACITY.
 		/// </exception>
 		/// <exception cref="System.MemoryLaneException">
 		/// Code.NotInitialized: when the lanes are not initialized.
@@ -97,7 +97,7 @@ namespace System
 		{
 			if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");
 			if (Lanes == null || Lanes.AllocatedSlots == 0) throw new MemoryLaneException(MemoryLaneException.Code.NotInitialized);
-			if (size < 0 || size > MemoryLaneSettings.MAX_CAPACITY) throw new ArgumentOutOfRangeException("size");
+			if (size < 0 || size > HighwaySettings.MAX_CAPACITY) throw new ArgumentOutOfRangeException("size");
 
 			F frag = null;
 
@@ -146,14 +146,14 @@ namespace System
 		/// <summary>
 		/// Allocates a memory fragment on any of the existing lanes or on a new one.
 		/// By default the allocation awaits other allocations on the same lane, pass awaitMS > 0 in
-		/// order to skip a lane. Note however than the MemoryLaneSettings.NoWaitLapsBeforeNewLane controls
+		/// order to skip a lane. Note however than the HighwaySettings.NoWaitLapsBeforeNewLane controls
 		/// how many cycles around all lanes should be made before allocating a new lane.
 		/// </summary>
 		/// <param name="size">The desired buffer length.</param>
 		/// <param name="awaitMS">By default the allocation awaits other allocations on the same lane.</param>
 		/// <returns>A new fragment.</returns>
 		/// <exception cref="System.ArgumentOutOfRangeException">
-		/// If size is negative or greater than MemoryLaneSettings.MAX_CAPACITY.
+		/// If size is negative or greater than HighwaySettings.MAX_CAPACITY.
 		/// </exception>
 		/// <exception cref="System.MemoryLaneException">
 		/// Code.NotInitialized: when the lanes are not initialized.
@@ -399,7 +399,7 @@ namespace System
 			return ml;
 		}
 
-		protected readonly MemoryLaneSettings settings;
+		protected readonly HighwaySettings settings;
 
 		/// <summary>
 		/// The last allocation time. 

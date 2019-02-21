@@ -15,11 +15,11 @@ namespace System
 		public MarshalHighway() : this(DEF_NHEAP_LANES) { }
 
 		/// <summary>
-		/// Creates new lanes with the specified lengths and a default MemoryLaneSettings instance.
+		/// Creates new lanes with the specified lengths and a default HighwaySettings instance.
 		/// </summary>
 		/// <param name="lanes">The initial layout.</param>
 		public MarshalHighway(params int[] lanes)
-			: base(new MemoryLaneSettings()) => Create(lanes);
+			: base(new HighwaySettings()) => Create(lanes);
 
 		/// <summary>
 		/// Creates new lanes with the specified lengths and settings.
@@ -27,10 +27,10 @@ namespace System
 		/// </summary>
 		/// <param name="stg">Generic settings for all MemoryCarriage derivatives.</param>
 		/// <param name="lanes">The initial setup.</param>
-		public MarshalHighway(MemoryLaneSettings stg, params int[] lanes)
+		public MarshalHighway(HighwaySettings stg, params int[] lanes)
 			: base(stg) => Create(lanes);
 
-		public MarshalHighway(MemoryLaneSettings stg)
+		public MarshalHighway(HighwaySettings stg)
 			: base(stg) => Create(DEF_NHEAP_LANES);
 
 		public override StorageType Type => StorageType.NativeHeapLane;

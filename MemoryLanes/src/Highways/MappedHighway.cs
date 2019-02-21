@@ -15,12 +15,12 @@ namespace System
 		public MappedHighway() : this(DEF_MMF_LANES) { }
 
 		/// <summary>
-		/// Creates new lanes with the specified lengths and a default MemoryLaneSettings instance.
+		/// Creates new lanes with the specified lengths and a default HighwaySettings instance.
 		/// Note that every lane is one memory mapped file.
 		/// </summary>
 		/// <param name="lanes">The initial layout.</param>
 		public MappedHighway(params int[] lanes)
-			: base(new MemoryLaneSettings()) => Create(lanes);
+			: base(new HighwaySettings()) => Create(lanes);
 
 		/// <summary>
 		/// Creates new lanes with the specified lengths and settings.
@@ -29,10 +29,10 @@ namespace System
 		/// </summary>
 		/// <param name="stg">Generic settings for all MemoryCarriage derivatives.</param>
 		/// <param name="lanes">The initial setup.</param>
-		public MappedHighway(MemoryLaneSettings stg, params int[] lanes)
+		public MappedHighway(HighwaySettings stg, params int[] lanes)
 			: base(stg) => Create(lanes);
 
-		public MappedHighway(MemoryLaneSettings stg)
+		public MappedHighway(HighwaySettings stg)
 			: base(stg) => Create(DEF_MMF_LANES);
 
 		public override StorageType Type => StorageType.MemoryMappedFileLane;
