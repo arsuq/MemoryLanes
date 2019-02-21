@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 
-namespace System
+namespace System.IO
 {
 	/// <summary>
 	/// A stream with a MemoryHighway for storage.

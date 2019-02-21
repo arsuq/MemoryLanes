@@ -5,6 +5,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
+using System.IO;
 
 namespace System
 {
@@ -344,7 +345,7 @@ namespace System
 		/// </summary>
 		/// <param name="fragmentSize">The incremental memory size.</param>
 		/// <returns>The Stream.</returns>
-		public HighwayStream ToStream(int fragmentSize) => new HighwayStream(this, fragmentSize);
+		public HighwayStream CreateStream(int fragmentSize) => new HighwayStream(this, fragmentSize);
 
 		/// <summary>
 		/// Prints all lanes status.

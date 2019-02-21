@@ -3,6 +3,7 @@
    file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 using System.Collections.Generic;
+using System.IO;
 
 namespace System
 {
@@ -79,7 +80,7 @@ namespace System
 		/// </summary>
 		/// <param name="fragmentSize">The incremental memory size.</param>
 		/// <returns>The Stream.</returns>
-		HighwayStream ToStream(int fragmentSize);
+		HighwayStream CreateStream(int fragmentSize);
 
 		/// <summary>
 		/// The last allocation time. 

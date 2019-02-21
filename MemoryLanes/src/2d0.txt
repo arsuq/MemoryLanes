@@ -15,6 +15,7 @@ TASKS
 
 [@] <HighwayStream> to auto alloc fragment tiles on write, setLength etc.
 [+] CCArray reverse locking
+[c] Remove the hw default lane sizes (8,4)
 
 TESTS
 =====================

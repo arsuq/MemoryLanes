@@ -42,7 +42,7 @@ namespace Tests.Surface
 					var hwName = kv.Value.GetType().Name;
 
 					using (var hw = kv.Value)
-					using (var f = hw.AllocFragment(3000).ToStream())
+					using (var f = hw.AllocFragment(3000).CreateStream())
 					{
 						var dummy = new Dummy()
 						{

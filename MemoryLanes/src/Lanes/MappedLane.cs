@@ -32,6 +32,7 @@ namespace System
 			if (string.IsNullOrEmpty(filename)) FileID = string.Format("MMF-{0}K-{1}", capacity / 1024, Guid.NewGuid().ToString().Substring(0, 8));
 			else FileID = filename;
 			mmf = MemoryMappedFile.CreateFromFile(FileID, FileMode.CreateNew, null, capacity);
+			mmva = mmf.CreateViewAccessor();
 		}
 
 		/// <summary>
@@ -47,7 +48,6 @@ namespace System
 
 			if (Alloc(size, ref fr, awaitMS))
 			{
-				var mmva = mmf.CreateViewAccessor(fr.Offset, fr.Length);
 				var frag = new MappedFragment(fr.Offset, fr.Length, mmva, this, () => free(laneCycle, fr.Allocation));
 
 				if (ResetMode == MemoryLaneResetMode.TrackGhosts)
@@ -76,6 +76,7 @@ namespace System
 			{
 				try
 				{
+					if (mmva != null) mmva.Dispose();
 					if (mmf != null) mmf.Dispose();
 					if (!string.IsNullOrEmpty(FileID) && File.Exists(FileID)) File.Delete(FileID);
 				}
@@ -103,5 +104,6 @@ namespace System
 
 		readonly int laneCapacity;
 		MemoryMappedFile mmf;
+		MemoryMappedViewAccessor mmva;
 	}
 }

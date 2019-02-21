@@ -564,7 +564,7 @@ namespace System
 		/// Creates a stream with the fragment as a storage.
 		/// </summary>
 		/// <returns>The fragment stream</returns>
-		public FragmentStream ToStream() => new FragmentStream(this);
+		public FragmentStream CreateStream() => new FragmentStream(this);
 
 		/// <summary>
 		/// Creates new byte array and copies the data into it.
