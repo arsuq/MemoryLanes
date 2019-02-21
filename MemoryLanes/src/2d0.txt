@@ -13,11 +13,8 @@ FEATURES/MILESTONES
 TASKS                                                                 
 =====================
 
-[+] <HighwayStream> to auto alloc fragment tiles on write, setLength etc.
-[x] The Alloc Tracker.Append can't be inside a spin gate.
-[x] awaitMS DEF value
-[c] Highway random lane alloc.
-[x] Check the CCArray
+[@] <HighwayStream> to auto alloc fragment tiles on write, setLength etc.
+[-] Highway random lane alloc.
 
 
 TESTS

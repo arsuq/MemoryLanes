@@ -173,7 +173,7 @@ namespace System
 				try
 				{
 					if (Lanes != null && Lanes.ItemsCount > 0)
-						foreach (var lane in Lanes.Items())
+						foreach (var lane in Lanes.NotNullItems())
 							lane.Dispose();
 				}
 				catch { }
@@ -274,7 +274,7 @@ namespace System
 		{
 			if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");
 
-			return new List<MemoryLane>(Lanes.Items());
+			return new List<MemoryLane>(Lanes.NotNullItems());
 		}
 
 		/// <summary>
@@ -329,7 +329,7 @@ namespace System
 			{
 				try
 				{
-					foreach (var lane in Lanes.Items())
+					foreach (var lane in Lanes.NotNullItems())
 						lane.FreeGhosts();
 				}
 				finally
@@ -338,6 +338,13 @@ namespace System
 				}
 			}
 		}
+		
+		/// <summary>
+		/// Creates a HighwayStream from the current highway,
+		/// </summary>
+		/// <param name="fragmentSize">The incremental memory size.</param>
+		/// <returns>The Stream.</returns>
+		public HighwayStream ToStream(int fragmentSize) => new HighwayStream(this, fragmentSize);
 
 		/// <summary>
 		/// Prints all lanes status.
@@ -356,7 +363,7 @@ namespace System
 			lines[i++] = $"Total lanes: {lc}";
 			lines[i++] = $"Now-Last allocation tick: {DateTime.Now.Ticks - LastAllocTickAnyLane}";
 
-			foreach (var l in Lanes.Items())
+			foreach (var l in Lanes.NotNullItems())
 				lines[i++] = l.FullTrace();
 
 			return string.Join(Environment.NewLine, lines);
@@ -375,7 +382,7 @@ namespace System
 				else throw new MemoryLaneException(MemoryLaneException.Code.MaxLanesCountReached);
 			}
 
-			foreach (var l in Lanes.Items())
+			foreach (var l in Lanes.NotNullItems())
 				lanesTotalLength += l.LaneCapacity;
 
 			if (lanesTotalLength > settings.MaxTotalAllocatedBytes)

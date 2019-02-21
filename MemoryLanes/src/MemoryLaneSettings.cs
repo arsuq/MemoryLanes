@@ -77,10 +77,12 @@ namespace System
 		/// a new one will be created with DefaultCapacity bytes in length.
 		/// </summary>
 		public readonly int DefaultCapacity;
+
 		/// <summary>
 		/// Can be used with the OnMaxLaneReached handler as an alerting mechanism.
 		/// </summary>
 		public readonly int MaxLanesCount;
+
 		/// <summary>
 		/// This is the aggregated capacity in all lanes, not the actual active fragments.
 		/// </summary>

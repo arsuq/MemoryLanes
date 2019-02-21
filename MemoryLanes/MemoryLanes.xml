@@ -4,6 +4,45 @@
         <name>MemoryLanes</name>
     </assembly>
     <members>
+        <member name="T:System.Collections.Concurrent.CCArrayExpansion">
+            <summary>
+            An expansion calculator for the ConcurrentAttay.
+            An instance is called whenever more blocks are needed.
+            One could expand differently, depending on the current array size.
+            </summary>
+            <param name="allocatedSlots">The current AllocationSlots value.</param>
+            <param name="blockSize">The constant block size.</param>
+            <param name="capacity">The current capacity.</param>
+            <returns>The desired new AllocatedSlots count.</returns>
+        </member>
+        <member name="T:System.Collections.Concurrent.CCArrayGear">
+            <summary>
+            The allowed concurrent operations on a ConcurrentArray.
+            </summary>
+        </member>
+        <member name="F:System.Collections.Concurrent.CCArrayGear.N">
+            <summary>
+            Concurrent gets and sets are enabled, but not Append/Remove or Resize.
+            </summary>
+        </member>
+        <member name="F:System.Collections.Concurrent.CCArrayGear.Straight">
+            <summary>
+            Concurrent Append(), gets and sets are enabled.
+            </summary>
+        </member>
+        <member name="F:System.Collections.Concurrent.CCArrayGear.Reverse">
+            <summary>
+            Concurrent RemoveLast() gets and sets are enabled.
+            </summary>
+            <remarks>
+            Getting or setting values in this mode is racing with the AppendPos.
+            </remarks>
+        </member>
+        <member name="F:System.Collections.Concurrent.CCArrayGear.P">
+            <summary>
+            Only Resize() is allowed.
+            </summary>
+        </member>
         <member name="T:System.Collections.Concurrent.ConcurrentArray`1">
             <summary>
             Represents an ordered list of fix-sized arrays as one virtual contiguous array. 
@@ -15,52 +54,24 @@
             </remarks>
             <typeparam name="T">A class</typeparam>
         </member>
-        <member name="T:System.Collections.Concurrent.ConcurrentArray`1.Gear">
-            <summary>
-            The allowed concurrent operations
-            </summary>
-        </member>
-        <member name="F:System.Collections.Concurrent.ConcurrentArray`1.Gear.N">
-            <summary>
-            Concurrent gets and sets are enabled, but not Append/Remove or Resize.
-            </summary>
-        </member>
-        <member name="F:System.Collections.Concurrent.ConcurrentArray`1.Gear.Straight">
-            <summary>
-            Concurrent Append(), gets and sets are enabled.
-            </summary>
-        </member>
-        <member name="F:System.Collections.Concurrent.ConcurrentArray`1.Gear.Reverse">
-            <summary>
-            Concurrent RemoveLast() gets and sets are enabled.
-            </summary>
-            <remarks>
-            Getting or setting values in this mode is racing with the AppendPos.
-            </remarks>
-        </member>
-        <member name="F:System.Collections.Concurrent.ConcurrentArray`1.Gear.P">
-            <summary>
-            Only Resize() is allowed.
-            </summary>
-        </member>
-        <member name="M:System.Collections.Concurrent.ConcurrentArray`1.#ctor(System.Int32,System.Func{System.Collections.Concurrent.ConcurrentArray{`0},System.Int32})">
+        <member name="M:System.Collections.Concurrent.ConcurrentArray`1.#ctor(System.Int32,System.Collections.Concurrent.CCArrayExpansion)">
             <summary>
             Allocates an array of arrays with side = sqrt(capacity) 
             </summary>
             <param name="capacity">The total slots</param>
-            <param name="expansionLen">A callback invoked when more blocks are needed, 
-            allowing a nonlinear expansion.</param>
+            <param name="expansion">A callback that must return the desired AllocatedSlots count 
+            calculated from the args: AllocatedSlots, BlockLength and Capacity.</param>
             <exception cref="T:System.ArgumentOutOfRangeException">If the capacity is negative or zero.</exception>
         </member>
-        <member name="M:System.Collections.Concurrent.ConcurrentArray`1.#ctor(System.Int32,System.Int32,System.Int32,System.Func{System.Collections.Concurrent.ConcurrentArray{`0},System.Int32})">
+        <member name="M:System.Collections.Concurrent.ConcurrentArray`1.#ctor(System.Int32,System.Int32,System.Int32,System.Collections.Concurrent.CCArrayExpansion)">
             <summary>
             Creates new Concurrent array with predefined max capacity = maxBlocksCount * blockLength.
             </summary>
             <param name="blockLength">The fixed length of the individual blocks</param>
             <param name="maxBlocksCount">The array cannot expand beyond that value</param>
             <param name="initBlocksCount">The number of blocks to allocate in the constructor</param>
-            <param name="expansionLen">A callback invoked when more blocks are needed, 
-            allowing a nonlinear expansion.</param>
+            <param name="expansion">A callback that must return the desired AllocatedSlots count 
+            calculated from the args: AllocatedSlots, BlockLength and Capacity.</param>
         </member>
         <member name="F:System.Collections.Concurrent.ConcurrentArray`1.BlockLength">
             <summary>
@@ -104,7 +115,7 @@
             Clears the subscribers.
             </summary>
         </member>
-        <member name="M:System.Collections.Concurrent.ConcurrentArray`1.ShiftGear(System.Collections.Concurrent.ConcurrentArray{`0}.Gear,System.Action,System.Int32)">
+        <member name="M:System.Collections.Concurrent.ConcurrentArray`1.ShiftGear(System.Collections.Concurrent.CCArrayGear,System.Action,System.Int32)">
             <summary>
             Blocks until the gear is shifted. 
             </summary>
@@ -160,7 +171,7 @@
             <param name="item">The object reference</param>
             <returns>True if found and null-ed</returns>
         </member>
-        <member name="M:System.Collections.Concurrent.ConcurrentArray`1.Items">
+        <member name="M:System.Collections.Concurrent.ConcurrentArray`1.NotNullItems">
             <summary>
             Iterates all cells from 0 up to AppendIndex and yields each item
             if it's not null at the time of the check.
@@ -192,7 +203,7 @@
         </member>
         <member name="M:System.Collections.Concurrent.ConcurrentArray`1.Format(`0)">
             <summary>
-            Sets the provided item ref or null to all available cells.
+            Sets the provided item (ref or null) to all available cells.
             The Drive must be either N or Straight, meaning that 
             there is a race with Append() and set.
             The method is synchronized.
@@ -216,16 +227,6 @@
             <param name="seq">The block index.</param>
             <param name="idx">The cell in the block</param>
         </member>
-        <member name="F:System.Collections.Concurrent.ConcurrentArray`1.ExpansionLength">
-            <summary>
-            Will be called before allocating more space.
-            The default growth factor is 2, i.e. ExpansionLength returns arr.AllocatedSlots * 2.
-            </summary>
-            <remarks>
-            By providing different growth factors depending on the current size,
-            one can create different allocation size vs. capacity curves.
-            </remarks>
-        </member>
         <member name="T:System.IO.FragmentStream">
             <summary>
             A stream object with a fragment as a memory storage.
@@ -238,6 +239,31 @@
             <param name="frag"></param>
             <exception cref="T:System.ArgumentNullException">If frag is null.</exception>
             <exception cref="T:System.ObjectDisposedException">If the fragment is disposed.</exception>
+        </member>
+        <member name="P:System.IO.FragmentStream.CanRead">
+            <summary>
+            True.
+            </summary>
+        </member>
+        <member name="P:System.IO.FragmentStream.CanSeek">
+            <summary>
+            True.
+            </summary>
+        </member>
+        <member name="P:System.IO.FragmentStream.CanWrite">
+            <summary>
+            True.
+            </summary>
+        </member>
+        <member name="P:System.IO.FragmentStream.Length">
+            <summary>
+            The current length.
+            </summary>
+        </member>
+        <member name="P:System.IO.FragmentStream.Position">
+            <summary>
+            Get set the position.
+            </summary>
         </member>
         <member name="M:System.IO.FragmentStream.Flush">
             <summary>
@@ -923,6 +949,99 @@
             <param name="stg">Generic settings for all MemoryCarriage derivatives.</param>
             <param name="lanes">The initial setup.</param>
         </member>
+        <member name="T:System.HighwayStream">
+            <summary>
+            A stream with a MemoryHighway for storage.
+            </summary>
+        </member>
+        <member name="M:System.HighwayStream.#ctor(System.IMemoryHighway,System.Int32)">
+            <summary>
+            Creates a new Highway stream instance.
+            </summary>
+            <param name="hw">The highway to use for storage.</param>
+            <param name="fragmentSize">The size of the fragments.</param>
+        </member>
+        <member name="P:System.HighwayStream.CanRead">
+            <summary>
+            True.
+            </summary>
+        </member>
+        <member name="P:System.HighwayStream.CanSeek">
+            <summary>
+            True.
+            </summary>
+        </member>
+        <member name="P:System.HighwayStream.CanWrite">
+            <summary>
+            True.
+            </summary>
+        </member>
+        <member name="P:System.HighwayStream.Length">
+            <summary>
+            The current length.
+            </summary>
+        </member>
+        <member name="P:System.HighwayStream.Position">
+            <summary>
+            Get set the position.
+            </summary>
+        </member>
+        <member name="M:System.HighwayStream.Flush">
+            <summary>
+            Does nothing.
+            </summary>
+        </member>
+        <member name="M:System.HighwayStream.Read(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            The standard stream Read. 
+            The count could be cut twice: 
+            First to buffer.Length - offset if the buffer slice from offset is smaller than count.
+            Second to stream's Length - Position if count reaches beyond the capacity.
+            </summary>
+            <param name="buffer">Where to write.</param>
+            <param name="offset">Start index in buffer.</param>
+            <param name="count">Number of bytes to read.</param>
+            <returns>The number of read bytes.</returns>
+            <exception cref="T:System.ArgumentNullException">If buffer is null.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">If offset or count are negative.</exception>
+        </member>
+        <member name="M:System.HighwayStream.Seek(System.Int64,System.IO.SeekOrigin)">
+            <summary>
+            Moves the position.
+            </summary>
+            <returns>The new position.</returns>
+        </member>
+        <member name="M:System.HighwayStream.SetLength(System.Int64)">
+            <summary>
+            If the value is greater than Length allocates more fragments,
+            otherwise disposes the unnecessary ones.
+            </summary>
+            <param name="value">The desired length.</param>
+        </member>
+        <member name="M:System.HighwayStream.Write(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Writes the buffer slice from offset to offset + count into the stream.
+            Unlike Read doesn't cut the count but throws. 
+            Allocates more fragments if there is not enough space.
+            </summary>
+            <param name="buffer">The source bytes.</param>
+            <param name="offset">Starting index in buffer.</param>
+            <param name="count">Number of bytes to take.</param>
+            <exception cref="T:System.ArgumentNullException">If buffer is null.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">
+            If offset or count are negative or count reaches beyond the fragment capacity.</exception>
+            <exception cref="T:System.ArgumentException">If the buffer slice from offset is smaller than count.</exception>
+        </member>
+        <member name="M:System.HighwayStream.IDispose">
+            <summary>
+            Does not dispose the highway, just the allocated fragments.
+            </summary>
+        </member>
+        <member name="P:System.HighwayStream.AllocTimeoutMS">
+            <summary>
+            The lanes allocation timeout in milliseconds 
+            </summary>
+        </member>
         <member name="T:System.IMemoryHighway">
             <summary>
             A MemoryCarriage contract
@@ -988,6 +1107,13 @@
             Triggers FreeGhosts() on all lanes.
             </summary>
             <exception cref="T:System.ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
+        </member>
+        <member name="M:System.IMemoryHighway.ToStream(System.Int32)">
+            <summary>
+            Creates a HighwayStream from the current highway,
+            </summary>
+            <param name="fragmentSize">The incremental memory size.</param>
+            <returns>The Stream.</returns>
         </member>
         <member name="P:System.IMemoryHighway.LastAllocTickAnyLane">
             <summary>
@@ -1505,6 +1631,13 @@
             Triggers FreeGhosts() on all lanes.
             </summary>
             <exception cref="T:System.ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
+        </member>
+        <member name="M:System.MemoryCarriage`2.ToStream(System.Int32)">
+            <summary>
+            Creates a HighwayStream from the current highway,
+            </summary>
+            <param name="fragmentSize">The incremental memory size.</param>
+            <returns>The Stream.</returns>
         </member>
         <member name="M:System.MemoryCarriage`2.FullTrace">
             <summary>

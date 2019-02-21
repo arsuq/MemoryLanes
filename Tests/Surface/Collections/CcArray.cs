@@ -53,7 +53,7 @@ namespace Tests.Surface.Collections
 		bool customExpand()
 		{
 			var ccaexp = new ConcurrentArray<object>(10, 100, 1,
-				(ca) => ca.AllocatedSlots < 20 ? ca.AllocatedSlots * 2 : Convert.ToInt32(ca.AllocatedSlots * 1.5));
+				(slots, block, cap) => slots < 20 ? slots * 2 : Convert.ToInt32(slots * 1.5));
 
 			for (int i = 0; i < 50; i++)
 			{
@@ -107,7 +107,7 @@ namespace Tests.Surface.Collections
 			var oldCap = arr.AllocatedSlots;
 			var newCap = oldCap / 3;
 
-			arr.ShiftGear(ConcurrentArray<object>.Gear.P);
+			arr.ShiftGear(CCArrayGear.P);
 			arr.Resize(newCap);
 
 			var newCapTilesCount = (newCap / arr.BlockLength);
@@ -135,15 +135,15 @@ namespace Tests.Surface.Collections
 
 		bool parallelAppendRemoveLast(Random rdm, ConcurrentArray<object> arr)
 		{
-			arr.ShiftGear(ConcurrentArray<object>.Gear.P);
+			arr.ShiftGear(CCArrayGear.P);
 			arr.Resize(0);
-			arr.ShiftGear(ConcurrentArray<object>.Gear.Straight);
+			arr.ShiftGear(CCArrayGear.Straight);
 
 			for (int i = 0; i < 200; i++)
 			{
-				arr.ShiftGear(ConcurrentArray<object>.Gear.Straight);
+				arr.ShiftGear(CCArrayGear.Straight);
 				arr.Append(i);
-				arr.ShiftGear(ConcurrentArray<object>.Gear.Reverse);
+				arr.ShiftGear(CCArrayGear.Reverse);
 				arr.RemoveLast(out int x);
 			}
 
@@ -154,7 +154,7 @@ namespace Tests.Surface.Collections
 				Thread.Sleep(rdm.Next(20, 100));
 				if (i % 2 == 0)
 				{
-					arr.ShiftGear(ConcurrentArray<object>.Gear.Straight);
+					arr.ShiftGear(CCArrayGear.Straight);
 					arr.Append(i);
 					Interlocked.Increment(ref count);
 				}
@@ -162,7 +162,7 @@ namespace Tests.Surface.Collections
 				{
 					if (arr.ItemsCount > 1)
 					{
-						arr.ShiftGear(ConcurrentArray<object>.Gear.Reverse);
+						arr.ShiftGear(CCArrayGear.Reverse);
 						arr.RemoveLast(out int x);
 						Interlocked.Decrement(ref count);
 					}
@@ -201,7 +201,7 @@ namespace Tests.Surface.Collections
 			for (int i = 0; i <= arr.AppendIndex; i++)
 				controlArr.Add(arr[i]);
 
-			var L = new List<object>(arr.Items());
+			var L = new List<object>(arr.NotNullItems());
 			L.Sort();
 
 			for (int i = 0; i < 100; i++)
@@ -246,7 +246,7 @@ namespace Tests.Surface.Collections
 
 				"Gears.Straight".AsSuccess();
 
-				arr.ShiftGear(ConcurrentArray<object>.Gear.N);
+				arr.ShiftGear(CCArrayGear.N);
 
 				Parallel.For(0, 200, (i) =>
 				{
@@ -256,7 +256,7 @@ namespace Tests.Surface.Collections
 
 				"Gears.N".AsSuccess();
 
-				arr.ShiftGear(ConcurrentArray<object>.Gear.Reverse);
+				arr.ShiftGear(CCArrayGear.Reverse);
 
 				Parallel.For(0, 200, (i) =>
 				{
@@ -265,14 +265,14 @@ namespace Tests.Surface.Collections
 
 				"Gears.Reverse".AsSuccess();
 
-				arr.ShiftGear(ConcurrentArray<object>.Gear.P);
+				arr.ShiftGear(CCArrayGear.P);
 				arr.Resize(0);
 				arr.OnGearShiftReset();
 
 				Parallel.For(0, 200, (i) =>
 				{
-					arr.ShiftGear(ConcurrentArray<object>.Gear.Straight, () => arr.Append(i));
-					arr.ShiftGear(ConcurrentArray<object>.Gear.Reverse, () => arr.RemoveLast(out int p));
+					arr.ShiftGear(CCArrayGear.Straight, () => arr.Append(i));
+					arr.ShiftGear(CCArrayGear.Reverse, () => arr.RemoveLast(out int p));
 				});
 
 				"Competing shifts".AsSuccess();
@@ -297,7 +297,7 @@ namespace Tests.Surface.Collections
 			object o = 3;
 			arr.Format(o);
 
-			foreach (var item in arr.Items())
+			foreach (var item in arr.NotNullItems())
 				if (item != o)
 				{
 					Passed = false;

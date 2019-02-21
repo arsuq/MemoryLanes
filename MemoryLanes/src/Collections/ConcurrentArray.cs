@@ -10,6 +10,43 @@ using System.Threading.Tasks;
 namespace System.Collections.Concurrent
 {
 	/// <summary>
+	/// An expansion calculator for the ConcurrentAttay.
+	/// An instance is called whenever more blocks are needed.
+	/// One could expand differently, depending on the current array size.
+	/// </summary>
+	/// <param name="allocatedSlots">The current AllocationSlots value.</param>
+	/// <param name="blockSize">The constant block size.</param>
+	/// <param name="capacity">The current capacity.</param>
+	/// <returns>The desired new AllocatedSlots count.</returns>
+	public delegate int CCArrayExpansion(int allocatedSlots, int blockSize, int capacity);
+
+	/// <summary>
+	/// The allowed concurrent operations on a ConcurrentArray.
+	/// </summary>
+	public enum CCArrayGear
+	{
+		/// <summary>
+		/// Concurrent gets and sets are enabled, but not Append/Remove or Resize.
+		/// </summary>
+		N = 0,
+		/// <summary>
+		/// Concurrent Append(), gets and sets are enabled.
+		/// </summary>
+		Straight = 1,
+		/// <summary>
+		/// Concurrent RemoveLast() gets and sets are enabled.
+		/// </summary>
+		/// <remarks>
+		/// Getting or setting values in this mode is racing with the AppendPos.
+		/// </remarks>
+		Reverse = -1,
+		/// <summary>
+		/// Only Resize() is allowed.
+		/// </summary>
+		P = -2
+	}
+
+	/// <summary>
 	/// Represents an ordered list of fix-sized arrays as one virtual contiguous array. 
 	/// </summary>
 	/// <remarks>
@@ -21,42 +58,16 @@ namespace System.Collections.Concurrent
 	public class ConcurrentArray<T> where T : class
 	{
 		/// <summary>
-		/// The allowed concurrent operations
-		/// </summary>
-		public enum Gear
-		{
-			/// <summary>
-			/// Concurrent gets and sets are enabled, but not Append/Remove or Resize.
-			/// </summary>
-			N = 0,
-			/// <summary>
-			/// Concurrent Append(), gets and sets are enabled.
-			/// </summary>
-			Straight = 1,
-			/// <summary>
-			/// Concurrent RemoveLast() gets and sets are enabled.
-			/// </summary>
-			/// <remarks>
-			/// Getting or setting values in this mode is racing with the AppendPos.
-			/// </remarks>
-			Reverse = -1,
-			/// <summary>
-			/// Only Resize() is allowed.
-			/// </summary>
-			P = -2
-		}
-
-		/// <summary>
 		/// Allocates an array of arrays with side = sqrt(capacity) 
 		/// </summary>
 		/// <param name="capacity">The total slots</param>
-		/// <param name="expansionLen">A callback invoked when more blocks are needed, 
-		/// allowing a nonlinear expansion.</param>
+		/// <param name="expansion">A callback that must return the desired AllocatedSlots count 
+		/// calculated from the args: AllocatedSlots, BlockLength and Capacity.</param>
 		/// <exception cref="ArgumentOutOfRangeException">If the capacity is negative or zero.</exception>
-		public ConcurrentArray(int capacity, Func<ConcurrentArray<T>, int> expansionLen = null)
+		public ConcurrentArray(int capacity, CCArrayExpansion expansion = null)
 		{
 			if (capacity < 1) throw new ArgumentOutOfRangeException("capacity");
-			if (expansionLen != null) ExpansionLength = expansionLen;
+			this.expansion = expansion != null ? expansion : defaultExpansion;
 
 			var side = (int)Math.Ceiling(Math.Sqrt(capacity));
 
@@ -75,17 +86,17 @@ namespace System.Collections.Concurrent
 		/// <param name="blockLength">The fixed length of the individual blocks</param>
 		/// <param name="maxBlocksCount">The array cannot expand beyond that value</param>
 		/// <param name="initBlocksCount">The number of blocks to allocate in the constructor</param>
-		/// <param name="expansionLen">A callback invoked when more blocks are needed, 
-		/// allowing a nonlinear expansion.</param>
+		/// <param name="expansion">A callback that must return the desired AllocatedSlots count 
+		/// calculated from the args: AllocatedSlots, BlockLength and Capacity.</param>
 		public ConcurrentArray(
 			int blockLength,
 			int maxBlocksCount,
 			int initBlocksCount = 1,
-			Func<ConcurrentArray<T>, int> expansionLen = null)
+			CCArrayExpansion expansion = null)
 		{
 			if (blockLength < 1) throw new ArgumentException("BaseLength");
 			if (initBlocksCount < 1) throw new ArgumentException("notNullsCount");
-			if (expansionLen != null) ExpansionLength = expansionLen;
+			this.expansion = expansion != null ? expansion : defaultExpansion;
 
 			blocksCount = initBlocksCount;
 			BlockLength = blockLength;
@@ -127,21 +138,21 @@ namespace System.Collections.Concurrent
 		/// <summary>
 		/// The allowed set of concurrent operations.
 		/// </summary>
-		public Gear Drive => (Gear)Volatile.Read(ref direction);
+		public CCArrayGear Drive => (CCArrayGear)Volatile.Read(ref direction);
 
 		/// <summary>
 		/// Will be triggered when the Drive changes. 
 		/// The callbacks are invoked in a new Task, wrapped in try/catch block, 
 		/// i.e. all exceptions are swallowed.
 		/// </summary>
-		public event Action<Gear> OnGearShift;
+		public event Action<CCArrayGear> OnGearShift;
 
 		/// <summary>
 		/// Clears the subscribers.
 		/// </summary>
 		public void OnGearShiftReset()
 		{
-			foreach (Action<Gear> s in OnGearShift.GetInvocationList())
+			foreach (Action<CCArrayGear> s in OnGearShift.GetInvocationList())
 				OnGearShift -= s;
 		}
 
@@ -153,7 +164,7 @@ namespace System.Collections.Concurrent
 		/// <param name="timeout">In milliseconds, by default is -1, which is indefinitely.</param>
 		/// <returns>The old gear.</returns>
 		/// <exception cref="System.SynchronizationException">Code.SignalAwaitTimeout</exception>
-		public Gear ShiftGear(Gear g, Action f = null, int timeout = -1)
+		public CCArrayGear ShiftGear(CCArrayGear g, Action f = null, int timeout = -1)
 		{
 			// One call at a time
 			lock (shiftLock)
@@ -189,7 +200,7 @@ namespace System.Collections.Concurrent
 				// there are competing shifts.
 				if (f != null) f();
 
-				return (Gear)old;
+				return (CCArrayGear)old;
 			}
 		}
 
@@ -204,7 +215,7 @@ namespace System.Collections.Concurrent
 		{
 			get
 			{
-				if (Drive == Gear.P) throw new InvalidOperationException("Wrong drive");
+				if (Drive == CCArrayGear.P) throw new InvalidOperationException("Wrong drive");
 
 				if (index < 0 || index > AppendIndex)
 					throw new ArgumentOutOfRangeException("index");
@@ -216,7 +227,7 @@ namespace System.Collections.Concurrent
 			}
 			set
 			{
-				if (Drive == Gear.P) throw new InvalidOperationException("Wrong drive");
+				if (Drive == CCArrayGear.P) throw new InvalidOperationException("Wrong drive");
 
 				if (index < 0 || index > AppendIndex)
 					throw new ArgumentOutOfRangeException("index");
@@ -236,7 +247,7 @@ namespace System.Collections.Concurrent
 		/// <exception cref="System.InvalidOperationException">When Drive is P.</exception>
 		public T Take(int index)
 		{
-			if (Drive == Gear.P) throw new InvalidOperationException("Wrong drive");
+			if (Drive == CCArrayGear.P) throw new InvalidOperationException("Wrong drive");
 
 			return set(index, null);
 		}
@@ -261,7 +272,7 @@ namespace System.Collections.Concurrent
 
 			try
 			{
-				if (Drive != Gear.Straight)
+				if (Drive != CCArrayGear.Straight)
 					throw new InvalidOperationException("Wrong drive");
 
 				if (ccadd + AppendIndex >= AllocatedSlots)
@@ -272,7 +283,7 @@ namespace System.Collections.Concurrent
 						var cap = AllocatedSlots; // Volatile read once
 						if (ccadd + AppendIndex >= cap)
 						{
-							var newCap = ExpansionLength(this);
+							var newCap = expansion(AllocatedSlots, BlockLength, Capacity);
 							// Add as much blockLenght tiles as needed.
 							while (newCap > cap)
 							{
@@ -299,7 +310,7 @@ namespace System.Collections.Concurrent
 				Interlocked.Decrement(ref concurrentAdds);
 
 				// If it's the last exiting operation for the old direction
-				if (Interlocked.Decrement(ref concurrentOps) == 0 && Drive != Gear.Straight)
+				if (Interlocked.Decrement(ref concurrentOps) == 0 && Drive != CCArrayGear.Straight)
 					gearShift.Set();
 			}
 
@@ -316,7 +327,7 @@ namespace System.Collections.Concurrent
 		{
 			var ccops = Interlocked.Increment(ref concurrentOps);
 
-			if (Drive != Gear.Reverse)
+			if (Drive != CCArrayGear.Reverse)
 			{
 				Interlocked.Decrement(ref concurrentOps);
 				throw new InvalidOperationException("Wrong drive");
@@ -325,7 +336,7 @@ namespace System.Collections.Concurrent
 			pos = Interlocked.Decrement(ref appendIndex) + 1;
 			var item = set(pos, null);
 
-			if (Interlocked.Decrement(ref concurrentOps) == 0 && Drive != Gear.Reverse)
+			if (Interlocked.Decrement(ref concurrentOps) == 0 && Drive != CCArrayGear.Reverse)
 				gearShift.Set();
 
 			return item;
@@ -361,7 +372,7 @@ namespace System.Collections.Concurrent
 		/// The Consumer could guarantee the correct drive before calling this method.
 		/// </remarks>
 		/// <returns>A not null item.</returns>
-		public IEnumerable<T> Items()
+		public IEnumerable<T> NotNullItems()
 		{
 			int seq = -1, idx = -1;
 			T item = null;
@@ -417,7 +428,7 @@ namespace System.Collections.Concurrent
 
 				try
 				{
-					if (Drive != Gear.P) throw new InvalidOperationException("Wrong drive");
+					if (Drive != CCArrayGear.P) throw new InvalidOperationException("Wrong drive");
 
 					if (length < 0 || length > Capacity) throw new ArgumentOutOfRangeException("length");
 					if (length == AllocatedSlots) return;
@@ -449,7 +460,7 @@ namespace System.Collections.Concurrent
 						Interlocked.Exchange(ref appendIndex, length - 1);
 
 						int notNull = 0;
-						foreach (var c in Items()) notNull++;
+						foreach (var c in NotNullItems()) notNull++;
 
 						Interlocked.Exchange(ref notNullsCount, notNull);
 					}
@@ -463,7 +474,7 @@ namespace System.Collections.Concurrent
 		}
 
 		/// <summary>
-		/// Sets the provided item ref or null to all available cells.
+		/// Sets the provided item (ref or null) to all available cells.
 		/// The Drive must be either N or Straight, meaning that 
 		/// there is a race with Append() and set.
 		/// The method is synchronized.
@@ -480,7 +491,7 @@ namespace System.Collections.Concurrent
 				{
 					var d = Drive;
 
-					if (d != Gear.N && d != Gear.Straight)
+					if (d != CCArrayGear.N && d != CCArrayGear.Straight)
 						throw new InvalidOperationException("Wrong drive");
 
 					for (int b = 0; b < blocks.Length; b++)
@@ -510,7 +521,7 @@ namespace System.Collections.Concurrent
 					try
 					{
 						var d = Drive;
-						if (d != Gear.P)
+						if (d != CCArrayGear.P)
 							throw new InvalidOperationException("Wrong drive");
 
 						if (newIndex < 0 || newIndex >= AllocatedSlots)
@@ -563,22 +574,12 @@ namespace System.Collections.Concurrent
 			return old;
 		}
 
-		/// <summary>
-		/// Will be called before allocating more space.
-		/// The default growth factor is 2, i.e. ExpansionLength returns arr.AllocatedSlots * 2.
-		/// </summary>
-		/// <remarks>
-		/// By providing different growth factors depending on the current size,
-		/// one can create different allocation size vs. capacity curves.
-		/// </remarks>
-		Func<ConcurrentArray<T>, int> ExpansionLength = (ca) => defaultExpansion(ca);
-
-		static int defaultExpansion(ConcurrentArray<T> arr)
+		int defaultExpansion(int allocatedSlots, int blockLength, int capacity)
 		{
-			if (arr.AllocatedSlots < arr.BlockLength) return arr.BlockLength;
+			if (allocatedSlots < blockLength) return blockLength;
 
-			int newCap = arr.AllocatedSlots * 2;
-			if (newCap > arr.Capacity) newCap = arr.Capacity;
+			int newCap = allocatedSlots * 2;
+			if (newCap > capacity) newCap = capacity;
 
 			return newCap;
 		}
@@ -592,12 +593,13 @@ namespace System.Collections.Concurrent
 		int blocksCount;
 		int direction = 0;
 
+		CCArrayExpansion expansion;
 		object commonLock = new object();
 		object shiftLock = new object();
-
 		ManualResetEvent gearShift = new ManualResetEvent(false);
-		ReaderWriterLockSlim sync = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
 
 		T[][] blocks = null;
 	}
+
+
 }

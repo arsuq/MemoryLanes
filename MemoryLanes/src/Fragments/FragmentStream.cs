@@ -18,10 +18,25 @@
 			len = frag.Length;
 		}
 
+		/// <summary>
+		/// True.
+		/// </summary>
 		public override bool CanRead => true;
+		/// <summary>
+		/// True.
+		/// </summary>
 		public override bool CanSeek => true;
+		/// <summary>
+		/// True.
+		/// </summary>
 		public override bool CanWrite => true;
+		/// <summary>
+		/// The current length.
+		/// </summary>
 		public override long Length => len;
+		/// <summary>
+		/// Get set the position.
+		/// </summary>
 		public override long Position
 		{
 			get => pos;
@@ -30,7 +45,7 @@
 				if (value < 0 || value >= len)
 					throw new ArgumentOutOfRangeException();
 
-				pos = value;
+				Seek(value, SeekOrigin.Begin);
 			}
 		}
 

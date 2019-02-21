@@ -73,6 +73,13 @@ namespace System
 		void FreeGhosts();
 
 		/// <summary>
+		/// Creates a HighwayStream from the current highway,
+		/// </summary>
+		/// <param name="fragmentSize">The incremental memory size.</param>
+		/// <returns>The Stream.</returns>
+		HighwayStream ToStream(int fragmentSize);
+
+		/// <summary>
 		/// The last allocation time. 
 		/// </summary>
 		long LastAllocTickAnyLane { get; }
