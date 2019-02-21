@@ -101,6 +101,7 @@ namespace System
 				t = buffer.AsSpan(offset, count);
 				s.CopyTo(t);
 				wp += count;
+				pos += count;
 			}
 			else
 			{
@@ -111,6 +112,7 @@ namespace System
 					t = buffer.AsSpan(offset, s.Length);
 					s.CopyTo(t);
 					wp += s.Length;
+					pos += s.Length;
 				}
 
 				// All from the middle ones
@@ -120,6 +122,7 @@ namespace System
 					t = buffer.AsSpan(wp, s.Length);
 					s.CopyTo(t);
 					wp += s.Length;
+					pos += s.Length;
 				}
 
 				// From 0 to the end offset from the last one
@@ -129,6 +132,7 @@ namespace System
 					t = buffer.AsSpan(wp, s.Length);
 					s.CopyTo(t);
 					wp += s.Length;
+					pos += s.Length;
 				}
 			}
 
@@ -241,6 +245,7 @@ namespace System
 				t = fragments[fsi].Span().Slice(so, count);
 				s = buffer.AsSpan(offset, count);
 				s.CopyTo(t);
+				pos += count;
 			}
 			else
 			{
@@ -250,6 +255,7 @@ namespace System
 					s = buffer.AsSpan(offset, t.Length);
 					s.CopyTo(t);
 					wp += s.Length;
+					pos += s.Length;
 				}
 
 				for (int i = fsi + 1; i < fei; i++)
@@ -258,6 +264,7 @@ namespace System
 					s = buffer.AsSpan(wp, t.Length);
 					s.CopyTo(t);
 					wp += s.Length;
+					pos += s.Length;
 				}
 
 				if (eo > 0)
@@ -265,6 +272,7 @@ namespace System
 					t = fragments[fei].Span().Slice(0, eo);
 					s = buffer.AsSpan(wp, t.Length);
 					s.CopyTo(t);
+					pos += t.Length;
 				}
 			}
 		}

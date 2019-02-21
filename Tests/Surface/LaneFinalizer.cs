@@ -23,8 +23,11 @@ namespace Tests.Surface
 		public async Task Run(IDictionary<string, List<string>> args)
 		{
 			var ms = new MemoryLaneSettings(1024);
-			ms.RegisterForProcessExitCleanup = false; // so that no refs are held 
-			var MMF_FileID = string.Empty; // The unmanaged resource
+			
+			// so that no refs are held 
+			ms.RegisterForProcessExitCleanup = false;
+			// The unmanaged resource
+			var MMF_FileID = string.Empty; 
 
 			// Must be in a separate non-async function so that no refs are holding it.
 			void fin()

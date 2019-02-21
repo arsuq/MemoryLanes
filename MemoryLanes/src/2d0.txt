@@ -14,8 +14,7 @@ TASKS
 =====================
 
 [@] <HighwayStream> to auto alloc fragment tiles on write, setLength etc.
-[-] Highway random lane alloc.
-
+[+] CCArray reverse locking
 
 TESTS
 =====================
@@ -24,7 +23,6 @@ TESTS
 
 BUGS
 =====================
-
 
 
 LEGEND

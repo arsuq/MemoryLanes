@@ -13,10 +13,12 @@ namespace System
 	{
 		/// <summary>
 		/// Allocates a memory fragment on any of the existing lanes or on a new one.
-		/// By default the allocation awaits other allocations on the same lane, pass awaitMS > 0 in
-		/// order to skip a lane. Note however than the MemoryLaneSettings.NoWaitLapsBeforeNewLane controls
-		/// how many cycles around all lanes should be made before allocating a new lane.
 		/// </summary>
+		/// <remarks>
+		/// By default the allocation awaits other allocations on the same lane, pass awaitMS > 0 in 
+		/// order to skip a lane. Note however than the MemoryLaneSettings.NoWaitLapsBeforeNewLane controls 
+		/// how many cycles around all lanes should be made before allocating a new lane.
+		/// </remarks>
 		/// <param name="size">The desired buffer length.</param>
 		/// <param name="awaitMS">By default the allocation awaits other allocations on the same lane.</param>
 		/// <returns>A new fragment.</returns>

@@ -42,7 +42,7 @@ namespace System
 			if (length < 0 || length > Length || length > data.Length) throw new ArgumentOutOfRangeException("length");
 			if (length + offset > Length) throw new ArgumentOutOfRangeException("length or/and offset", "The length + offset > capacity.");
 
-			mmva.WriteArray(StartIdx + offset, data, 0, length);
+			mmva.WriteArray(offset, data, 0, length);
 
 			return offset + length;
 		}
@@ -72,7 +72,7 @@ namespace System
 			var destLength = destination.Length - destOffset;
 			var readLength = (destLength + offset) > Length ? Length - offset : destLength;
 
-			return offset + mmva.ReadArray(StartIdx + offset, destination, destOffset, readLength);
+			return offset + mmva.ReadArray(offset, destination, destOffset, readLength);
 		}
 
 		/// <summary>
@@ -91,7 +91,7 @@ namespace System
 			try
 			{
 				mmva.SafeMemoryMappedViewHandle.AcquirePointer(ref p);
-				return new Span<byte>(p, Length);
+				return new Span<byte>(p + mmva.PointerOffset, Length);
 			}
 			finally
 			{
@@ -136,6 +136,10 @@ namespace System
 
 		public override int Length => length;
 
+		/// <summary>
+		/// An accessor for the mmf slice.
+		/// </summary>
+		public MemoryMappedViewAccessor MMVA => mmva;
 		MemoryMappedViewAccessor mmva;
 	}
 }

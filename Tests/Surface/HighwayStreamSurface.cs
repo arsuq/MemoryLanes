@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using TestSurface;
 
@@ -53,54 +54,61 @@ namespace Tests.Surface
 						// Read from different starting positions
 						foreach (int offset in new int[] { 0, 1, 2, 3, 4, 5, 6 })
 						{
-							hs.Seek(offset, SeekOrigin.Begin);
-
-							if (hs.Position != offset)
+							try
 							{
-								Passed = false;
-								FailureMessage = $"Seeking position {offset} with SeekOrigin.Begin failed on {hwName}.";
-								return;
+								hs.Seek(offset, SeekOrigin.Begin);
+
+								if (hs.Position != offset)
+								{
+									Passed = false;
+									FailureMessage = $"Seeking position {offset} with SeekOrigin.Begin failed on {hwName}.";
+									return;
+								}
+
+								hs.Read(sbuff, 0, sbuff.Length);
+
+								for (int i = 0; i < sbuff.Length; i++)
+									if (bytes[i + offset] != sbuff[i])
+									{
+										Passed = false;
+										FailureMessage = $"Reading wrong values with small buffer on {hwName}.";
+										return;
+									}
+
+								hs.Seek(offset, SeekOrigin.Begin);
+								hs.Read(lbuff, 0, lbuff.Length);
+
+								for (int i = 0; i < bytes.Length - offset; i++)
+									if (bytes[i + offset] != lbuff[i])
+									{
+										Passed = false;
+										FailureMessage = $"Reading wrong values with large buffer on {hwName}, offset {offset}.";
+										return;
+									}
+
+								hs.Seek(-hs.Length + offset, SeekOrigin.End);
+
+								if (hs.Position != offset)
+								{
+									Passed = false;
+									FailureMessage = $"Seeking position {offset} with SeekOrigin.End failed on {hwName}";
+									return;
+								}
+
+								hs.Read(xsbuff, 0, xsbuff.Length);
+
+								for (int i = 0; i < xsbuff.Length; i++)
+									if (bytes[i + offset] != xsbuff[i])
+									{
+										Passed = false;
+										FailureMessage = $"Reading wrong values with xs buffer on {hwName}, offset {offset}.";
+										return;
+									}
 							}
-
-							hs.Read(sbuff, 0, sbuff.Length);
-
-							for (int i = 0; i < sbuff.Length; i++)
-								if (bytes[i + offset] != sbuff[i])
-								{
-									Passed = false;
-									FailureMessage = $"Reading wrong values with small buffer on {hwName}.";
-									return;
-								}
-
-							hs.Seek(offset, SeekOrigin.Begin);
-							hs.Read(lbuff, 0, lbuff.Length);
-
-							for (int i = 0; i < bytes.Length - offset; i++)
-								if (bytes[i + offset] != lbuff[i])
-								{
-									Passed = false;
-									FailureMessage = $"Reading wrong values with large buffer on {hwName}, offset {offset}.";
-									return;
-								}
-
-							hs.Seek(-hs.Length + offset, SeekOrigin.End);
-
-							if (hs.Position != offset)
+							catch (Exception ex)
 							{
-								Passed = false;
-								FailureMessage = $"Seeking position {offset} with SeekOrigin.End failed on {hwName}";
-								return;
+
 							}
-
-							hs.Read(xsbuff, 0, xsbuff.Length);
-
-							for (int i = 0; i < xsbuff.Length; i++)
-								if (bytes[i + offset] != xsbuff[i])
-								{
-									Passed = false;
-									FailureMessage = $"Reading wrong values with xs buffer on {hwName}, offset {offset}.";
-									return;
-								}
 						}
 					}
 				}

@@ -67,7 +67,8 @@ namespace System
 				throw new ArgumentOutOfRangeException("idx");
 
 			LaneCheck();
-			return BitConverter.TryWriteBytes(Span().Slice(idx), v) ? idx + 1 : -idx;
+			Span()[idx] = v;
+			return idx + 1;
 		}
 
 		/// <summary>
@@ -564,6 +565,18 @@ namespace System
 		/// </summary>
 		/// <returns>The fragment stream</returns>
 		public FragmentStream ToStream() => new FragmentStream(this);
+
+		/// <summary>
+		/// Creates new byte array and copies the data into it.
+		/// </summary>
+		/// <returns></returns>
+		public byte[] ToArray()
+		{
+			var b = new byte[Length];
+			Span().CopyTo(b);
+
+			return b;
+		}
 
 		public bool IsDisposed => isDisposed;
 		public int LaneCycle => laneCycle;

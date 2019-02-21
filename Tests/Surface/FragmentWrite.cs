@@ -41,46 +41,60 @@ namespace Tests.Surface
 					var hw = kp.Value;
 					using (hw)
 					{
-						var f = hw.AllocFragment(200);
-						var p = 0;
+						var F = new MemoryFragment[] {
+							hw.AllocFragment(200),
+							hw.AllocFragment(200)
+						};
 
-						bool b = true;
-						int i = 10;
-						double d = 2.2;
-						DateTime dt = DateTime.Now;
-						char c = 'c';
-						Guid g = Guid.NewGuid();
-
-						p = f.Write(b, p);
-						p = f.Write(c, p);
-						p = f.Write(dt, p);
-						p = f.Write(d, p);
-						p = f.Write(i, p);
-						p = f.Write(g, p);
-
-						p = 0;
-
-						bool br = false;
-						int ir = 0;
-						double dr = 0;
-						DateTime dtr = DateTime.MinValue;
-						char cr = char.MinValue;
-						Guid gr = Guid.Empty;
-
-						p = f.Read(ref br, p);
-						p = f.Read(ref cr, p);
-						p = f.Read(ref dtr, p);
-						p = f.Read(ref dr, p);
-						p = f.Read(ref ir, p);
-						p = f.Read(ref gr, p);
-
-						if (br != b || cr != c || dtr != dt || dr != d || ir != i || gr != g)
+						foreach (var f in F)
 						{
-							Passed = false;
-							FailureMessage = "The reads do not match the writes.";
-							break;
+							var p = 0;
+
+							bool b = true;
+							int i = 10;
+							double d = 2.2;
+							DateTime dt = DateTime.Now;
+							char c = 'c';
+							Guid g = Guid.NewGuid();
+							byte[] ba = new byte[3] { 1, 2, 3 };
+
+							p = f.Write(b, p);
+							p = f.Write(c, p);
+							p = f.Write(dt, p);
+							p = f.Write(d, p);
+							p = f.Write(i, p);
+							p = f.Write(g, p);
+
+							f.Write(ba, p, ba.Length);
+
+							p = 0;
+
+							bool br = false;
+							int ir = 0;
+							double dr = 0;
+							DateTime dtr = DateTime.MinValue;
+							char cr = char.MinValue;
+							Guid gr = Guid.Empty;
+							byte[] bar = new byte[3];
+
+							p = f.Read(ref br, p);
+							p = f.Read(ref cr, p);
+							p = f.Read(ref dtr, p);
+							p = f.Read(ref dr, p);
+							p = f.Read(ref ir, p);
+							p = f.Read(ref gr, p);
+
+							f.Read(bar, p, 0);
+
+							if (br != b || cr != c || dtr != dt || dr != d || ir != i || gr != g || !Assert.SameValues(ba, bar))
+							{
+								Passed = false;
+								FailureMessage = "The reads do not match the writes.";
+								return;
+							}
 						}
-						else $"{hwName}: fragment reads and writes primitive types correctly.".AsSuccess();
+
+						$"{hwName}: fragment reads and writes primitive types correctly.".AsSuccess();
 					}
 				}
 			}
