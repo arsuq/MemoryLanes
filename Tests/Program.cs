@@ -3,6 +3,8 @@
    file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 using TestSurface;
 
 namespace Tests
@@ -15,6 +17,24 @@ namespace Tests
 
 			Print.AsSystemTrace("Done. Press <Enter> to close.");
 			Console.ReadLine();
+		}
+	}
+
+	class XX : ITestSurface
+	{
+		public string Info => "";
+
+		public string FailureMessage => "";
+
+		public bool? Passed => true;
+
+		public bool IsComplete => true;
+
+		public bool IndependentLaunchOnly => false;
+
+		public async Task Run(IDictionary<string, List<string>> args)
+		{
+
 		}
 	}
 }

@@ -15,7 +15,7 @@ The common testing functionality is placed in the Internals folder.
 **Run everything:**
 
 ```
-> dotnet Tests.dll -all
+> dotnet Tests.dll +all
 ```
 
 **How to create a new test**
@@ -26,7 +26,7 @@ and launches the Run method of:
 - a specific test class if the *-ClassName* is provided as an argument and the ClassName 
  class exists 
 - every ITestSurface implementation which has default arguments, 
- i.e. IndependentLaunchOnly = false; this is the -all switch case  
+ i.e. IndependentLaunchOnly = false; this is the +all switch case  
 
 The ITestSurface has the following properties:
 

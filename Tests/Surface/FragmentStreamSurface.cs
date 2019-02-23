@@ -10,7 +10,7 @@ namespace Tests.Surface
 {
 	class FragmentStreamSurface : ITestSurface
 	{
-		public string Info => "Tests the FragmentStream class.";
+		public string Info => "Tests the FragmentStream class. Args: -store mh mmf nh";
 
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
@@ -21,7 +21,7 @@ namespace Tests.Surface
 		{
 			try
 			{
-				if (args.ContainsKey("-all"))
+				if (args.ContainsKey("+all"))
 					args.Add("-store", new List<string>() { "mh", "mmf", "nh" });
 
 				args.AssertAll("-store");

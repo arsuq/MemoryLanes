@@ -20,7 +20,7 @@
 
 //		public async Task Run(IDictionary<string, List<string>> args)
 //		{
-//			if (args.ContainsKey("-all"))
+//			if (args.ContainsKey("+all"))
 //				args.Add("-store", new List<string>() { "mh", "mmf", "nh" });
 
 //			args.AssertAll("-store");

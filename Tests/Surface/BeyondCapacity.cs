@@ -12,7 +12,7 @@ namespace Tests.Surface
 {
 	public class BeyondCapacity : ITestSurface
 	{
-		public string Info => "Tests allocation outside the highway capacity.";
+		public string Info => "Tests allocation outside the highway capacity. Args: -store mh mmf nh";
 
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
@@ -21,7 +21,7 @@ namespace Tests.Surface
 
 		public async Task Run(IDictionary<string, List<string>> args)
 		{
-			if (args.ContainsKey("-all"))
+			if (args.ContainsKey("+all"))
 				args.Add("-store", new List<string>() { "mh", "mmf", "nh" });
 
 			args.AssertAll("-store");

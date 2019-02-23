@@ -11,7 +11,7 @@ namespace Tests.Surface
 {
 	public class OverResetting : ITestSurface
 	{
-		public string Info => "Tests manual lane over resetting.";
+		public string Info => "Tests manual lane over resetting. Args: -store mh mmf nh";
 
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
@@ -20,7 +20,7 @@ namespace Tests.Surface
 
 		public async Task Run(IDictionary<string, List<string>> args)
 		{
-			if (args.ContainsKey("-all"))
+			if (args.ContainsKey("+all"))
 				args.Add("-store", new List<string>() { "mh", "mmf", "nh" });
 
 			args.AssertAll("-store");
