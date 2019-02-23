@@ -6,15 +6,15 @@ MemoryLanes v1.2
 FEATURES/MILESTONES
 =====================
 
-[+] HighwayStream
-[+] Auto collapse
-[+] Ghost buster
+[x] HighwayStream
+[-] Auto collapse
+[-] Ghost buster
 
 TASKS                                                                 
 =====================
 
-[@] <HighwayStream> to auto alloc fragment tiles on write, setLength etc.
-[+] CCArray reverse locking
+[x] <HighwayStream> to auto alloc fragment tiles on write, setLength etc.
+[c] CCArray reverse locking
 [x] Remove the hw default lane sizes (8,4)
 
 TESTS

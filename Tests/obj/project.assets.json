@@ -218,7 +218,7 @@
           "bin/placeholder/MemoryLanes.dll": {}
         }
       },
-      "TestSurface/1.0.6": {
+      "TestSurface/1.1.0": {
         "type": "project",
         "framework": ".NETStandard,Version=v2.0",
         "compile": {
@@ -704,7 +704,7 @@
       "path": "../MemoryLanes/MemoryLanes.csproj",
       "msbuildProject": "../MemoryLanes/MemoryLanes.csproj"
     },
-    "TestSurface/1.0.6": {
+    "TestSurface/1.1.0": {
       "type": "project",
       "path": "../../TestSurface/TestSurface.csproj",
       "msbuildProject": "../../TestSurface/TestSurface.csproj"
@@ -714,7 +714,7 @@
     ".NETCoreApp,Version=v2.2": [
       "MemoryLanes >= 1.2.0",
       "Microsoft.NETCore.App >= 2.2.0",
-      "TestSurface >= 1.0.6"
+      "TestSurface >= 1.1.0"
     ]
   },
   "packageFolders": {
