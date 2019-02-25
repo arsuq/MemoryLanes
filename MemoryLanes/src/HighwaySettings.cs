@@ -8,17 +8,17 @@ namespace System
 	public class HighwaySettings
 	{
 		public HighwaySettings(int defLaneCapacity, int maxLanesCount, MemoryLaneResetMode dm)
-			: this(defLaneCapacity, maxLanesCount, defLaneCapacity * maxLanesCount, dm) { }
+			: this(defLaneCapacity, maxLanesCount, MAX_HIGHWAY_CAPACITY, dm) { }
 
 		public HighwaySettings(
 			int defLaneCapacity = 0,
 			int maxLanesCount = MAX_LANE_COUNT,
-			long maxTotalBytes = MAX_CAPACITY,
+			long maxTotalBytes = MAX_HIGHWAY_CAPACITY,
 			MemoryLaneResetMode dm = MemoryLaneResetMode.FragmentDispose)
 		{
 			if (defLaneCapacity == 0) defLaneCapacity = DefaultLaneCapacity;
 
-			if (defLaneCapacity > MIN_CAPACITY && defLaneCapacity < MAX_CAPACITY)
+			if (defLaneCapacity > MIN_LANE_CAPACITY && defLaneCapacity < MAX_LANE_CAPACITY)
 				DefaultCapacity = defLaneCapacity;
 			else throw new MemoryLaneException(
 				MemoryLaneException.Code.MissingOrInvalidArgument,
@@ -28,9 +28,9 @@ namespace System
 				MaxLanesCount = maxLanesCount;
 			else throw new MemoryLaneException(
 				MemoryLaneException.Code.MissingOrInvalidArgument,
-				"Invalid lane notNullsCount.");
+				"Invalid lanes count.");
 
-			if (maxTotalBytes > MIN_CAPACITY)
+			if (maxTotalBytes > MIN_LANE_CAPACITY)
 				MaxTotalAllocatedBytes = maxTotalBytes;
 			else throw new MemoryLaneException(
 				MemoryLaneException.Code.MissingOrInvalidArgument,
@@ -61,9 +61,11 @@ namespace System
 		/// </summary>
 		public Func<int, int> NextCapacity;
 
-		public const int MAX_LANE_COUNT = 5000;
-		public const int MIN_CAPACITY = 1023;
-		public const int MAX_CAPACITY = 2_000_000_000;
+		public const int MAX_LANE_COUNT = 1000;
+		public const int MIN_LANE_CAPACITY = 1023;
+		public const int MAX_LANE_CAPACITY = 2_000_000_000;
+		public const long MAX_HIGHWAY_CAPACITY = 200_000_000_000;
+
 
 		/// <summary>
 		/// If not provided in the ctor this value will be used when allocating
@@ -75,7 +77,7 @@ namespace System
 			get => def_base_capacity;
 			set
 			{
-				if (value < MIN_CAPACITY || value > MAX_CAPACITY) throw new ArgumentOutOfRangeException();
+				if (value < MIN_LANE_CAPACITY || value > MAX_LANE_CAPACITY) throw new ArgumentOutOfRangeException();
 
 				def_base_capacity = value;
 			}
@@ -87,6 +89,19 @@ namespace System
 		/// The default value is 2.
 		/// </summary>
 		public int NoWaitLapsBeforeNewLane = 2;
+
+		/// <summary>
+		/// When out of space this number of new lanes could be created simultaneously.
+		/// The default value is 1, i.e. all Alloc() executions will block until the new
+		/// lane is created, which may fail if the settings limits are reached.
+		/// </summary>
+		public int ConcurrentNewLaneAllocations = 1;
+
+		/// <summary>
+		/// The amount of time the Alloc() methid will wait for new lane before bailing.
+		/// The default value is 100.
+		/// </summary>
+		public int NewLaneAllocationTimeoutMS = 100;
 
 		/// <summary>
 		/// If the allocator fail to find a free slice in any lane, 

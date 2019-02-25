@@ -19,22 +19,4 @@ namespace Tests
 			Console.ReadLine();
 		}
 	}
-
-	class XX : ITestSurface
-	{
-		public string Info => "";
-
-		public string FailureMessage => "";
-
-		public bool? Passed => true;
-
-		public bool IsComplete => true;
-
-		public bool IndependentLaunchOnly => false;
-
-		public async Task Run(IDictionary<string, List<string>> args)
-		{
-
-		}
-	}
 }

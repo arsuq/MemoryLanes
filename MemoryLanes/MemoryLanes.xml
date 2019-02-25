@@ -1059,6 +1059,19 @@
             The default value is 2.
             </summary>
         </member>
+        <member name="F:System.HighwaySettings.ConcurrentNewLaneAllocations">
+            <summary>
+            When out of space this number of new lanes could be created simultaneously.
+            The default value is 1, i.e. all Alloc() executions will block until the new
+            lane is created, which may fail if the settings limits are reached.
+            </summary>
+        </member>
+        <member name="F:System.HighwaySettings.NewLaneAllocationTimeoutMS">
+            <summary>
+            The amount of time the Alloc() methid will wait for new lane before bailing.
+            The default value is 100.
+            </summary>
+        </member>
         <member name="F:System.HighwaySettings.DefaultCapacity">
             <summary>
             If the allocator fail to find a free slice in any lane, 
@@ -1127,7 +1140,7 @@
             <param name="awaitMS">By default the allocation awaits other allocations on the same lane.</param>
             <returns>A new fragment.</returns>
             <exception cref="T:System.ArgumentOutOfRangeException">
-            If size is negative or greater than HighwaySettings.MAX_CAPACITY.
+            If size is negative or greater than HighwaySettings.MAX_LANE_CAPACITY.
             </exception>
             <exception cref="T:System.MemoryLaneException">
             Code.NotInitialized: when the lanes are not initialized.
@@ -1559,7 +1572,7 @@
             Code.MaxTotalAllocBytesReached: when the total lanes capacity is greater than MaxTotalAllocatedBytes AND
             the OnMaxTotalBytesReached handler is either null or returns false, meaning "do not ignore".
             Code.SizeOutOfRange: when at least one of the lengths is outside the 
-            HighwaySettings.MIN_CAPACITY - HighwaySettings.MAX_CAPACITY interval.
+            HighwaySettings.MIN_LANE_CAPACITY - HighwaySettings.MAX_LANE_CAPACITY interval.
             </exception>
             <exception cref="T:System.ArgumentOutOfRangeException">If notNullsCount is outside the 1-HighwaySettings.MAX_LANE_COUNT interval </exception>
             <exception cref="T:System.ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
@@ -1575,7 +1588,7 @@
             Code.MaxTotalAllocBytesReached: when the total lanes capacity is greater than MaxTotalAllocatedBytes AND
             the OnMaxTotalBytesReached handler is either null or returns false, meaning "do not ignore".
             Code.SizeOutOfRange: when at least one of the lengths is outside the 
-            HighwaySettings.MIN_CAPACITY - HighwaySettings.MAX_CAPACITY interval.
+            HighwaySettings.MIN_LANE_CAPACITY - HighwaySettings.MAX_LANE_CAPACITY interval.
             </exception>
             <exception cref="T:System.ArgumentNullException">When the laneSizes is either null or has zero items.</exception>
             <exception cref="T:System.ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
@@ -1588,7 +1601,7 @@
             <param name="awaitMS">The lane lock await in milliseconds, by default awaits forever (-1)</param>
             <returns>A new fragment.</returns>
             <exception cref="T:System.ArgumentOutOfRangeException">
-            If size is negative or greater than HighwaySettings.MAX_CAPACITY.
+            If size is negative or greater than HighwaySettings.MAX_LANE_CAPACITY.
             </exception>
             <exception cref="T:System.MemoryLaneException">
             Code.NotInitialized: when the lanes are not initialized.
@@ -1608,7 +1621,7 @@
             <param name="awaitMS">By default the allocation awaits other allocations on the same lane.</param>
             <returns>A new fragment.</returns>
             <exception cref="T:System.ArgumentOutOfRangeException">
-            If size is negative or greater than HighwaySettings.MAX_CAPACITY.
+            If size is negative or greater than HighwaySettings.MAX_LANE_CAPACITY.
             </exception>
             <exception cref="T:System.MemoryLaneException">
             Code.NotInitialized: when the lanes are not initialized.

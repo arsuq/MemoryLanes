@@ -15,7 +15,7 @@ namespace Tests.Surface
 		public string Info => FormatText.JoinLines(
 			"Tests the trivial allocation, i.e. without reaching the MaxLaneCount or MaxTotalBytes limits.",
 			"Flags: -store",
-			"Arguments: one or many [mh = managed heap, mmf = memory mapped file, nh = native heap]," +
+			"Args: one or many [mh = managed heap, mmf = memory mapped file, nh = native heap]," +
 			"Optional Flags: -count = fragments count, -size = fragment size, which will be randomized" +
 			"Example: -ExpectedAllocation -store mh nh mmf");
 

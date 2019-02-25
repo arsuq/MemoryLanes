@@ -24,7 +24,7 @@ namespace System
 		/// <param name="awaitMS">By default the allocation awaits other allocations on the same lane.</param>
 		/// <returns>A new fragment.</returns>
 		/// <exception cref="System.ArgumentOutOfRangeException">
-		/// If size is negative or greater than HighwaySettings.MAX_CAPACITY.
+		/// If size is negative or greater than HighwaySettings.MAX_LANE_CAPACITY.
 		/// </exception>
 		/// <exception cref="System.MemoryLaneException">
 		/// Code.NotInitialized: when the lanes are not initialized.

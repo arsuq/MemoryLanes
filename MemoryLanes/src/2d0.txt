@@ -10,7 +10,7 @@ FEATURES/MILESTONES
 TASKS                                                                 
 =====================
 
-[c] CCArray reverse locking
+[@] concurrent no-lucks
 
 
 TESTS

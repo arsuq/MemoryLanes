@@ -30,6 +30,8 @@ namespace System
 				var lenBlockSize = 1 + (int)Math.Sqrt(stg.MaxLanesCount);
 				Lanes = new ConcurrentArray<L>(lenBlockSize, lenBlockSize);
 			}
+
+			noluckGate = new SemaphoreSlim(settings.ConcurrentNewLaneAllocations);
 		}
 
 		/// <summary>
@@ -42,7 +44,7 @@ namespace System
 		/// Code.MaxTotalAllocBytesReached: when the total lanes capacity is greater than MaxTotalAllocatedBytes AND
 		/// the OnMaxTotalBytesReached handler is either null or returns false, meaning "do not ignore".
 		/// Code.SizeOutOfRange: when at least one of the lengths is outside the 
-		/// HighwaySettings.MIN_CAPACITY - HighwaySettings.MAX_CAPACITY interval.
+		/// HighwaySettings.MIN_LANE_CAPACITY - HighwaySettings.MAX_LANE_CAPACITY interval.
 		/// </exception>
 		/// <exception cref="System.ArgumentOutOfRangeException">If notNullsCount is outside the 1-HighwaySettings.MAX_LANE_COUNT interval </exception>
 		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
@@ -65,7 +67,7 @@ namespace System
 		/// Code.MaxTotalAllocBytesReached: when the total lanes capacity is greater than MaxTotalAllocatedBytes AND
 		/// the OnMaxTotalBytesReached handler is either null or returns false, meaning "do not ignore".
 		/// Code.SizeOutOfRange: when at least one of the lengths is outside the 
-		/// HighwaySettings.MIN_CAPACITY - HighwaySettings.MAX_CAPACITY interval.
+		/// HighwaySettings.MIN_LANE_CAPACITY - HighwaySettings.MAX_LANE_CAPACITY interval.
 		/// </exception>
 		/// <exception cref="System.ArgumentNullException">When the laneSizes is either null or has zero items.</exception>
 		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
@@ -85,7 +87,7 @@ namespace System
 		/// <param name="awaitMS">The lane lock await in milliseconds, by default awaits forever (-1)</param>
 		/// <returns>A new fragment.</returns>
 		/// <exception cref="System.ArgumentOutOfRangeException">
-		/// If size is negative or greater than HighwaySettings.MAX_CAPACITY.
+		/// If size is negative or greater than HighwaySettings.MAX_LANE_CAPACITY.
 		/// </exception>
 		/// <exception cref="System.MemoryLaneException">
 		/// Code.NotInitialized: when the lanes are not initialized.
@@ -97,12 +99,12 @@ namespace System
 		{
 			if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");
 			if (Lanes == null || Lanes.AllocatedSlots == 0) throw new MemoryLaneException(MemoryLaneException.Code.NotInitialized);
-			if (size < 0 || size > HighwaySettings.MAX_CAPACITY) throw new ArgumentOutOfRangeException("size");
+			if (size < 0 || size > HighwaySettings.MAX_LANE_CAPACITY) throw new ArgumentOutOfRangeException("size");
 
 			F frag = null;
 
 			// Start from the oldest lane
-			// If awaitMS > -1 cycle around a few times before making a new lane
+			// If awaitMS > -1 (this is for the lane) cycle around a few times before making a new lane
 			var LAPS = awaitMS > -1 ? settings.NoWaitLapsBeforeNewLane : 1;
 			for (var laps = 0; laps < LAPS; laps++)
 				for (var i = 0; i <= Lanes.AppendIndex; i++)
@@ -121,23 +123,35 @@ namespace System
 					}
 				}
 
-			// No luck, create a new lane and do not publish it before getting a fragment
-			var nextCapacity = settings.NextCapacity(Lanes.AppendIndex);
-			var cap = size > nextCapacity ? size : nextCapacity;
-			var ml = allocLane(cap, true);
+			var lanesCount = Lanes.AppendIndex;
 
-			// Could be null if the MaxLanesCount or MaxBytesCount exceptions are ignored.
-			// The consumer can infer that by checking if the fragment is null.
-			if (ml != null)
+			// Prevents concurrent lane allocations
+			if (noluckGate.Wait(settings.NewLaneAllocationTimeoutMS))
 			{
-				frag = createFragment(ml, size, awaitMS);
+				// Try again, there is at least one new lane
+				if (lanesCount < Lanes.AppendIndex) return Alloc(size, awaitMS);
+				try
+				{
+					// No luck, create a new lane and do not publish it before getting a fragment
+					var nextCapacity = settings.NextCapacity(Lanes.AppendIndex);
+					var cap = size > nextCapacity ? size : nextCapacity;
+					var ml = allocLane(cap, true);
 
-				if (frag == null) throw new MemoryLaneException(
-					MemoryLaneException.Code.NewLaneAllocFail,
-					string.Format("Failed to allocate {0} bytes on a dedicated lane.", size));
+					// Could be null if the MaxLanesCount or MaxBytesCount exceptions are ignored.
+					// The consumer can infer that by checking if the fragment is null.
+					if (ml != null)
+					{
+						frag = createFragment(ml, size, awaitMS);
 
-				Lanes.Append(ml);
-				Interlocked.Exchange(ref lastAllocTickAnyLane, DateTime.Now.Ticks);
+						if (frag == null) throw new MemoryLaneException(
+							MemoryLaneException.Code.NewLaneAllocFail,
+							string.Format("Failed to allocate {0} bytes on a dedicated lane.", size));
+
+						Lanes.Append(ml);
+						Interlocked.Exchange(ref lastAllocTickAnyLane, DateTime.Now.Ticks);
+					}
+				}
+				finally { noluckGate.Release(); }
 			}
 
 			return frag;
@@ -153,7 +167,7 @@ namespace System
 		/// <param name="awaitMS">By default the allocation awaits other allocations on the same lane.</param>
 		/// <returns>A new fragment.</returns>
 		/// <exception cref="System.ArgumentOutOfRangeException">
-		/// If size is negative or greater than HighwaySettings.MAX_CAPACITY.
+		/// If size is negative or greater than HighwaySettings.MAX_LANE_CAPACITY.
 		/// </exception>
 		/// <exception cref="System.MemoryLaneException">
 		/// Code.NotInitialized: when the lanes are not initialized.
@@ -339,7 +353,7 @@ namespace System
 				}
 			}
 		}
-		
+
 		/// <summary>
 		/// Creates a HighwayStream from the current highway,
 		/// </summary>
@@ -409,8 +423,8 @@ namespace System
 		long lastAllocTickAnyLane;
 		int freeGhostsGate = 0;
 		bool isDisposed;
-
-		ConcurrentArray<L> Lanes = null;
+		SemaphoreSlim noluckGate;
+		ConcurrentArray<L> Lanes;
 	}
 
 	/// <summary>
