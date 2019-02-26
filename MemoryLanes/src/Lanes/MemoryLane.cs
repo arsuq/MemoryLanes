@@ -3,6 +3,7 @@
    file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 using System.Collections.Concurrent;
+using System.IO;
 using System.Threading;
 
 namespace System
@@ -58,7 +59,7 @@ namespace System
 			var CAP = LaneCapacity;
 
 			// Quick fail
-			if (isDisposed || Offset + size >= CAP || IsClosed) return result;
+			if (isDisposed || Offset + size > CAP || IsClosed) return result;
 
 			// Ghost tracking is slower and needs event synchronization
 			var track = ResetMode == MemoryLaneResetMode.TrackGhosts;
@@ -75,7 +76,7 @@ namespace System
 				var oldoffset = Offset;
 				var newoffset = oldoffset + size;
 
-				if (!IsClosed && newoffset < CAP)
+				if (!IsClosed && newoffset <= CAP)
 				{
 					var bail = false;
 
@@ -226,7 +227,7 @@ namespace System
 		}
 
 		/// <summary>
-		/// Resets the offset and allocations of the lane or closes the lane or all at once (one lock).
+		/// Resets the Offset and Allocations, closes the lane (optional) and increments the LaneCycle.
 		/// </summary>
 		/// <remarks>
 		/// Resetting the offset may lead to unpredictable behavior if you attempt to read or write
@@ -249,6 +250,7 @@ namespace System
 				{
 					Interlocked.Exchange(ref offset, 0);
 					Interlocked.Exchange(ref allocations, 0);
+					Interlocked.Increment(ref laneCycle);
 
 					if (ResetMode == MemoryLaneResetMode.TrackGhosts)
 						Tracker.MoveAppendIndex(0, true);
@@ -257,6 +259,41 @@ namespace System
 				spinGate.Exit();
 			}
 			else throw new SynchronizationException(SynchronizationException.Code.LockAcquisition);
+		}
+
+		/// <summary>
+		/// Writes count bytes from source into the lane space. The lane is forced to Offset 0 and is closed.
+		/// If fails the lane remains closed.
+		/// </summary>
+		/// <remarks>This method is synchronized, but not protected from concurrent Force() calls.
+		/// </remarks>
+		/// <param name="source">The source stream.</param>
+		/// <param name="count">Number of bytes to copy from source.</param>
+		/// <returns>The copied bytes count.</returns>
+		public int Format(Stream source, int count)
+		{
+			var read = 0;
+
+			lock (formatLock)
+			{
+				Force(false, true);
+
+				using (var f = Alloc(LaneCapacity))
+				{
+					Interlocked.Exchange(ref isClosed, 1);
+
+					if (f == null) throw new MemoryLaneException(MemoryLaneException.Code.AllocFailure);
+
+					f.UseAccessChecks = false;
+
+					using (var fs = f.CreateStream()) 
+						read = ((Stream)fs).ReadFrom(source, count).Result;
+				}
+
+				Interlocked.Exchange(ref isClosed, 0);
+			}
+
+			return read;
 		}
 
 		/// <summary>
@@ -319,6 +356,7 @@ namespace System
 
 		SpinLock spinGate = new SpinLock();
 		SpinLock resetGate = new SpinLock();
+		object formatLock = new object();
 		AutoResetEvent allocLobby = new AutoResetEvent(true);
 		int freeGhostsGate;
 		int isClosed;
@@ -351,8 +389,6 @@ namespace System
 			Length = length;
 			Allocation = allocation;
 		}
-
-		public int EndOffset => Offset + Length;
 
 		// Should be long, but Memory<T> uses int for now
 		public int Offset;

@@ -62,7 +62,7 @@ namespace System
 		public Func<int, int> NextCapacity;
 
 		public const int MAX_LANE_COUNT = 1000;
-		public const int MIN_LANE_CAPACITY = 1023;
+		public const int MIN_LANE_CAPACITY = 1;
 		public const int MAX_LANE_CAPACITY = 2_000_000_000;
 		public const long MAX_HIGHWAY_CAPACITY = 200_000_000_000;
 

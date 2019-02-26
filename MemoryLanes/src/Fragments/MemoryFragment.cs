@@ -596,6 +596,12 @@ namespace System
 		/// </summary>
 		protected bool useAccessChecks = true;
 
+		internal bool UseAccessChecks
+		{
+			get => useAccessChecks;
+			set => useAccessChecks = value;
+		}
+
 		/// <summary>
 		/// Gets the fragment Span. 
 		/// </summary>

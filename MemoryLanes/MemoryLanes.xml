@@ -227,183 +227,6 @@
             <param name="seq">The block index.</param>
             <param name="idx">The cell in the block</param>
         </member>
-        <member name="T:System.IO.FragmentStream">
-            <summary>
-            A stream object with a fragment as a memory storage.
-            </summary>
-        </member>
-        <member name="M:System.IO.FragmentStream.#ctor(System.MemoryFragment)">
-            <summary>
-            Creates a stream objects.
-            </summary>
-            <param name="frag"></param>
-            <exception cref="T:System.ArgumentNullException">If frag is null.</exception>
-            <exception cref="T:System.ObjectDisposedException">If the fragment is disposed.</exception>
-        </member>
-        <member name="P:System.IO.FragmentStream.CanRead">
-            <summary>
-            True.
-            </summary>
-        </member>
-        <member name="P:System.IO.FragmentStream.CanSeek">
-            <summary>
-            True.
-            </summary>
-        </member>
-        <member name="P:System.IO.FragmentStream.CanWrite">
-            <summary>
-            True.
-            </summary>
-        </member>
-        <member name="P:System.IO.FragmentStream.Length">
-            <summary>
-            The current length.
-            </summary>
-        </member>
-        <member name="P:System.IO.FragmentStream.Position">
-            <summary>
-            Get set the position.
-            </summary>
-        </member>
-        <member name="M:System.IO.FragmentStream.Flush">
-            <summary>
-            Does nothing.
-            </summary>
-        </member>
-        <member name="M:System.IO.FragmentStream.Read(System.Byte[],System.Int32,System.Int32)">
-            <summary>
-            The standard stream Read. 
-            The count could be cut twice: 
-            First to buffer.Length - offset if the buffer slice from offset is smaller than count.
-            Second to stream's Length - Position if count reaches beyond the capacity.
-            </summary>
-            <param name="buffer">Where to write.</param>
-            <param name="offset">Start index in buffer.</param>
-            <param name="count">Number of bytes to read.</param>
-            <returns>The number of read bytes.</returns>
-            <exception cref="T:System.ArgumentNullException">If buffer is null.</exception>
-            <exception cref="T:System.ArgumentOutOfRangeException">If offset or count are negative.</exception>
-        </member>
-        <member name="M:System.IO.FragmentStream.Write(System.Byte[],System.Int32,System.Int32)">
-            <summary>
-            Writes the buffer slice from offset to offset + count into the stream.
-            Unlike Read doesn't cut the count but throws because it's void.
-            </summary>
-            <param name="buffer">The source bytes.</param>
-            <param name="offset">Starting index in buffer.</param>
-            <param name="count">Number of bytes to take.</param>
-            <exception cref="T:System.ArgumentNullException">If buffer is null.</exception>
-            <exception cref="T:System.ArgumentOutOfRangeException">
-            If offset or count are negative or count reaches beyond the fragment capacity.</exception>
-            <exception cref="T:System.ArgumentException">If the buffer slice from offset is smaller than count.</exception>
-        </member>
-        <member name="M:System.IO.FragmentStream.Seek(System.Int64,System.IO.SeekOrigin)">
-            <summary>
-            Moves the current position.
-            </summary>
-            <param name="offset">Number of bytes.</param>
-            <param name="origin">Use negative numbers with SeekOrigin.End</param>
-            <returns>The Position value.</returns>
-        </member>
-        <member name="M:System.IO.FragmentStream.SetLength(System.Int64)">
-            <summary>
-            Will shrink the stream length, but not the fragment.
-            </summary>
-            <param name="value"></param>
-        </member>
-        <member name="T:System.IO.HighwayStream">
-            <summary>
-            A stream with a MemoryHighway for storage.
-            </summary>
-        </member>
-        <member name="M:System.IO.HighwayStream.#ctor(System.IMemoryHighway,System.Int32)">
-            <summary>
-            Creates a new Highway stream instance.
-            </summary>
-            <param name="hw">The highway to use for storage.</param>
-            <param name="fragmentSize">The size of the fragments.</param>
-        </member>
-        <member name="P:System.IO.HighwayStream.CanRead">
-            <summary>
-            True.
-            </summary>
-        </member>
-        <member name="P:System.IO.HighwayStream.CanSeek">
-            <summary>
-            True.
-            </summary>
-        </member>
-        <member name="P:System.IO.HighwayStream.CanWrite">
-            <summary>
-            True.
-            </summary>
-        </member>
-        <member name="P:System.IO.HighwayStream.Length">
-            <summary>
-            The current length.
-            </summary>
-        </member>
-        <member name="P:System.IO.HighwayStream.Position">
-            <summary>
-            Get set the position.
-            </summary>
-        </member>
-        <member name="M:System.IO.HighwayStream.Flush">
-            <summary>
-            Does nothing.
-            </summary>
-        </member>
-        <member name="M:System.IO.HighwayStream.Read(System.Byte[],System.Int32,System.Int32)">
-            <summary>
-            The standard stream Read. 
-            The count could be cut twice: 
-            First to buffer.Length - offset if the buffer slice from offset is smaller than count.
-            Second to stream's Length - Position if count reaches beyond the capacity.
-            </summary>
-            <param name="buffer">Where to write.</param>
-            <param name="offset">Start index in buffer.</param>
-            <param name="count">Number of bytes to read.</param>
-            <returns>The number of read bytes.</returns>
-            <exception cref="T:System.ArgumentNullException">If buffer is null.</exception>
-            <exception cref="T:System.ArgumentOutOfRangeException">If offset or count are negative.</exception>
-        </member>
-        <member name="M:System.IO.HighwayStream.Seek(System.Int64,System.IO.SeekOrigin)">
-            <summary>
-            Moves the position.
-            </summary>
-            <returns>The new position.</returns>
-        </member>
-        <member name="M:System.IO.HighwayStream.SetLength(System.Int64)">
-            <summary>
-            If the value is greater than Length allocates more fragments,
-            otherwise disposes the unnecessary ones.
-            </summary>
-            <param name="value">The desired length.</param>
-        </member>
-        <member name="M:System.IO.HighwayStream.Write(System.Byte[],System.Int32,System.Int32)">
-            <summary>
-            Writes the buffer slice from offset to offset + count into the stream.
-            Unlike Read doesn't cut the count but throws. 
-            Allocates more fragments if there is not enough space.
-            </summary>
-            <param name="buffer">The source bytes.</param>
-            <param name="offset">Starting index in buffer.</param>
-            <param name="count">Number of bytes to take.</param>
-            <exception cref="T:System.ArgumentNullException">If buffer is null.</exception>
-            <exception cref="T:System.ArgumentOutOfRangeException">
-            If offset or count are negative or count reaches beyond the fragment capacity.</exception>
-            <exception cref="T:System.ArgumentException">If the buffer slice from offset is smaller than count.</exception>
-        </member>
-        <member name="M:System.IO.HighwayStream.IDispose">
-            <summary>
-            Does not dispose the highway, just the allocated fragments.
-            </summary>
-        </member>
-        <member name="P:System.IO.HighwayStream.AllocTimeoutMS">
-            <summary>
-            The lanes allocation timeout in milliseconds 
-            </summary>
-        </member>
         <member name="T:System.HeapFragment">
             <summary>
             Represents a slice of a heap allocated buffer
@@ -1483,7 +1306,7 @@
         </member>
         <member name="M:System.MemoryLane.Force(System.Boolean,System.Boolean)">
             <summary>
-            Resets the offset and allocations of the lane or closes the lane or all at once (one lock).
+            Resets the Offset and Allocations, closes the lane (optional) and increments the LaneCycle.
             </summary>
             <remarks>
             Resetting the offset may lead to unpredictable behavior if you attempt to read or write
@@ -1493,6 +1316,17 @@
             </remarks>
             <param name="close">True to close the lane.</param>
             <param name="reset">True to reset the offset and the allocations to 0.</param>
+        </member>
+        <member name="M:System.MemoryLane.Format(System.IO.Stream,System.Int32)">
+            <summary>
+            Writes count bytes from source into the lane space. The lane is forced to Offset 0 and is closed.
+            If fails the lane remains closed.
+            </summary>
+            <remarks>This method is synchronized, but not protected from concurrent Force() calls.
+            </remarks>
+            <param name="source">The source stream.</param>
+            <param name="count">Number of bytes to copy from source.</param>
+            <returns>The copied bytes count.</returns>
         </member>
         <member name="M:System.MemoryLane.FullTrace">
             <summary>
@@ -1737,6 +1571,193 @@
             <summary>
             Types of memory storage.
             </summary>
+        </member>
+        <member name="T:System.IO.FragmentStream">
+            <summary>
+            A stream object with a fragment as a memory storage.
+            </summary>
+        </member>
+        <member name="M:System.IO.FragmentStream.#ctor(System.MemoryFragment)">
+            <summary>
+            Creates a stream objects.
+            </summary>
+            <param name="frag"></param>
+            <exception cref="T:System.ArgumentNullException">If frag is null.</exception>
+            <exception cref="T:System.ObjectDisposedException">If the fragment is disposed.</exception>
+        </member>
+        <member name="P:System.IO.FragmentStream.CanRead">
+            <summary>
+            True.
+            </summary>
+        </member>
+        <member name="P:System.IO.FragmentStream.CanSeek">
+            <summary>
+            True.
+            </summary>
+        </member>
+        <member name="P:System.IO.FragmentStream.CanWrite">
+            <summary>
+            True.
+            </summary>
+        </member>
+        <member name="P:System.IO.FragmentStream.Length">
+            <summary>
+            The current length.
+            </summary>
+        </member>
+        <member name="P:System.IO.FragmentStream.Position">
+            <summary>
+            Get set the position.
+            </summary>
+        </member>
+        <member name="M:System.IO.FragmentStream.Flush">
+            <summary>
+            Does nothing.
+            </summary>
+        </member>
+        <member name="M:System.IO.FragmentStream.Read(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            The standard stream Read. 
+            The count could be cut twice: 
+            First to buffer.Length - offset if the buffer slice from offset is smaller than count.
+            Second to stream's Length - Position if count reaches beyond the capacity.
+            </summary>
+            <param name="buffer">Where to write.</param>
+            <param name="offset">Start index in buffer.</param>
+            <param name="count">Number of bytes to read.</param>
+            <returns>The number of read bytes.</returns>
+            <exception cref="T:System.ArgumentNullException">If buffer is null.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">If offset or count are negative.</exception>
+        </member>
+        <member name="M:System.IO.FragmentStream.Write(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Writes the buffer slice from offset to offset + count into the stream.
+            Unlike Read doesn't cut the count but throws because it's void.
+            </summary>
+            <param name="buffer">The source bytes.</param>
+            <param name="offset">Starting index in buffer.</param>
+            <param name="count">Number of bytes to take.</param>
+            <exception cref="T:System.ArgumentNullException">If buffer is null.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">
+            If offset or count are negative or count reaches beyond the fragment capacity.</exception>
+            <exception cref="T:System.ArgumentException">If the buffer slice from offset is smaller than count.</exception>
+        </member>
+        <member name="M:System.IO.FragmentStream.Seek(System.Int64,System.IO.SeekOrigin)">
+            <summary>
+            Moves the current position.
+            </summary>
+            <param name="offset">Number of bytes.</param>
+            <param name="origin">Use negative numbers with SeekOrigin.End</param>
+            <returns>The Position value.</returns>
+        </member>
+        <member name="M:System.IO.FragmentStream.SetLength(System.Int64)">
+            <summary>
+            Will shrink the stream length, but not the fragment.
+            </summary>
+            <param name="value"></param>
+        </member>
+        <member name="T:System.IO.HighwayStream">
+            <summary>
+            A stream with a MemoryHighway for storage.
+            </summary>
+        </member>
+        <member name="M:System.IO.HighwayStream.#ctor(System.IMemoryHighway,System.Int32)">
+            <summary>
+            Creates a new Highway stream instance.
+            </summary>
+            <param name="hw">The highway to use for storage.</param>
+            <param name="fragmentSize">The size of the fragments.</param>
+        </member>
+        <member name="P:System.IO.HighwayStream.CanRead">
+            <summary>
+            True.
+            </summary>
+        </member>
+        <member name="P:System.IO.HighwayStream.CanSeek">
+            <summary>
+            True.
+            </summary>
+        </member>
+        <member name="P:System.IO.HighwayStream.CanWrite">
+            <summary>
+            True.
+            </summary>
+        </member>
+        <member name="P:System.IO.HighwayStream.Length">
+            <summary>
+            The current length.
+            </summary>
+        </member>
+        <member name="P:System.IO.HighwayStream.Position">
+            <summary>
+            Get set the position.
+            </summary>
+        </member>
+        <member name="M:System.IO.HighwayStream.Flush">
+            <summary>
+            Does nothing.
+            </summary>
+        </member>
+        <member name="M:System.IO.HighwayStream.Read(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            The standard stream Read. 
+            The count could be cut twice: 
+            First to buffer.Length - offset if the buffer slice from offset is smaller than count.
+            Second to stream's Length - Position if count reaches beyond the capacity.
+            </summary>
+            <param name="buffer">Where to write.</param>
+            <param name="offset">Start index in buffer.</param>
+            <param name="count">Number of bytes to read.</param>
+            <returns>The number of read bytes.</returns>
+            <exception cref="T:System.ArgumentNullException">If buffer is null.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">If offset or count are negative.</exception>
+        </member>
+        <member name="M:System.IO.HighwayStream.Seek(System.Int64,System.IO.SeekOrigin)">
+            <summary>
+            Moves the position.
+            </summary>
+            <returns>The new position.</returns>
+        </member>
+        <member name="M:System.IO.HighwayStream.SetLength(System.Int64)">
+            <summary>
+            If the value is greater than Length allocates more fragments,
+            otherwise disposes the unnecessary ones.
+            </summary>
+            <param name="value">The desired length.</param>
+        </member>
+        <member name="M:System.IO.HighwayStream.Write(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Writes the buffer slice from offset to offset + count into the stream.
+            Unlike Read doesn't cut the count but throws. 
+            Allocates more fragments if there is not enough space.
+            </summary>
+            <param name="buffer">The source bytes.</param>
+            <param name="offset">Starting index in buffer.</param>
+            <param name="count">Number of bytes to take.</param>
+            <exception cref="T:System.ArgumentNullException">If buffer is null.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">
+            If offset or count are negative or count reaches beyond the fragment capacity.</exception>
+            <exception cref="T:System.ArgumentException">If the buffer slice from offset is smaller than count.</exception>
+        </member>
+        <member name="M:System.IO.HighwayStream.IDispose">
+            <summary>
+            Does not dispose the highway, just the allocated fragments.
+            </summary>
+        </member>
+        <member name="P:System.IO.HighwayStream.AllocTimeoutMS">
+            <summary>
+            The lanes allocation timeout in milliseconds 
+            </summary>
+        </member>
+        <member name="M:System.IO.StreamExt.ReadFrom(System.IO.Stream,System.IO.Stream,System.Int32,System.Byte[])">
+            <summary>
+            Reads from the source stream and writes into the target.
+            </summary>
+            <param name="target">The receiver</param>
+            <param name="source"></param>
+            <param name="count">Number of bytes to read.</param>
+            <param name="spoon">A small reading buffer. If null, new byte[4000] is used.</param>
+            <returns>A task to await</returns>
         </member>
     </members>
 </doc>

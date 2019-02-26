@@ -31,7 +31,7 @@ namespace System
 				Lanes = new ConcurrentArray<L>(lenBlockSize, lenBlockSize);
 			}
 
-			noluckGate = new SemaphoreSlim(settings.ConcurrentNewLaneAllocations);
+			noluckGate = new SemaphoreSlim(settings.ConcurrentNewLaneAllocations, settings.ConcurrentNewLaneAllocations);
 		}
 
 		/// <summary>
@@ -102,6 +102,7 @@ namespace System
 			if (size < 0 || size > HighwaySettings.MAX_LANE_CAPACITY) throw new ArgumentOutOfRangeException("size");
 
 			F frag = null;
+			var lanesCount = Lanes.AppendIndex;
 
 			// Start from the oldest lane
 			// If awaitMS > -1 (this is for the lane) cycle around a few times before making a new lane
@@ -123,35 +124,38 @@ namespace System
 					}
 				}
 
-			var lanesCount = Lanes.AppendIndex;
-
-			// Prevents concurrent lane allocations
+			// limits the concurrent lane allocations
 			if (noluckGate.Wait(settings.NewLaneAllocationTimeoutMS))
 			{
 				// Try again, there is at least one new lane
-				if (lanesCount < Lanes.AppendIndex) return Alloc(size, awaitMS);
-				try
+				if (lanesCount < Lanes.AppendIndex)
 				{
-					// No luck, create a new lane and do not publish it before getting a fragment
-					var nextCapacity = settings.NextCapacity(Lanes.AppendIndex);
-					var cap = size > nextCapacity ? size : nextCapacity;
-					var ml = allocLane(cap, true);
-
-					// Could be null if the MaxLanesCount or MaxBytesCount exceptions are ignored.
-					// The consumer can infer that by checking if the fragment is null.
-					if (ml != null)
-					{
-						frag = createFragment(ml, size, awaitMS);
-
-						if (frag == null) throw new MemoryLaneException(
-							MemoryLaneException.Code.NewLaneAllocFail,
-							string.Format("Failed to allocate {0} bytes on a dedicated lane.", size));
-
-						Lanes.Append(ml);
-						Interlocked.Exchange(ref lastAllocTickAnyLane, DateTime.Now.Ticks);
-					}
+					noluckGate.Release();
+					return Alloc(size, awaitMS);
 				}
-				finally { noluckGate.Release(); }
+				else
+					try
+					{
+						// No luck, create a new lane and do not publish it before getting a fragment
+						var nextCapacity = settings.NextCapacity(Lanes.AppendIndex);
+						var cap = size > nextCapacity ? size : nextCapacity;
+						var ml = allocLane(cap, true);
+
+						// Could be null if the MaxLanesCount or MaxBytesCount exceptions are ignored.
+						// The consumer can infer that by checking if the fragment is null.
+						if (ml != null)
+						{
+							frag = createFragment(ml, size, awaitMS);
+
+							if (frag == null) throw new MemoryLaneException(
+								MemoryLaneException.Code.NewLaneAllocFail,
+								string.Format("Failed to allocate {0} bytes on a dedicated lane.", size));
+
+							Lanes.Append(ml);
+							Interlocked.Exchange(ref lastAllocTickAnyLane, DateTime.Now.Ticks);
+						}
+					}
+					finally { noluckGate.Release(); }
 			}
 
 			return frag;
