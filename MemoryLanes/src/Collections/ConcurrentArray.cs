@@ -157,7 +157,8 @@ namespace System.Collections.Concurrent
 		}
 
 		/// <summary>
-		/// Blocks until the gear is shifted. 
+		/// Shifts the gear and blocks until all operations in the old drive mode complete.
+		/// If OnGearShift is not null it's launched in a new Task, wrapped in a try catch, swallowing potential exceptions.
 		/// </summary>
 		/// <param name="g">The new concurrent mode.</param>
 		/// <param name="f">Guarantees the execution of f() within the lock scope, in case that other shifts are waiting.</param>
@@ -171,7 +172,6 @@ namespace System.Collections.Concurrent
 			{
 				int old = -1;
 
-				// It's not the same
 				if (Drive != g)
 				{
 					// There must be no other resets anywhere
@@ -196,8 +196,8 @@ namespace System.Collections.Concurrent
 				}
 				else old = (int)g;
 
-				// Give a chance to at least one function to be executed, in case 
-				// there are competing shifts.
+				// Give a chance to at least one function to be executed,
+				// in case there are competing shifts.
 				if (f != null) f();
 
 				return (CCArrayGear)old;
@@ -216,9 +216,7 @@ namespace System.Collections.Concurrent
 			get
 			{
 				if (Drive == CCArrayGear.P) throw new InvalidOperationException("Wrong drive");
-
-				if (index < 0 || index > AppendIndex)
-					throw new ArgumentOutOfRangeException("index");
+				if (index < 0 || index > AppendIndex) throw new ArgumentOutOfRangeException("index");
 
 				int seq = -1, idx = -1;
 				Index2Seq(index, ref seq, ref idx);
@@ -228,9 +226,7 @@ namespace System.Collections.Concurrent
 			set
 			{
 				if (Drive == CCArrayGear.P) throw new InvalidOperationException("Wrong drive");
-
-				if (index < 0 || index > AppendIndex)
-					throw new ArgumentOutOfRangeException("index");
+				if (index < 0 || index > AppendIndex) throw new ArgumentOutOfRangeException("index");
 
 				set(index, value);
 			}
@@ -265,22 +261,19 @@ namespace System.Collections.Concurrent
 		{
 			// Must be the first instruction, otherwise a whole Shift()
 			// execution could interleave after the assert and change the direction.
-			var ccops = Interlocked.Increment(ref concurrentOps);
+			Interlocked.Increment(ref concurrentOps);
 			var ccadd = Interlocked.Increment(ref concurrentAdds);
-
 			var pos = -1;
 
 			try
 			{
-				if (Drive != CCArrayGear.Straight)
-					throw new InvalidOperationException("Wrong drive");
-
+				if (Drive != CCArrayGear.Straight) throw new InvalidOperationException("Wrong drive");
 				if (ccadd + AppendIndex >= AllocatedSlots)
-				{
 					lock (commonLock)
 					{
+						// Volatile read once
+						var cap = AllocatedSlots;
 						// Could have been augmented by another thread during the wait.
-						var cap = AllocatedSlots; // Volatile read once
 						if (ccadd + AppendIndex >= cap)
 						{
 							var newCap = expansion(AllocatedSlots, BlockLength, Capacity);
@@ -288,8 +281,10 @@ namespace System.Collections.Concurrent
 							while (newCap > cap)
 							{
 								if (blocks[blocksCount] == null) blocks[blocksCount] = new T[BlockLength];
+
 								cap += BlockLength;
 								blocksCount++;
+
 								if (blocksCount > blocks.Length)
 									throw new InvariantException("blocksCount", "Maximum number of blocks reached.");
 							}
@@ -297,7 +292,6 @@ namespace System.Collections.Concurrent
 							Interlocked.Exchange(ref allocatedSlots, cap);
 						}
 					}
-				}
 
 				if (AppendIndex < AllocatedSlots)
 				{
@@ -325,7 +319,7 @@ namespace System.Collections.Concurrent
 		/// <exception cref="System.InvalidOperationException">When Drive != Gear.Reverse</exception>
 		public T RemoveLast(out int pos)
 		{
-			var ccops = Interlocked.Increment(ref concurrentOps);
+			Interlocked.Increment(ref concurrentOps);
 
 			if (Drive != CCArrayGear.Reverse)
 			{
@@ -418,9 +412,10 @@ namespace System.Collections.Concurrent
 		/// If shrinking, the number of not-null values, i.e. ItemsCount is also updated.
 		/// </summary>
 		/// <param name="length">The new length.</param>
+		/// <param name="nullBlocksOnShrink">If true (default) deallocates the blocks, otherwise nulls the cells.</param>
 		/// <exception cref="System.ArgumentOutOfRangeException">If length is negative or greater than the capacity.</exception>
 		/// <exception cref="System.InvalidOperationException">When Drive != Gear.P </exception>
-		public void Resize(int length, bool nullBlocksOnShrink = false)
+		public void Resize(int length, bool nullBlocksOnShrink = true)
 		{
 			lock (commonLock)
 			{
@@ -475,10 +470,9 @@ namespace System.Collections.Concurrent
 
 		/// <summary>
 		/// Sets the provided item (ref or null) to all available cells.
-		/// The Drive must be either N or Straight, meaning that 
-		/// there is a race with Append() and set.
-		/// The method is synchronized.
+		/// The Drive must be N.
 		/// </summary>
+		/// <remarks>The method is synchronized.</remarks>
 		/// <param name="item">The ref to be set</param>
 		/// <exception cref="System.InvalidOperationException">Drive is not N or Straight</exception>
 		public void Format(T item)
@@ -489,10 +483,7 @@ namespace System.Collections.Concurrent
 
 				try
 				{
-					var d = Drive;
-
-					if (d != CCArrayGear.N && d != CCArrayGear.Straight)
-						throw new InvalidOperationException("Wrong drive");
+					if (Drive != CCArrayGear.N) throw new InvalidOperationException("Wrong drive");
 
 					for (int b = 0; b < blocks.Length; b++)
 						for (int i = 0; i < BlockLength; i++)
@@ -506,7 +497,8 @@ namespace System.Collections.Concurrent
 		}
 
 		/// <summary>
-		/// Moves the AppendIndex to a new location, which must be and less than Capacity.
+		/// Moves the AppendIndex to a new, than Capacity position.
+		/// The drive must be P.
 		/// </summary>
 		/// <param name="newIndex">The new index.</param>
 		/// <param name="forced">If true, blindly swaps the AppendIndex with the newIndex, regardless
@@ -520,14 +512,10 @@ namespace System.Collections.Concurrent
 					Interlocked.Increment(ref concurrentOps);
 					try
 					{
-						var d = Drive;
-						if (d != CCArrayGear.P)
-							throw new InvalidOperationException("Wrong drive");
+						if (Drive != CCArrayGear.P) throw new InvalidOperationException("Wrong drive");
+						if (newIndex < 0 || newIndex >= AllocatedSlots) throw new ArgumentOutOfRangeException("newIndex");
 
-						if (newIndex < 0 || newIndex >= AllocatedSlots)
-							throw new ArgumentOutOfRangeException("newIndex");
-
-						var old = Interlocked.Exchange(ref appendIndex, newIndex);
+						Interlocked.Exchange(ref appendIndex, newIndex);
 					}
 					finally
 					{

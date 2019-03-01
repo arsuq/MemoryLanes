@@ -294,6 +294,7 @@ namespace Tests.Surface.Collections
 			for (int i = 0; i < 100; i++)
 				arr.Append(i);
 
+			arr.ShiftGear(CCArrayGear.N);
 			object o = 3;
 			arr.Format(o);
 

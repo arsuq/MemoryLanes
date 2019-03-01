@@ -138,6 +138,25 @@ namespace System
 		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
 		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int Write(ushort v, int idx)
+		{
+			if (idx < 0 || idx >= Length)
+				throw new ArgumentOutOfRangeException("idx");
+
+			LaneCheck();
+			return BitConverter.TryWriteBytes(Span().Slice(idx), v) ? idx + 2 : -idx;
+		}
+
+		/// <summary>
+		/// Writes the value starting at idx.
+		/// </summary>
+		/// <param name="v">The value</param>
+		/// <param name="idx">The index in the fragment window.</param>
+		/// <returns>The new offset, i.e. idx + the value length in bytes. If fails returns -idx.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If idx is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public int Write(int v, int idx)
 		{
 			if (idx < 0 || idx >= Length)
@@ -364,6 +383,27 @@ namespace System
 
 			LaneCheck();
 			v = BitConverter.ToInt16(Span().Slice(idx, 2));
+
+			return idx + 2;
+		}
+
+		/// <summary>
+		/// Reads the value starting at idx.
+		/// </summary>
+		/// <param name="v">The ref value to be updated.</param>
+		/// <param name="idx">Index in the fragment window.</param>
+		/// <returns>The updated position as idx + the value length.</returns>
+		/// <exception cref="System.ArgumentOutOfRangeException">If idx is out of range</exception>
+		/// <exception cref="System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+		/// Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		public int Read(ref ushort v, int idx)
+		{
+			if (idx < 0 || idx >= Length)
+				throw new ArgumentOutOfRangeException("idx");
+
+			LaneCheck();
+			v = BitConverter.ToUInt16(Span().Slice(idx, 2));
 
 			return idx + 2;
 		}

@@ -117,7 +117,8 @@
         </member>
         <member name="M:System.Collections.Concurrent.ConcurrentArray`1.ShiftGear(System.Collections.Concurrent.CCArrayGear,System.Action,System.Int32)">
             <summary>
-            Blocks until the gear is shifted. 
+            Shifts the gear and blocks until all operations in the old drive mode complete.
+            If OnGearShift is not null it's launched in a new Task, wrapped in a try catch, swallowing potential exceptions.
             </summary>
             <param name="g">The new concurrent mode.</param>
             <param name="f">Guarantees the execution of f() within the lock scope, in case that other shifts are waiting.</param>
@@ -198,22 +199,23 @@
             If shrinking, the number of not-null values, i.e. ItemsCount is also updated.
             </summary>
             <param name="length">The new length.</param>
+            <param name="nullBlocksOnShrink">If true (default) deallocates the blocks, otherwise nulls the cells.</param>
             <exception cref="T:System.ArgumentOutOfRangeException">If length is negative or greater than the capacity.</exception>
             <exception cref="T:System.InvalidOperationException">When Drive != Gear.P </exception>
         </member>
         <member name="M:System.Collections.Concurrent.ConcurrentArray`1.Format(`0)">
             <summary>
             Sets the provided item (ref or null) to all available cells.
-            The Drive must be either N or Straight, meaning that 
-            there is a race with Append() and set.
-            The method is synchronized.
+            The Drive must be N.
             </summary>
+            <remarks>The method is synchronized.</remarks>
             <param name="item">The ref to be set</param>
             <exception cref="T:System.InvalidOperationException">Drive is not N or Straight</exception>
         </member>
         <member name="M:System.Collections.Concurrent.ConcurrentArray`1.MoveAppendIndex(System.Int32,System.Boolean)">
             <summary>
-            Moves the AppendIndex to a new location, which must be and less than Capacity.
+            Moves the AppendIndex to a new, than Capacity position.
+            The drive must be P.
             </summary>
             <param name="newIndex">The new index.</param>
             <param name="forced">If true, blindly swaps the AppendIndex with the newIndex, regardless
@@ -563,6 +565,17 @@
             <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
+        <member name="M:System.MemoryFragment.Write(System.UInt16,System.Int32)">
+            <summary>
+            Writes the value starting at idx.
+            </summary>
+            <param name="v">The value</param>
+            <param name="idx">The index in the fragment window.</param>
+            <returns>The new offset, i.e. idx + the value length in bytes. If fails returns -idx.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
+            <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+            Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
+        </member>
         <member name="M:System.MemoryFragment.Write(System.Int32,System.Int32)">
             <summary>
             Writes the value starting at idx.
@@ -685,6 +698,17 @@
             Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
         </member>
         <member name="M:System.MemoryFragment.Read(System.Int16@,System.Int32)">
+            <summary>
+            Reads the value starting at idx.
+            </summary>
+            <param name="v">The ref value to be updated.</param>
+            <param name="idx">Index in the fragment window.</param>
+            <returns>The updated position as idx + the value length.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">If idx is out of range</exception>
+            <exception cref="T:System.MemoryLaneException">If UseAccessChecks and the lane is closed or cycled.
+            Codes: AttemptToAccessWrongLaneCycle, AttemptToAccessClosedLane AttemptToAccessDisposedLane</exception>
+        </member>
+        <member name="M:System.MemoryFragment.Read(System.UInt16@,System.Int32)">
             <summary>
             Reads the value starting at idx.
             </summary>
