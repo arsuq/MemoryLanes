@@ -217,7 +217,7 @@
           "lib/netstandard2.0/TestSurface.dll": {}
         }
       },
-      "MemoryLanes/1.2.0": {
+      "MemoryLanes/1.3.0": {
         "type": "project",
         "framework": ".NETCoreApp,Version=v2.2",
         "compile": {
@@ -711,7 +711,7 @@
         "testsurface.nuspec"
       ]
     },
-    "MemoryLanes/1.2.0": {
+    "MemoryLanes/1.3.0": {
       "type": "project",
       "path": "../MemoryLanes/MemoryLanes.csproj",
       "msbuildProject": "../MemoryLanes/MemoryLanes.csproj"
@@ -719,7 +719,7 @@
   },
   "projectFileDependencyGroups": {
     ".NETCoreApp,Version=v2.2": [
-      "MemoryLanes >= 1.2.0",
+      "MemoryLanes >= 1.3.0",
       "Microsoft.NETCore.App >= 2.2.0",
       "TestSurface >= 1.1.0"
     ]

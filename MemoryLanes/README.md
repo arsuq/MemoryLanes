@@ -1,7 +1,7 @@
 
 # Memory Lanes
 
-> v1.1
+> v1.3
 
 ![](Logo128.jpg)
 
@@ -16,7 +16,7 @@ which could be stored on one of three locations:
 
 A **MemoryLane** represents a buffer which is already allocated and can be sliced
 on demand by reserving ranges in one direction only.
-Consequently there is no search involved nor memory fragmentation as the exact number of bytes is blocked, as long as 
+Consequently there is no search involved and the exact number of bytes is blocked, as long as 
 the lane has enough free space. 
 
 
@@ -117,7 +117,7 @@ There are two disposal modes, which could be set in the HighwaySettings construc
 ## Usage scenarios
 
 The original purpose for the lanes is message assembling in socket communication, which
-involves fast allocation and deallocation of memory. In most cases the received bytes are 
+demands quick memory allocation and release. In most cases the received bytes are 
 immediately converted into a managed heap object and then discarded. With proper framing
 one could make use of the different storage locations by using a heap highway for small messages
 and a mapped highway when working with megabytes of data. 
@@ -131,18 +131,15 @@ shift the allocations to the next one, allowing the first to reset.
 
 ### Unpredictable fragment lifetime 
 
-In network communication there is no delivery guarantee so the two lanes initial layout would be too optimistic
-for expecting predictable fragment disposal. Sometimes even small messages can be delivered 
-in snail pace due to connectivity problems. In such cases having a dedicated highway per client 
-is one option to reduce the probability of having a pinned lane. Alternatively, one may use a highway 
-with multiple short lanes, expecting long living fragments and infrequent resets. That way the amount of locked
-bytes is constrained to a value that seems reasonable in the specific case.
+In network communication there is no delivery guarantee so the two lanes initial layout would be too optimistic.
+Sometimes even small messages can be delivered in snail pace due to connectivity problems. In such cases 
+having a dedicated highway per client is one option to reduce the probability of having a pinned lane. 
+Alternatively, one may use a highway with multiple short lanes, expecting long living fragments and infrequent resets.
+That way the amount of locked bytes is constrained to a value that seems reasonable in the specific case.
 
 ![](PinnedLane.png)
 
-Example: Two 8M lanes could be structured as 8 2M lanes, assuming that one can
-redirect larger than 2M messages to another highway, otherwise the MemoryCarriage will 
-continuously append new lanes with the requested size, ignoring all 2M lanes. 
+Example: Two 8M lanes could be structured as 16x1M lanes or 4x512K + 4x1M + 3x2M + 1x4M etc.
 
 Additionally to the lanes API one could use the native heap directly through the 
 **MarshalSlot** class. It is a MemoryFragment thus having the same Read/Write/Span
@@ -152,7 +149,7 @@ accessors, but it is not part of any lane and doesn't affect other fragments.
 ## Highway limits
 
 Using the MemoryCarriage is somewhat similar to a stack allocation, although the space isn't fixed,
-unless you configure it to be so by passing an instance of the **HighwaySettings** class in the
+unless one configures it to be so by passing an instance of the **HighwaySettings** class in the
 Highway constructor.
 
 ```csharp
@@ -161,9 +158,10 @@ public class HighwaySettings
 	public Func<bool> OnMaxLaneReached;
 	public Func<bool> OnMaxTotalBytesReached;
 
-	public const int MAX_LANE_COUNT = 5000;
-	public const int MIN_CAPACITY = 1023;
-	public const int MAX_CAPACITY = 2_000_000_000;
+	public const int MAX_LANE_COUNT = 1000;
+	public const int MIN_LANE_CAPACITY = 1;
+	public const int MAX_LANE_CAPACITY = 2_000_000_000;
+	public const long MAX_HIGHWAY_CAPACITY = 200_000_000_000;
 
 	public readonly int DefaultCapacity;
 	public readonly int MaxLanesCount;
@@ -177,28 +175,22 @@ When any of these thresholds is reached (MaxLanesCount or MaxTotalAllocatedBytes
 default the corresponding error code is thrown. If the delegates are not null and return true
 the allocation will simply fail, returning null instead of a fragment instance.
 
-### Tracking limits
-
-In GhostTracking disposal mode the lane will stop allocating fragments if there is no more
-free tracking slots available. This number is not a setting for configuration simplicity, it's
-calculated as  lane.Capacity in bytes / 32, assuming that fragments with less than 32 bytes 
-will be larger than the fragment itself hence totally useless as they'll pollute the managed heap.
-For example, the lane 0 in a highway (default ctor) has a maximum of 8_000_000/32 = 250_000 tracking slots.
-Note that only sqrt(n) of them are preallocated initially, i.e. 500 and will grow by 500 up to the limit.
 
 ### Size limits
 
 One may notice that the buffer lengths are limited to Int32.MaxValue everywhere 
-in this API, so one couldn't use a MappedHighway with 4GB memory mapped file.
-The reason is compatibility with the Memory<T> and Span<T> implementations.
+in the API, so one couldn't use a MappedHighway with 4GB mapped file.
+The reason is having compatibility with the *Memory* and *Span* structs.
 
 
-## Classes
+## Types
 
-The library adds the following classes:
+> The library doesn't use own namespaces.
 
 
-In the **System** namespace:
+In **System**:
+
+- HighwaySettings
 
 - **Fragments**
   - MemoryFragment (abstract)
@@ -219,20 +211,18 @@ In the **System** namespace:
   - HeapHighway
   - MappedHighway
   - MarhsalHighway
-	
-
-- HighwaySettings
 
 - **Exceptions**
   - MemoryLaneException
   - InvariantException
   - SynchronizationException
 
-In the **System.Collections.Concurrent** namespace:
+In **System.IO**: 
 
-- ConcurrentArray
+- FragmentStream
+- HighwayStream
 
-## Summary
+In **System.Collections.Concurrent**:
 
-Use the MemoryLanes API to relieve the GC from managing workloads that are predictable 
-or simple enough to be handled manually. 
+- CCube
+
