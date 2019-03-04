@@ -343,7 +343,7 @@ namespace System.Collections.Concurrent
 			var j = AppendIndex;
 			var p = new CCubePos(j);
 
-			if (blocks[p.D0] != null && blocks[p.D0].Length > p.D1 &&
+			if (j >= 0 && blocks[p.D0] != null && blocks[p.D0].Length > p.D1 &&
 				blocks[p.D0][p.D1] != null && blocks[p.D0][p.D1].Length > p.D2)
 				for (int i = 0; i <= AppendIndex; i++)
 				{

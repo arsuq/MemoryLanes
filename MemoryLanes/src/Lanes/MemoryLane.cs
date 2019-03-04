@@ -27,10 +27,7 @@ namespace System
 			ResetMode = rm;
 
 			if (rm == MemoryLaneResetMode.TrackGhosts)
-			{
-				var side = 1 + (int)Math.Sqrt(capacity / TRACKER_ASSUMED_MIN_FRAG_SIZE_BYTES);
-				Tracker = new ConcurrentArray<WeakReference<MemoryFragment>>(side, side);
-			}
+				Tracker = new CCube<WeakReference<MemoryFragment>>();
 		}
 
 		/// <summary>
@@ -286,7 +283,7 @@ namespace System
 
 					f.UseAccessChecks = false;
 
-					using (var fs = f.CreateStream()) 
+					using (var fs = f.CreateStream())
 						read = ((Stream)fs).ReadFrom(source, count).Result;
 				}
 
@@ -352,7 +349,7 @@ namespace System
 		public readonly MemoryLaneResetMode ResetMode;
 
 		// The Tracker index is the Allocation index of the fragment
-		ConcurrentArray<WeakReference<MemoryFragment>> Tracker = null;
+		CCube<WeakReference<MemoryFragment>> Tracker = null;
 
 		SpinLock spinGate = new SpinLock();
 		SpinLock resetGate = new SpinLock();

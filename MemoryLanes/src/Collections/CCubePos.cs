@@ -26,7 +26,7 @@
 		public const int BASE_SHIFT = 10;
 		public const int PLANE_SHIFT = 20;
 		public const int BASE_REM = 1023;
-		public const int PLANE_REM = (1024 * 1024) - 1;
-		public const int PLANE = 1024 * 1024;
+		public const int PLANE_REM = (1 << 20) - 1;
+		public const int PLANE = 1 << 20;
 	}
 }

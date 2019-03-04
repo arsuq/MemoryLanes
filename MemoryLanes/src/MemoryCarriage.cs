@@ -23,13 +23,7 @@ namespace System
 			if (settings.RegisterForProcessExitCleanup)
 				AppDomain.CurrentDomain.ProcessExit += (s, e) => Dispose();
 
-			if (stg.MaxLanesCount < 1000)
-				Lanes = new ConcurrentArray<L>(stg.MaxLanesCount, 1);
-			else
-			{
-				var lenBlockSize = 1 + (int)Math.Sqrt(stg.MaxLanesCount);
-				Lanes = new ConcurrentArray<L>(lenBlockSize, lenBlockSize);
-			}
+			Lanes = new CCube<L>();
 
 			noluckGate = new SemaphoreSlim(settings.ConcurrentNewLaneAllocations, settings.ConcurrentNewLaneAllocations);
 		}
@@ -428,7 +422,7 @@ namespace System
 		int freeGhostsGate = 0;
 		bool isDisposed;
 		SemaphoreSlim noluckGate;
-		ConcurrentArray<L> Lanes;
+		CCube<L> Lanes;
 	}
 
 	/// <summary>

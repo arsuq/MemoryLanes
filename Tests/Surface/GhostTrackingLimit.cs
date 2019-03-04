@@ -11,11 +11,11 @@ namespace Tests.Surface
 {
 	public class GhostTrackingLimit : ITestSurface
 	{
-		public string Info => $"Asserts that lanes stop allocating fragments when the ghost-tracking capacity is reached. Args: -store mh mmf nh";
+		public string Info => $"[Obsolete] Asserts that lanes stop allocating fragments when the ghost-tracking capacity is reached. Args: -store mh mmf nh";
 
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
-		public bool IndependentLaunchOnly => false;
+		public bool IndependentLaunchOnly => true;
 		public bool IsComplete { get; private set; }
 
 		public async Task Run(IDictionary<string, List<string>> args)
@@ -35,7 +35,7 @@ namespace Tests.Surface
 
 		bool skipLaneWhenMaxedOut(List<string> opt)
 		{
-			var stg = new HighwaySettings(1024, 2, MemoryLaneResetMode.TrackGhosts);
+			var stg = new HighwaySettings(int.MaxValue, 2, MemoryLaneResetMode.TrackGhosts);
 			var iH = new Dictionary<string, IMemoryHighway>();
 
 			var LEN = stg.DefaultCapacity;
