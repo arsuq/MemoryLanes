@@ -54,8 +54,15 @@
         </member>
         <member name="M:System.Collections.Concurrent.CCube`1.#ctor(System.Collections.Concurrent.CCubeExpansion)">
             <summary>
+            Init a cube with a SIDE number of slots.
+            </summary>
+            <param name="expansion">If not set DEF_EXP is used.</param>
+        </member>
+        <member name="M:System.Collections.Concurrent.CCube`1.#ctor(System.Int32,System.Collections.Concurrent.CCubeExpansion)">
+            <summary>
             Allocates one block of 1024 cells.
             </summary>
+            <param name="initSlots">To preallocate. The min value is SIDE.</param>
             <param name="expansion">A callback that must return the desired AllocatedSlots count.</param>
         </member>
         <member name="F:System.Collections.Concurrent.CCube`1.BlockLength">
@@ -75,7 +82,7 @@
         </member>
         <member name="P:System.Collections.Concurrent.CCube`1.ItemsCount">
             <summary>
-            The sum of all non null items.
+            The not null items count.
             </summary>
         </member>
         <member name="P:System.Collections.Concurrent.CCube`1.AllocatedSlots">
@@ -115,7 +122,11 @@
             <summary>
             Access to the individual cells.
             </summary>
-            <param name="index">Must be less than AppendIndex</param>
+            <remarks>
+            Reading is allowed beyond the AppendIndex if less than AllocatedSlots. This means that 
+            RemoveLast() and get can safely be executed concurrently.
+            </remarks>
+            <param name="index">For set must be less than AppendIndex, for get less than AllocatedSlots </param>
             <returns>The object reference at the index</returns>
             <exception cref="T:System.ArgumentOutOfRangeException">index</exception>
             <exception cref="T:System.InvalidOperationException">If the Drive is wrong</exception>
@@ -204,6 +215,16 @@
             <param name="newIndex">The new index.</param>
             <param name="forced">If true, blindly swaps the AppendIndex with the newIndex, regardless
             of the Drive mode.</param>
+        </member>
+        <member name="F:System.Collections.Concurrent.CCube`1.SIDE">
+            <summary>
+            A block length = 1024.
+            </summary>
+        </member>
+        <member name="F:System.Collections.Concurrent.CCube`1.DEF_EXP">
+            <summary>
+            The default cube expansion = 2^15 slots.
+            </summary>
         </member>
         <member name="T:System.HeapFragment">
             <summary>

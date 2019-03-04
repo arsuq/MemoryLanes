@@ -26,27 +26,55 @@ namespace Tests.Surface.Collections
 			try
 			{
 				var rdm = new Random();
-				var arr = new CCube<object>();
+				var qb = new CCube<object>();
 
-				void ccpos()
+				void append_latency()
 				{
-					var p1 = new CCubePos(1292);
-					var p2 = new CCubePos(132);
-					var p3 = new CCubePos(4567);
-					var p4 = new CCubePos(102345);
-					var p5 = new CCubePos(193202345);
+					var CAP = int.MaxValue / 32;
+
+					// Weirdly, preallocating CAP slots seems to make less than 300ms difference.
+					var cube = new CCube<object>(CAP);
+
+					// Before testing the setter with preallocated CAP, move the AppendIndex to CAP
+					// cube.MoveAppendIndex(CAP, true);
+
+					var start = DateTime.Now;
+
+					// Parallel.For(0, CAP, (i) => cube.Append(i));
+
+					for (int i = 0; i < CAP; i++)
+						cube.Append(i);
+
+					var cubeTime = DateTime.Now.Subtract(start);
+
+					cube = null;
+					GC.Collect(2);
+
+					// Something expandable and concurrent.
+					// The CCQ seems to be more efficient than the CCStack.
+					var queue = new ConcurrentQueue<object>();
+					start = DateTime.Now;
+
+					// Parallel.For(0, CAP, (i) => stack.Push(i));
+
+					for (int i = 0; i < CAP; i++)
+						queue.Enqueue(i);
+
+					var qTime = DateTime.Now.Subtract(start);
+
+					$"Allocating {CAP} objects: cube {cubeTime.TotalMilliseconds}ms stack {qTime.TotalMilliseconds} ".AsTestInfo();
 				}
 
-				ccpos();
-
-				if (!parallelAppend(rdm, arr)) return;
-				if (!parallelAppendRemoveLast(rdm, arr)) return;
-				if (!shrink(arr)) return;
-				if (!expand(arr)) return;
+				if (!parallelAppend(rdm, qb)) return;
+				if (!parallelAppendRemoveLast(rdm, qb)) return;
+				if (!shrink(qb)) return;
+				if (!expand(qb)) return;
 				if (!customExpand()) return;
 				if (!gears()) return;
 				if (!format()) return;
 				if (!take()) return;
+
+				append_latency();
 
 				Passed = true;
 				IsComplete = true;
@@ -60,7 +88,7 @@ namespace Tests.Surface.Collections
 
 		bool customExpand()
 		{
-			var ccaexp = new CCube<object>((slots) => slots < 1500 ? slots * 2 : Convert.ToInt32(slots * 1.5));
+			var ccaexp = new CCube<object>((in int slots) => slots < 1500 ? slots * 2 : Convert.ToInt32(slots * 1.5));
 			var firstExp = ccaexp.BlockLength + 1;
 			var secondExp = ccaexp.BlockLength * 2 + 1;
 
@@ -394,8 +422,7 @@ namespace Tests.Surface.Collections
 			Task.WaitAll(P);
 			Task.WaitAll(C);
 
-			var p = new CCubePos(CAP);
-			var als = cca.BlockLength << 6; // Six double expansions
+			var als = 1024 + (2 * CCube<object>.DEF_EXP);
 
 			if (cca.AllocatedSlots != als)
 			{

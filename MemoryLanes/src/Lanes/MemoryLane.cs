@@ -378,7 +378,7 @@ namespace System
 		TrackGhosts = 1
 	}
 
-	internal struct FragmentRange
+	readonly struct FragmentRange
 	{
 		public FragmentRange(int offset, int length, int allocation)
 		{
@@ -388,8 +388,8 @@ namespace System
 		}
 
 		// Should be long, but Memory<T> uses int for now
-		public int Offset;
-		public int Length;
-		public int Allocation;
+		public readonly int Offset;
+		public readonly int Length;
+		public readonly int Allocation;
 	}
 }

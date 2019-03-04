@@ -4,7 +4,7 @@
 
 namespace System.Collections.Concurrent
 {
-	ref struct CCubePos
+	readonly ref struct CCubePos
 	{
 		public CCubePos(in int index)
 		{

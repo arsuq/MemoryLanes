@@ -16,7 +16,7 @@ namespace System.Collections.Concurrent
 	/// </summary>
 	/// <param name="allocatedSlots">The current AllocationSlots value.</param>
 	/// <returns>The desired new AllocatedSlots count.</returns>
-	public delegate int CCubeExpansion(int allocatedSlots);
+	public delegate int CCubeExpansion(in int allocatedSlots);
 
 	/// <summary>
 	/// The allowed concurrent operations on a CCube
@@ -24,18 +24,18 @@ namespace System.Collections.Concurrent
 	public enum CCubeGear
 	{
 		/// <summary>
-		/// Concurrent gets and sets are enabled, but not Append/Remove or Resize.
+		/// Concurrent gets, sets and Take() are enabled, but not Append/Remove or Resize.
 		/// </summary>
 		N = 0,
 		/// <summary>
-		/// Concurrent Append(), gets and sets are enabled.
+		/// Concurrent Append(), Take(), gets and sets are enabled.
 		/// </summary>
 		Straight = 1,
 		/// <summary>
 		/// Concurrent RemoveLast() gets and sets are enabled.
 		/// </summary>
 		/// <remarks>
-		/// Getting or setting values in this mode is racing with the AppendPos.
+		/// Reading is allowed if less than AlloatedSlots, Writes must be less than AppendIndex.
 		/// </remarks>
 		Reverse = -1,
 		/// <summary>
@@ -45,7 +45,10 @@ namespace System.Collections.Concurrent
 	}
 
 	/// <summary>
-	/// Represents a 3d array as one virtual contiguous array. 
+	/// A virtual contiguous array backed by a cube of three jagged arrays. 
+	/// Unlike the linked list based concurrent structures, supports parallel indexed RW and expansion.
+	/// The not-null items count is always known so one could get/set, Append() or Take() freely. 
+	/// For no good reason is limited to int.MaxValue/2 length.
 	/// </summary>
 	/// <remarks>
 	/// One must inspect the Drive property before accessing the API and assert that the 
@@ -56,22 +59,45 @@ namespace System.Collections.Concurrent
 	public class CCube<T> where T : class
 	{
 		/// <summary>
+		/// Init a cube with a SIDE number of slots.
+		/// </summary>
+		/// <param name="expansion">If not set DEF_EXP is used.</param>
+		public CCube(CCubeExpansion expansion = null) : this(SIDE, expansion) { }
+
+		/// <summary>
 		/// Allocates one block of 1024 cells.
 		/// </summary>
+		/// <param name="initSlots">To preallocate. The min value is SIDE.</param>
 		/// <param name="expansion">A callback that must return the desired AllocatedSlots count.</param>
-		public CCube(CCubeExpansion expansion = null)
+		public CCube(int initSlots, CCubeExpansion expansion = null)
 		{
-			this.expansion = expansion != null ? expansion : defaultExpansion;
+			if (initSlots < SIDE) initSlots = SIDE;
+			if (initSlots > Capacity) throw new ArgumentOutOfRangeException("initSlots");
+
+			this.expansion = expansion;
 
 			BlockLength = SIDE;
 			blocks = new T[SIDE][][];
 			direction = 1;
 
-			// Allocate one block
-			blocks[0] = new T[SIDE][];
-			blocks[0][0] = new T[SIDE];
+			var d1b = 0;
+			while (initSlots > allocatedSlots)
+			{
+				if (blocks[d0b] == null) blocks[d0b] = new T[SIDE][];
+				if (blocks[d0b][d1b] == null)
+				{
+					blocks[d0b][d1b] = new T[SIDE];
+					allocatedSlots += SIDE;
+				}
 
-			allocatedSlots += SIDE;
+				d1b++;
+
+				if (d1b >= SIDE)
+				{
+					d0b++;
+					d1b = 0;
+				}
+			}
 		}
 
 		/// <summary>
@@ -90,7 +116,7 @@ namespace System.Collections.Concurrent
 		public int AppendIndex => Volatile.Read(ref appendIndex);
 
 		/// <summary>
-		/// The sum of all non null items.
+		/// The not null items count.
 		/// </summary>
 		public int ItemsCount => Volatile.Read(ref notNullsCount);
 
@@ -171,7 +197,11 @@ namespace System.Collections.Concurrent
 		/// <summary>
 		/// Access to the individual cells.
 		/// </summary>
-		/// <param name="index">Must be less than AppendIndex</param>
+		/// <remarks>
+		/// Reading is allowed beyond the AppendIndex if less than AllocatedSlots. This means that 
+		/// RemoveLast() and get can safely be executed concurrently.
+		/// </remarks>
+		/// <param name="index">For set must be less than AppendIndex, for get less than AllocatedSlots </param>
 		/// <returns>The object reference at the index</returns>
 		/// <exception cref="ArgumentOutOfRangeException">index</exception>
 		/// <exception cref="System.InvalidOperationException">If the Drive is wrong</exception>
@@ -180,7 +210,9 @@ namespace System.Collections.Concurrent
 			get
 			{
 				if (Drive == CCubeGear.P) throw new InvalidOperationException("Wrong drive");
-				if (index < 0 || index > AppendIndex) throw new ArgumentOutOfRangeException("index");
+
+				// Reading values is allowed beyond the Append index
+				if (index < 0 || index > AllocatedSlots) throw new ArgumentOutOfRangeException("index");
 
 				var p = new CCubePos(index);
 
@@ -236,24 +268,35 @@ namespace System.Collections.Concurrent
 					{
 						// Volatile read once
 						var cap = AllocatedSlots;
+
 						// Could have been augmented by another thread during the wait.
 						if (ccadd + AppendIndex >= cap)
 						{
 							var p = new CCubePos(cap);
 							var d1b = p.D1;
-							var newCap = expansion(cap);
+
+							// The default expansion assumes at least x10K slots usage,
+							// thus the petty doubling of 1K to 16K are skipped and 32K slots are
+							// constantly added. This also avoids over-committing such as 
+							// the Count doubling used in List for example. 
+							var newCap = expansion != null ? expansion(cap) : allocatedSlots + DEF_EXP;
+							if (newCap > Capacity) newCap = Capacity;
+
 							while (newCap > cap)
 							{
 								if (blocks[d0b] == null) blocks[d0b] = new T[SIDE][];
 								if (blocks[d0b][d1b] == null)
 								{
+									// These blocks are not allocated on the LOH. 
+									// The allocation should be fast and the GC will 
+									// compact them constantly.
 									blocks[d0b][d1b] = new T[SIDE];
 									cap += SIDE;
 								}
 
 								d1b++;
 
-								if (d1b > SIDE)
+								if (d1b >= SIDE)
 								{
 									d0b++;
 									d1b = 0;
@@ -264,10 +307,12 @@ namespace System.Collections.Concurrent
 						}
 					}
 
-				if (AppendIndex < AllocatedSlots)
+				// Only forced MoveAppendIndex could mess up the Head
+				if (AppendIndex < allocatedSlots)
 				{
+					// .. but of course it could happen HERE
 					pos = Interlocked.Increment(ref appendIndex);
-					this[pos] = item;
+					set(pos, item);
 				}
 			}
 			finally
@@ -515,9 +560,8 @@ namespace System.Collections.Concurrent
 				}
 		}
 
-
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		T set(int index, T value)
+		T set(in int index, in T value)
 		{
 			var p = new CCubePos(index);
 			var old = Interlocked.Exchange(ref blocks[p.D0][p.D1][p.D2], value);
@@ -531,16 +575,6 @@ namespace System.Collections.Concurrent
 			return old;
 		}
 
-		int defaultExpansion(int allocatedSlots)
-		{
-			if (allocatedSlots < SIDE) return SIDE;
-
-			int newCap = allocatedSlots * 2;
-			if (newCap > Capacity) newCap = Capacity;
-
-			return newCap;
-		}
-
 		// Tracks the AppendIndex movement, the indexer is not counted as an op.
 		int concurrentOps;
 		int concurrentAdds;
@@ -550,7 +584,15 @@ namespace System.Collections.Concurrent
 		int d0b;
 		int direction;
 
-		const int SIDE = 1 << 10;
+
+		/// <summary>
+		/// A block length = 1024.
+		/// </summary>
+		public const int SIDE = 1 << 10;
+		/// <summary>
+		/// The default cube expansion = 2^15 slots.
+		/// </summary>
+		public const int DEF_EXP = 1 << 15;
 		const int PLANE = 1 << 20;
 
 		CCubeExpansion expansion;
