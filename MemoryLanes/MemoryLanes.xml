@@ -20,12 +20,12 @@
         </member>
         <member name="F:System.Collections.Concurrent.CCubeGear.N">
             <summary>
-            Concurrent gets and sets are enabled, but not Append/Remove or Resize.
+            Concurrent gets, sets and Take() are enabled, but not Append/Remove or Resize.
             </summary>
         </member>
         <member name="F:System.Collections.Concurrent.CCubeGear.Straight">
             <summary>
-            Concurrent Append(), gets and sets are enabled.
+            Concurrent Append(), Take(), gets and sets are enabled.
             </summary>
         </member>
         <member name="F:System.Collections.Concurrent.CCubeGear.Reverse">
@@ -33,7 +33,7 @@
             Concurrent RemoveLast() gets and sets are enabled.
             </summary>
             <remarks>
-            Getting or setting values in this mode is racing with the AppendPos.
+            Reading is allowed if less than AlloatedSlots, Writes must be less than AppendIndex.
             </remarks>
         </member>
         <member name="F:System.Collections.Concurrent.CCubeGear.P">
@@ -43,7 +43,10 @@
         </member>
         <member name="T:System.Collections.Concurrent.CCube`1">
             <summary>
-            Represents a 3d array as one virtual contiguous array. 
+            A virtual contiguous array backed by a cube of jagged arrays. 
+            Unlike the linked list based concurrent structures, supports indexed RW and expansion.
+            The not-null items count is always known so one could get/set, Append() or Take() freely. 
+            For no good reason is limited to int.MaxValue/2 length.
             </summary>
             <remarks>
             One must inspect the Drive property before accessing the API and assert that the 

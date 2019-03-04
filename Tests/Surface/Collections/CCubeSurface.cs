@@ -33,7 +33,7 @@ namespace Tests.Surface.Collections
 					var CAP = int.MaxValue / 32;
 
 					// Weirdly, preallocating CAP slots seems to make less than 300ms difference.
-					var cube = new CCube<object>(CAP);
+					var cube = new CCube<object>();
 
 					// Before testing the setter with preallocated CAP, move the AppendIndex to CAP
 					// cube.MoveAppendIndex(CAP, true);
@@ -57,22 +57,22 @@ namespace Tests.Surface.Collections
 
 					// Parallel.For(0, CAP, (i) => stack.Push(i));
 
-					for (int i = 0; i < CAP; i++)
-						queue.Enqueue(i);
+					//for (int i = 0; i < CAP; i++)
+					//	queue.Enqueue(i);
 
 					var qTime = DateTime.Now.Subtract(start);
 
 					$"Allocating {CAP} objects: cube {cubeTime.TotalMilliseconds}ms stack {qTime.TotalMilliseconds} ".AsTestInfo();
 				}
 
-				if (!parallelAppend(rdm, qb)) return;
-				if (!parallelAppendRemoveLast(rdm, qb)) return;
-				if (!shrink(qb)) return;
-				if (!expand(qb)) return;
-				if (!customExpand()) return;
-				if (!gears()) return;
-				if (!format()) return;
-				if (!take()) return;
+				//if (!parallelAppend(rdm, qb)) return;
+				//if (!parallelAppendRemoveLast(rdm, qb)) return;
+				//if (!shrink(qb)) return;
+				//if (!expand(qb)) return;
+				//if (!customExpand()) return;
+				//if (!gears()) return;
+				//if (!format()) return;
+				//if (!take()) return;
 
 				append_latency();
 

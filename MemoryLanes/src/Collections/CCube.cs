@@ -45,8 +45,8 @@ namespace System.Collections.Concurrent
 	}
 
 	/// <summary>
-	/// A virtual contiguous array backed by a cube of three jagged arrays. 
-	/// Unlike the linked list based concurrent structures, supports parallel indexed RW and expansion.
+	/// A virtual contiguous array backed by a cube of jagged arrays. 
+	/// Unlike the linked list based concurrent structures, supports indexed RW and expansion.
 	/// The not-null items count is always known so one could get/set, Append() or Take() freely. 
 	/// For no good reason is limited to int.MaxValue/2 length.
 	/// </summary>
