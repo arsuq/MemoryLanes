@@ -10,43 +10,6 @@ using System.Threading.Tasks;
 namespace System.Collections.Concurrent
 {
 	/// <summary>
-	/// An expansion calculator for the ConcurrentAttay.
-	/// An instance is called whenever more blocks are needed.
-	/// One could expand differently, depending on the current array size.
-	/// </summary>
-	/// <param name="allocatedSlots">The current AllocationSlots value.</param>
-	/// <param name="blockSize">The constant block size.</param>
-	/// <param name="capacity">The current capacity.</param>
-	/// <returns>The desired new AllocatedSlots count.</returns>
-	public delegate int CCArrayExpansion(int allocatedSlots, int blockSize, int capacity);
-
-	/// <summary>
-	/// The allowed concurrent operations on a ConcurrentArray.
-	/// </summary>
-	public enum CCArrayGear
-	{
-		/// <summary>
-		/// Concurrent gets and sets are enabled, but not Append/Remove or Resize.
-		/// </summary>
-		N = 0,
-		/// <summary>
-		/// Concurrent Append(), gets and sets are enabled.
-		/// </summary>
-		Straight = 1,
-		/// <summary>
-		/// Concurrent RemoveLast() gets and sets are enabled.
-		/// </summary>
-		/// <remarks>
-		/// Getting or setting values in this mode is racing with the AppendPos.
-		/// </remarks>
-		Reverse = -1,
-		/// <summary>
-		/// Only Resize() is allowed.
-		/// </summary>
-		P = -2
-	}
-
-	/// <summary>
 	/// Represents an ordered list of fix-sized arrays as one virtual contiguous array. 
 	/// </summary>
 	/// <remarks>
@@ -55,59 +18,27 @@ namespace System.Collections.Concurrent
 	/// to transition into a correct one.
 	/// </remarks>
 	/// <typeparam name="T">A class</typeparam>
-	public class ConcurrentArray<T> where T : class
+	public class CCube<T> where T : class
 	{
 		/// <summary>
 		/// Allocates an array of arrays with side = sqrt(capacity) 
 		/// </summary>
-		/// <param name="capacity">The total slots</param>
 		/// <param name="expansion">A callback that must return the desired AllocatedSlots count 
 		/// calculated from the args: AllocatedSlots, BlockLength and Capacity.</param>
 		/// <exception cref="ArgumentOutOfRangeException">If the capacity is negative or zero.</exception>
-		public ConcurrentArray(int capacity, CCArrayExpansion expansion = null)
+		public CCube(CCArrayExpansion expansion = null)
 		{
-			if (capacity < 1) throw new ArgumentOutOfRangeException("capacity");
 			this.expansion = expansion != null ? expansion : defaultExpansion;
 
-			var side = (int)Math.Ceiling(Math.Sqrt(capacity));
-
-			BlockLength = side;
-			blocks = new T[side][];
+			BlockLength = SIDE;
+			blocks = new T[SIDE][][];
 			direction = 1;
 
 			// Allocate one block
-			blocks[0] = new T[side];
-			allocatedSlots += side;
-		}
+			blocks[0] = new T[SIDE][];
+			blocks[0][0] = new T[SIDE];
 
-		/// <summary>
-		/// Creates new Concurrent array with predefined max capacity = maxBlocksCount * blockLength.
-		/// </summary>
-		/// <param name="blockLength">The fixed length of the individual blocks</param>
-		/// <param name="maxBlocksCount">The array cannot expand beyond that value</param>
-		/// <param name="initBlocksCount">The number of blocks to allocate in the constructor</param>
-		/// <param name="expansion">A callback that must return the desired AllocatedSlots count 
-		/// calculated from the args: AllocatedSlots, BlockLength and Capacity.</param>
-		public ConcurrentArray(
-			int blockLength,
-			int maxBlocksCount,
-			int initBlocksCount = 1,
-			CCArrayExpansion expansion = null)
-		{
-			if (blockLength < 1) throw new ArgumentException("BaseLength");
-			if (initBlocksCount < 1) throw new ArgumentException("notNullsCount");
-			this.expansion = expansion != null ? expansion : defaultExpansion;
-
-			blocksCount = initBlocksCount;
-			BlockLength = blockLength;
-			blocks = new T[maxBlocksCount][];
-			direction = 1;
-
-			for (int i = 0; i < initBlocksCount; i++)
-			{
-				blocks[i] = new T[blockLength];
-				allocatedSlots += blockLength;
-			}
+			allocatedSlots += SIDE;
 		}
 
 		/// <summary>
@@ -218,10 +149,9 @@ namespace System.Collections.Concurrent
 				if (Drive == CCArrayGear.P) throw new InvalidOperationException("Wrong drive");
 				if (index < 0 || index > AppendIndex) throw new ArgumentOutOfRangeException("index");
 
-				int seq = -1, idx = -1;
-				Index2Seq(index, ref seq, ref idx);
+				var p = new CCubePos(index);
 
-				return Volatile.Read(ref blocks[seq][idx]);
+				return Volatile.Read(ref blocks[p.D0][p.D1][p.D2]);
 			}
 			set
 			{
@@ -276,17 +206,25 @@ namespace System.Collections.Concurrent
 						// Could have been augmented by another thread during the wait.
 						if (ccadd + AppendIndex >= cap)
 						{
+							var p = new CCubePos(AllocatedSlots);
+							var d1b = p.D1;
 							var newCap = expansion(AllocatedSlots, BlockLength, Capacity);
-							// Add as much blockLenght tiles as needed.
 							while (newCap > cap)
 							{
-								if (blocks[blocksCount] == null) blocks[blocksCount] = new T[BlockLength];
+								if (blocks[d0b] == null) blocks[d0b] = new T[SIDE][];
+								if (blocks[d0b][d1b] == null)
+								{
+									blocks[d0b][d1b] = new T[SIDE];
+									cap += SIDE;
+								}
 
-								cap += BlockLength;
-								blocksCount++;
+								d1b++;
 
-								if (blocksCount > blocks.Length)
-									throw new InvariantException("blocksCount", "Maximum number of blocks reached.");
+								if (d1b > SIDE)
+								{
+									d0b++;
+									d1b = 0;
+								}
 							}
 
 							Interlocked.Exchange(ref allocatedSlots, cap);
@@ -368,19 +306,19 @@ namespace System.Collections.Concurrent
 		/// <returns>A not null item.</returns>
 		public IEnumerable<T> NotNullItems()
 		{
-			int seq = -1, idx = -1;
 			T item = null;
+			var p = new CCubePos(AppendIndex);
 
-			// The drive could change while traversing, but neither locking 
-			// or continuous checking seem appropriate. The later would merely
-			// change the exception type to InvalidOperationException.
-			for (int i = 0; i <= AppendIndex; i++)
-			{
-				Index2Seq(i, ref seq, ref idx);
-				item = Volatile.Read(ref blocks[seq][idx]);
-				if (item != null)
-					yield return item;
-			}
+			if (blocks[p.D0] != null && blocks[p.D0].Length > p.D1 &&
+				blocks[p.D0][p.D1] != null && blocks[p.D0][p.D1].Length > p.D2)
+				for (int i = 0; i <= AppendIndex; i++)
+				{
+					p = new CCubePos(i);
+
+					item = Volatile.Read(ref blocks[p.D0][p.D1][p.D2]);
+					if (item != null)
+						yield return item;
+				}
 		}
 
 		/// <summary>
@@ -390,12 +328,12 @@ namespace System.Collections.Concurrent
 		/// <returns>A positive value if the item is found, -1 otherwise.</returns>
 		public int IndexOf(T item)
 		{
-			int seq = -1, idx = -1, result = -1;
+			int result = -1;
 
 			for (var i = 0; i <= AppendIndex; i++)
 			{
-				Index2Seq(i, ref seq, ref idx);
-				if (Volatile.Read(ref blocks[seq][idx]) == item)
+				var p = new CCubePos(i);
+				if (Volatile.Read(ref blocks[p.D0][p.D1][p.D2]) == item)
 				{
 					result = i;
 					break;
@@ -412,10 +350,9 @@ namespace System.Collections.Concurrent
 		/// If shrinking, the number of not-null values, i.e. ItemsCount is also updated.
 		/// </summary>
 		/// <param name="length">The new length.</param>
-		/// <param name="nullBlocksOnShrink">If true (default) deallocates the blocks, otherwise nulls the cells.</param>
 		/// <exception cref="System.ArgumentOutOfRangeException">If length is negative or greater than the capacity.</exception>
 		/// <exception cref="System.InvalidOperationException">When Drive != Gear.P </exception>
-		public void Resize(int length, bool nullBlocksOnShrink = true)
+		public void Resize(int length)
 		{
 			lock (commonLock)
 			{
@@ -424,36 +361,51 @@ namespace System.Collections.Concurrent
 				try
 				{
 					if (Drive != CCArrayGear.P) throw new InvalidOperationException("Wrong drive");
-
 					if (length < 0 || length > Capacity) throw new ArgumentOutOfRangeException("length");
 					if (length == AllocatedSlots) return;
+
+					var p = new CCubePos(AllocatedSlots);
+					var d1b = p.D1;
 
 					if (length > AllocatedSlots)
 					{
 						while (length > allocatedSlots)
 						{
-							if (blocks[blocksCount] == null) blocks[blocksCount] = new T[BlockLength];
-							allocatedSlots += BlockLength;
-							blocksCount++;
+							if (blocks[d0b] == null)
+							{
+								blocks[d0b] = new T[BlockLength][];
+								d0b++;
+								d1b = 0;
+							}
+
+							if (blocks[d0b][d1b] == null)
+							{
+								blocks[d0b][d1b] = new T[BlockLength];
+								allocatedSlots += BlockLength;
+							}
+
+							d1b++;
 						}
 					}
 					else
 					{
-						// Leave plus one block unless resetting to zero capacity
-						while ((allocatedSlots - length > BlockLength) || (length == 0 && allocatedSlots > 0))
+						while (allocatedSlots > length)
 						{
-							if (nullBlocksOnShrink) blocks[blocksCount - 1] = null;
-							else for (int i = 0; i < BlockLength; i++) blocks[blocksCount - 1][i] = null;
-							allocatedSlots -= BlockLength;
-							blocksCount--;
-						}
+							d1b--;
+							if (d1b < 1)
+							{
+								blocks[d0b] = null;
+								d0b--;
+								d1b = BlockLength;
+							}
+							else blocks[d0b][d1b] = null;
 
-						if (blocksCount > 0)
-							for (int i = allocatedSlots - length; i < BlockLength; i++)
-								blocks[blocksCount - 1][i] = null;
+							allocatedSlots -= BlockLength;
+						}
 
 						Interlocked.Exchange(ref appendIndex, length - 1);
 
+						if (d0b < 0) d0b = 0;
 						int notNull = 0;
 						foreach (var c in NotNullItems()) notNull++;
 
@@ -485,9 +437,12 @@ namespace System.Collections.Concurrent
 				{
 					if (Drive != CCArrayGear.N) throw new InvalidOperationException("Wrong drive");
 
-					for (int b = 0; b < blocks.Length; b++)
-						for (int i = 0; i < BlockLength; i++)
-							blocks[b][i] = item;
+					var p = new CCubePos(AllocatedSlots - 1);
+
+					for (int d0 = 0; d0 <= p.D0; d0++)
+						for (int d1 = 0; d1 <= p.D1; d1++)
+							for (int d2 = 0; d2 <= p.D2; d2++)
+								blocks[d0][d1][d2] = item;
 				}
 				finally
 				{
@@ -524,34 +479,12 @@ namespace System.Collections.Concurrent
 				}
 		}
 
-		/// <summary>
-		/// Calculates the block and cell indices from a virtual contiguous index.
-		/// </summary>
-		/// <param name="index">The position in the virtual one-dimensional array.</param>
-		/// <param name="seq">The block index.</param>
-		/// <param name="idx">The cell in the block</param>
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public void Index2Seq(int index, ref int seq, ref int idx)
-		{
-			if (index < BlockLength)
-			{
-				seq = 0;
-				idx = index;
-			}
-			else
-			{
-				seq = index / BlockLength;
-				idx = index % BlockLength;
-			}
-		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		T set(int index, T value)
 		{
-			int seq = -1, idx = -1;
-			Index2Seq(index, ref seq, ref idx);
-
-			var old = Interlocked.Exchange(ref blocks[seq][idx], value);
+			var p = new CCubePos(index);
+			var old = Interlocked.Exchange(ref blocks[p.D0][p.D1][p.D2], value);
 
 			if (old != null)
 			{
@@ -578,14 +511,18 @@ namespace System.Collections.Concurrent
 		int allocatedSlots;
 		int appendIndex = -1;
 		int notNullsCount;
-		int blocksCount;
+		int d0b;
 		int direction;
+
+		// A magic number such that SIDE^3 fits int.MaxValue 
+		const int SIDE = 1291;
+		const int PLANE = 1291 * 1291;
 
 		CCArrayExpansion expansion;
 		object commonLock = new object();
 		object shiftLock = new object();
 		ManualResetEvent gearShift = new ManualResetEvent(false);
 
-		T[][] blocks = null;
+		T[][][] blocks = null;
 	}
 }
