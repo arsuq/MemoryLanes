@@ -221,6 +221,7 @@ In **System.IO**:
 
 - FragmentStream
 - HighwayStream
+- StreamExt
 
 In **System.Collections.Concurrent**:
 
