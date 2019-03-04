@@ -60,9 +60,7 @@ namespace Tests.Surface.Collections
 
 		bool customExpand()
 		{
-			var ccaexp = new CCube<object>((slots, block, cap) =>
-				slots < 1500 ? slots * 2 : Convert.ToInt32(slots * 1.5));
-
+			var ccaexp = new CCube<object>((slots) => slots < 1500 ? slots * 2 : Convert.ToInt32(slots * 1.5));
 			var firstExp = ccaexp.BlockLength + 1;
 			var secondExp = ccaexp.BlockLength * 2 + 1;
 
@@ -116,7 +114,7 @@ namespace Tests.Surface.Collections
 
 		bool shrink(CCube<object> arr)
 		{
-			arr.ShiftGear(CCArrayGear.P);
+			arr.ShiftGear(CCubeGear.P);
 			arr.Resize(20000);
 
 			var oldCap = arr.AllocatedSlots;
@@ -149,15 +147,15 @@ namespace Tests.Surface.Collections
 
 		bool parallelAppendRemoveLast(Random rdm, CCube<object> arr)
 		{
-			arr.ShiftGear(CCArrayGear.P);
+			arr.ShiftGear(CCubeGear.P);
 			arr.Resize(0);
-			arr.ShiftGear(CCArrayGear.Straight);
+			arr.ShiftGear(CCubeGear.Straight);
 
 			for (int i = 0; i < 200; i++)
 			{
-				arr.ShiftGear(CCArrayGear.Straight);
+				arr.ShiftGear(CCubeGear.Straight);
 				arr.Append(i);
-				arr.ShiftGear(CCArrayGear.Reverse);
+				arr.ShiftGear(CCubeGear.Reverse);
 				arr.RemoveLast(out int x);
 			}
 
@@ -168,7 +166,7 @@ namespace Tests.Surface.Collections
 				Thread.Sleep(rdm.Next(20, 100));
 				if (i % 2 == 0)
 				{
-					arr.ShiftGear(CCArrayGear.Straight);
+					arr.ShiftGear(CCubeGear.Straight);
 					arr.Append(i);
 					Interlocked.Increment(ref count);
 				}
@@ -176,7 +174,7 @@ namespace Tests.Surface.Collections
 				{
 					if (arr.ItemsCount > 1)
 					{
-						arr.ShiftGear(CCArrayGear.Reverse);
+						arr.ShiftGear(CCubeGear.Reverse);
 						arr.RemoveLast(out int x);
 						Interlocked.Decrement(ref count);
 					}
@@ -260,7 +258,7 @@ namespace Tests.Surface.Collections
 
 				"Gears.Straight".AsSuccess();
 
-				arr.ShiftGear(CCArrayGear.N);
+				arr.ShiftGear(CCubeGear.N);
 
 				Parallel.For(0, 200, (i) =>
 				{
@@ -270,7 +268,7 @@ namespace Tests.Surface.Collections
 
 				"Gears.N".AsSuccess();
 
-				arr.ShiftGear(CCArrayGear.Reverse);
+				arr.ShiftGear(CCubeGear.Reverse);
 
 				Parallel.For(0, 200, (i) =>
 				{
@@ -279,14 +277,14 @@ namespace Tests.Surface.Collections
 
 				"Gears.Reverse".AsSuccess();
 
-				arr.ShiftGear(CCArrayGear.P);
+				arr.ShiftGear(CCubeGear.P);
 				arr.Resize(0);
 				arr.OnGearShiftReset();
 
 				Parallel.For(0, 200, (i) =>
 				{
-					arr.ShiftGear(CCArrayGear.Straight, () => arr.Append(i));
-					arr.ShiftGear(CCArrayGear.Reverse, () => arr.RemoveLast(out int p));
+					arr.ShiftGear(CCubeGear.Straight, () => arr.Append(i));
+					arr.ShiftGear(CCubeGear.Reverse, () => arr.RemoveLast(out int p));
 				});
 
 				"Competing shifts".AsSuccess();
@@ -308,7 +306,7 @@ namespace Tests.Surface.Collections
 			for (int i = 0; i < 100; i++)
 				arr.Append(i);
 
-			arr.ShiftGear(CCArrayGear.N);
+			arr.ShiftGear(CCubeGear.N);
 			object o = 3;
 			arr.Format(o);
 
@@ -328,9 +326,9 @@ namespace Tests.Surface.Collections
 		bool take()
 		{
 			var cca = new CCube<object>();
-			var CAP = cca.Capacity;
+			var CAP = 50_000;
 			int next = 0, sum = 0;
-			int compareSum = (CAP / 2) * (1 + CAP);
+			var compareSum = (CAP / 2) * (1 + CAP);
 
 			// Producers
 			var P = new Task[10];
@@ -396,7 +394,10 @@ namespace Tests.Surface.Collections
 			Task.WaitAll(P);
 			Task.WaitAll(C);
 
-			if (cca.AllocatedSlots != CAP)
+			var p = new CCubePos(CAP);
+			var als = cca.BlockLength << 6; // Six double expansions
+
+			if (cca.AllocatedSlots != als)
 			{
 				FailureMessage = $"Wrong AllocatedSlots {cca.AllocatedSlots}, expected {CAP}";
 				Passed = false;

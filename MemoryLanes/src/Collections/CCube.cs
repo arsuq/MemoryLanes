@@ -10,7 +10,42 @@ using System.Threading.Tasks;
 namespace System.Collections.Concurrent
 {
 	/// <summary>
-	/// Represents an ordered list of fix-sized arrays as one virtual contiguous array. 
+	/// An expansion calculator for the CCube.
+	/// An instance is called whenever more blocks are needed.
+	/// One could expand differently, depending on the current array size.
+	/// </summary>
+	/// <param name="allocatedSlots">The current AllocationSlots value.</param>
+	/// <returns>The desired new AllocatedSlots count.</returns>
+	public delegate int CCubeExpansion(int allocatedSlots);
+
+	/// <summary>
+	/// The allowed concurrent operations on a CCube
+	/// </summary>
+	public enum CCubeGear
+	{
+		/// <summary>
+		/// Concurrent gets and sets are enabled, but not Append/Remove or Resize.
+		/// </summary>
+		N = 0,
+		/// <summary>
+		/// Concurrent Append(), gets and sets are enabled.
+		/// </summary>
+		Straight = 1,
+		/// <summary>
+		/// Concurrent RemoveLast() gets and sets are enabled.
+		/// </summary>
+		/// <remarks>
+		/// Getting or setting values in this mode is racing with the AppendPos.
+		/// </remarks>
+		Reverse = -1,
+		/// <summary>
+		/// Only Resize() is allowed.
+		/// </summary>
+		P = -2
+	}
+
+	/// <summary>
+	/// Represents a 3d array as one virtual contiguous array. 
 	/// </summary>
 	/// <remarks>
 	/// One must inspect the Drive property before accessing the API and assert that the 
@@ -21,12 +56,10 @@ namespace System.Collections.Concurrent
 	public class CCube<T> where T : class
 	{
 		/// <summary>
-		/// Allocates an array of arrays with side = sqrt(capacity) 
+		/// Allocates one block of 1024 cells.
 		/// </summary>
-		/// <param name="expansion">A callback that must return the desired AllocatedSlots count 
-		/// calculated from the args: AllocatedSlots, BlockLength and Capacity.</param>
-		/// <exception cref="ArgumentOutOfRangeException">If the capacity is negative or zero.</exception>
-		public CCube(CCArrayExpansion expansion = null)
+		/// <param name="expansion">A callback that must return the desired AllocatedSlots count.</param>
+		public CCube(CCubeExpansion expansion = null)
 		{
 			this.expansion = expansion != null ? expansion : defaultExpansion;
 
@@ -49,7 +82,7 @@ namespace System.Collections.Concurrent
 		/// <summary>
 		/// The maximum number of slots that could be allocated.
 		/// </summary>
-		public int Capacity => blocks.Length * BlockLength;
+		public int Capacity => int.MaxValue / 2;
 
 		/// <summary>
 		/// The current set index. 
@@ -69,21 +102,21 @@ namespace System.Collections.Concurrent
 		/// <summary>
 		/// The allowed set of concurrent operations.
 		/// </summary>
-		public CCArrayGear Drive => (CCArrayGear)Volatile.Read(ref direction);
+		public CCubeGear Drive => (CCubeGear)Volatile.Read(ref direction);
 
 		/// <summary>
 		/// Will be triggered when the Drive changes. 
 		/// The callbacks are invoked in a new Task, wrapped in try/catch block, 
 		/// i.e. all exceptions are swallowed.
 		/// </summary>
-		public event Action<CCArrayGear> OnGearShift;
+		public event Action<CCubeGear> OnGearShift;
 
 		/// <summary>
 		/// Clears the subscribers.
 		/// </summary>
 		public void OnGearShiftReset()
 		{
-			foreach (Action<CCArrayGear> s in OnGearShift.GetInvocationList())
+			foreach (Action<CCubeGear> s in OnGearShift.GetInvocationList())
 				OnGearShift -= s;
 		}
 
@@ -96,7 +129,7 @@ namespace System.Collections.Concurrent
 		/// <param name="timeout">In milliseconds, by default is -1, which is indefinitely.</param>
 		/// <returns>The old gear.</returns>
 		/// <exception cref="System.SynchronizationException">Code.SignalAwaitTimeout</exception>
-		public CCArrayGear ShiftGear(CCArrayGear g, Action f = null, int timeout = -1)
+		public CCubeGear ShiftGear(CCubeGear g, Action f = null, int timeout = -1)
 		{
 			// One call at a time
 			lock (shiftLock)
@@ -131,7 +164,7 @@ namespace System.Collections.Concurrent
 				// in case there are competing shifts.
 				if (f != null) f();
 
-				return (CCArrayGear)old;
+				return (CCubeGear)old;
 			}
 		}
 
@@ -146,7 +179,7 @@ namespace System.Collections.Concurrent
 		{
 			get
 			{
-				if (Drive == CCArrayGear.P) throw new InvalidOperationException("Wrong drive");
+				if (Drive == CCubeGear.P) throw new InvalidOperationException("Wrong drive");
 				if (index < 0 || index > AppendIndex) throw new ArgumentOutOfRangeException("index");
 
 				var p = new CCubePos(index);
@@ -155,7 +188,7 @@ namespace System.Collections.Concurrent
 			}
 			set
 			{
-				if (Drive == CCArrayGear.P) throw new InvalidOperationException("Wrong drive");
+				if (Drive == CCubeGear.P) throw new InvalidOperationException("Wrong drive");
 				if (index < 0 || index > AppendIndex) throw new ArgumentOutOfRangeException("index");
 
 				set(index, value);
@@ -173,7 +206,7 @@ namespace System.Collections.Concurrent
 		/// <exception cref="System.InvalidOperationException">When Drive is P.</exception>
 		public T Take(int index)
 		{
-			if (Drive == CCArrayGear.P) throw new InvalidOperationException("Wrong drive");
+			if (Drive == CCubeGear.P) throw new InvalidOperationException("Wrong drive");
 
 			return set(index, null);
 		}
@@ -197,7 +230,7 @@ namespace System.Collections.Concurrent
 
 			try
 			{
-				if (Drive != CCArrayGear.Straight) throw new InvalidOperationException("Wrong drive");
+				if (Drive != CCubeGear.Straight) throw new InvalidOperationException("Wrong drive");
 				if (ccadd + AppendIndex >= AllocatedSlots)
 					lock (commonLock)
 					{
@@ -206,9 +239,9 @@ namespace System.Collections.Concurrent
 						// Could have been augmented by another thread during the wait.
 						if (ccadd + AppendIndex >= cap)
 						{
-							var p = new CCubePos(AllocatedSlots);
+							var p = new CCubePos(cap);
 							var d1b = p.D1;
-							var newCap = expansion(AllocatedSlots, BlockLength, Capacity);
+							var newCap = expansion(cap);
 							while (newCap > cap)
 							{
 								if (blocks[d0b] == null) blocks[d0b] = new T[SIDE][];
@@ -242,7 +275,7 @@ namespace System.Collections.Concurrent
 				Interlocked.Decrement(ref concurrentAdds);
 
 				// If it's the last exiting operation for the old direction
-				if (Interlocked.Decrement(ref concurrentOps) == 0 && Drive != CCArrayGear.Straight)
+				if (Interlocked.Decrement(ref concurrentOps) == 0 && Drive != CCubeGear.Straight)
 					gearShift.Set();
 			}
 
@@ -259,7 +292,7 @@ namespace System.Collections.Concurrent
 		{
 			Interlocked.Increment(ref concurrentOps);
 
-			if (Drive != CCArrayGear.Reverse)
+			if (Drive != CCubeGear.Reverse)
 			{
 				Interlocked.Decrement(ref concurrentOps);
 				throw new InvalidOperationException("Wrong drive");
@@ -268,7 +301,7 @@ namespace System.Collections.Concurrent
 			pos = Interlocked.Decrement(ref appendIndex) + 1;
 			var item = set(pos, null);
 
-			if (Interlocked.Decrement(ref concurrentOps) == 0 && Drive != CCArrayGear.Reverse)
+			if (Interlocked.Decrement(ref concurrentOps) == 0 && Drive != CCubeGear.Reverse)
 				gearShift.Set();
 
 			return item;
@@ -307,7 +340,8 @@ namespace System.Collections.Concurrent
 		public IEnumerable<T> NotNullItems()
 		{
 			T item = null;
-			var p = new CCubePos(AppendIndex);
+			var j = AppendIndex;
+			var p = new CCubePos(j);
 
 			if (blocks[p.D0] != null && blocks[p.D0].Length > p.D1 &&
 				blocks[p.D0][p.D1] != null && blocks[p.D0][p.D1].Length > p.D2)
@@ -360,31 +394,32 @@ namespace System.Collections.Concurrent
 
 				try
 				{
-					if (Drive != CCArrayGear.P) throw new InvalidOperationException("Wrong drive");
+					if (Drive != CCubeGear.P) throw new InvalidOperationException("Wrong drive");
 					if (length < 0 || length > Capacity) throw new ArgumentOutOfRangeException("length");
 					if (length == AllocatedSlots) return;
 
-					var p = new CCubePos(AllocatedSlots);
+					var a = AllocatedSlots;
+					var p = new CCubePos(a);
 					var d1b = p.D1;
 
 					if (length > AllocatedSlots)
 					{
 						while (length > allocatedSlots)
 						{
-							if (blocks[d0b] == null)
-							{
-								blocks[d0b] = new T[BlockLength][];
-								d0b++;
-								d1b = 0;
-							}
-
+							if (blocks[d0b] == null) blocks[d0b] = new T[SIDE][];
 							if (blocks[d0b][d1b] == null)
 							{
-								blocks[d0b][d1b] = new T[BlockLength];
-								allocatedSlots += BlockLength;
+								blocks[d0b][d1b] = new T[SIDE];
+								allocatedSlots += SIDE;
 							}
 
 							d1b++;
+
+							if (d1b > SIDE)
+							{
+								d0b++;
+								d1b = 0;
+							}
 						}
 					}
 					else
@@ -435,9 +470,10 @@ namespace System.Collections.Concurrent
 
 				try
 				{
-					if (Drive != CCArrayGear.N) throw new InvalidOperationException("Wrong drive");
+					if (Drive != CCubeGear.N) throw new InvalidOperationException("Wrong drive");
 
-					var p = new CCubePos(AllocatedSlots - 1);
+					var a = AllocatedSlots - 1;
+					var p = new CCubePos(a);
 
 					for (int d0 = 0; d0 <= p.D0; d0++)
 						for (int d1 = 0; d1 <= p.D1; d1++)
@@ -467,7 +503,7 @@ namespace System.Collections.Concurrent
 					Interlocked.Increment(ref concurrentOps);
 					try
 					{
-						if (Drive != CCArrayGear.P) throw new InvalidOperationException("Wrong drive");
+						if (Drive != CCubeGear.P) throw new InvalidOperationException("Wrong drive");
 						if (newIndex < 0 || newIndex >= AllocatedSlots) throw new ArgumentOutOfRangeException("newIndex");
 
 						Interlocked.Exchange(ref appendIndex, newIndex);
@@ -495,12 +531,12 @@ namespace System.Collections.Concurrent
 			return old;
 		}
 
-		int defaultExpansion(int allocatedSlots, int blockLength, int capacity)
+		int defaultExpansion(int allocatedSlots)
 		{
-			if (allocatedSlots < blockLength) return blockLength;
+			if (allocatedSlots < SIDE) return SIDE;
 
 			int newCap = allocatedSlots * 2;
-			if (newCap > capacity) newCap = capacity;
+			if (newCap > Capacity) newCap = Capacity;
 
 			return newCap;
 		}
@@ -514,11 +550,10 @@ namespace System.Collections.Concurrent
 		int d0b;
 		int direction;
 
-		// A magic number such that SIDE^3 fits int.MaxValue 
-		const int SIDE = 1291;
-		const int PLANE = 1291 * 1291;
+		const int SIDE = 1 << 10;
+		const int PLANE = 1 << 20;
 
-		CCArrayExpansion expansion;
+		CCubeExpansion expansion;
 		object commonLock = new object();
 		object shiftLock = new object();
 		ManualResetEvent gearShift = new ManualResetEvent(false);

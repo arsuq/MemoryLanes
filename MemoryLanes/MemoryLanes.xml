@@ -4,9 +4,46 @@
         <name>MemoryLanes</name>
     </assembly>
     <members>
+        <member name="T:System.Collections.Concurrent.CCubeExpansion">
+            <summary>
+            An expansion calculator for the CCube.
+            An instance is called whenever more blocks are needed.
+            One could expand differently, depending on the current array size.
+            </summary>
+            <param name="allocatedSlots">The current AllocationSlots value.</param>
+            <returns>The desired new AllocatedSlots count.</returns>
+        </member>
+        <member name="T:System.Collections.Concurrent.CCubeGear">
+            <summary>
+            The allowed concurrent operations on a CCube
+            </summary>
+        </member>
+        <member name="F:System.Collections.Concurrent.CCubeGear.N">
+            <summary>
+            Concurrent gets and sets are enabled, but not Append/Remove or Resize.
+            </summary>
+        </member>
+        <member name="F:System.Collections.Concurrent.CCubeGear.Straight">
+            <summary>
+            Concurrent Append(), gets and sets are enabled.
+            </summary>
+        </member>
+        <member name="F:System.Collections.Concurrent.CCubeGear.Reverse">
+            <summary>
+            Concurrent RemoveLast() gets and sets are enabled.
+            </summary>
+            <remarks>
+            Getting or setting values in this mode is racing with the AppendPos.
+            </remarks>
+        </member>
+        <member name="F:System.Collections.Concurrent.CCubeGear.P">
+            <summary>
+            Only Resize() is allowed.
+            </summary>
+        </member>
         <member name="T:System.Collections.Concurrent.CCube`1">
             <summary>
-            Represents an ordered list of fix-sized arrays as one virtual contiguous array. 
+            Represents a 3d array as one virtual contiguous array. 
             </summary>
             <remarks>
             One must inspect the Drive property before accessing the API and assert that the 
@@ -15,13 +52,11 @@
             </remarks>
             <typeparam name="T">A class</typeparam>
         </member>
-        <member name="M:System.Collections.Concurrent.CCube`1.#ctor(System.Collections.Concurrent.CCArrayExpansion)">
+        <member name="M:System.Collections.Concurrent.CCube`1.#ctor(System.Collections.Concurrent.CCubeExpansion)">
             <summary>
-            Allocates an array of arrays with side = sqrt(capacity) 
+            Allocates one block of 1024 cells.
             </summary>
-            <param name="expansion">A callback that must return the desired AllocatedSlots count 
-            calculated from the args: AllocatedSlots, BlockLength and Capacity.</param>
-            <exception cref="T:System.ArgumentOutOfRangeException">If the capacity is negative or zero.</exception>
+            <param name="expansion">A callback that must return the desired AllocatedSlots count.</param>
         </member>
         <member name="F:System.Collections.Concurrent.CCube`1.BlockLength">
             <summary>
@@ -65,7 +100,7 @@
             Clears the subscribers.
             </summary>
         </member>
-        <member name="M:System.Collections.Concurrent.CCube`1.ShiftGear(System.Collections.Concurrent.CCArrayGear,System.Action,System.Int32)">
+        <member name="M:System.Collections.Concurrent.CCube`1.ShiftGear(System.Collections.Concurrent.CCubeGear,System.Action,System.Int32)">
             <summary>
             Shifts the gear and blocks until all operations in the old drive mode complete.
             If OnGearShift is not null it's launched in a new Task, wrapped in a try catch, swallowing potential exceptions.
