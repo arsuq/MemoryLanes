@@ -57,7 +57,7 @@ namespace Tests.Surface.Collections
 			TimeSpan cubeTime;
 			TimeSpan queueTime;
 
-			// Preallocating CAP slots seems to make very little difference
+			// Preallocating CAP slots produces weird results, try it...
 			var cube = new CCube<object>(0, false);
 
 			// Before testing the setter with preallocated CAP, move the AppendIndex to CAP
@@ -66,10 +66,10 @@ namespace Tests.Surface.Collections
 			// Just to be sure that the positioning will remain
 			Interlocked.Exchange(ref startTicks, DateTime.Now.Ticks);
 
-			// Parallel.For(0, CAP, (i) => cube.Append(i));
+			Parallel.For(0, CAP, (i) => cube.Append(i));
 
-			for (int i = 0; i < CAP; i++)
-				cube.Append(i);
+			//for (int i = 0; i < CAP; i++)
+			//	cube.Append(i);
 
 			Interlocked.Exchange(ref stopTicks, DateTime.Now.Ticks);
 			cubeTime = new TimeSpan(stopTicks - startTicks);
@@ -82,10 +82,10 @@ namespace Tests.Surface.Collections
 
 			Interlocked.Exchange(ref startTicks, DateTime.Now.Ticks);
 
-			// Parallel.For(0, CAP, (i) => stack.Push(i));
+			Parallel.For(0, CAP, (i) => queue.Enqueue(i));
 
-			for (int i = 0; i < CAP; i++)
-				queue.Enqueue(i);
+			//for (int i = 0; i < CAP; i++)
+			//	queue.Enqueue(i);
 
 			Interlocked.Exchange(ref stopTicks, DateTime.Now.Ticks);
 			queueTime = new TimeSpan(stopTicks - startTicks);

@@ -261,7 +261,7 @@ namespace System.Collections.Concurrent
 		/// <exception cref="System.OutOfMemoryException">Guess what</exception>
 		public int Append(T item)
 		{
-			// Must be before the drive check, otherwise a whole Shift() execution
+			// Must increment the ccops before the drive check, otherwise a whole Shift() execution
 			// could interleave after the gear assert and change the direction.
 			// Although it's possible other threads to false increment the ccops
 			// all other ops will throw WrongDrive and decrement it. 
@@ -279,10 +279,20 @@ namespace System.Collections.Concurrent
 				var slots = Volatile.Read(ref allocatedSlots);
 				var idx = ccadd + aidx;
 
-				if (idx < CAPACITY && idx >= allocatedSlots)
-					do
+				if (idx < CAPACITY && idx >= slots)
+					lock (commonLock)
 					{
-						if (allocGate.WaitOne(0))
+						// This can be optimized to release the awaiting appends all at once after the expansion,
+						// since the smallest augmentation is SIDE slots, i.e. there must be 1025 queued threads 
+						// and a single SIDE expansion before having a missed append.
+
+						// Read after the wait
+						aidx = Volatile.Read(ref appendIndex);
+						slots = Volatile.Read(ref allocatedSlots);
+						ccadd = Volatile.Read(ref concurrentOps);
+						idx = ccadd + aidx;
+
+						if (idx < CAPACITY && idx >= slots)
 						{
 							var p = new CCubePos(slots);
 							var d1 = p.D1;
@@ -292,7 +302,7 @@ namespace System.Collections.Concurrent
 							// constantly added. This also avoids over-committing such as 
 							// the Count doubling used in List for example. 
 							var newCap = expansion != null ? expansion(slots) : allocatedSlots + DEF_EXP;
-							if (newCap > Capacity) newCap = Capacity;
+							if (newCap > CAPACITY) newCap = CAPACITY;
 
 							while (newCap > slots)
 							{
@@ -303,25 +313,14 @@ namespace System.Collections.Concurrent
 									blocks[d0][d1] = new T[SIDE];
 									slots += SIDE;
 								}
-
-								d1++;
-
-								if (d1 >= SIDE) { d0++; d1 = 0; }
+								if (++d1 >= SIDE) { d0++; d1 = 0; }
 							}
 
 							Volatile.Write(ref allocatedSlots, slots);
-							allocGate.Set();
-						}
-						else
-						{
-							allocGate.WaitOne();
-							slots = Volatile.Read(ref allocatedSlots);
 							aidx = Volatile.Read(ref appendIndex);
 						}
-					} while (aidx > slots);
+					}
 
-
-				// Forced MoveAppendIndex() calls could mess up the Head.
 				if (aidx < slots)
 				{
 					pos = Interlocked.Increment(ref appendIndex);
@@ -610,8 +609,6 @@ namespace System.Collections.Concurrent
 		object commonLock = new object();
 		object shiftLock = new object();
 		ManualResetEvent gearShift = new ManualResetEvent(false);
-		ManualResetEvent allocGate = new ManualResetEvent(true);
-
 
 		T[][][] blocks = null;
 	}
