@@ -28,51 +28,14 @@ namespace Tests.Surface.Collections
 				var rdm = new Random();
 				var qb = new CCube<object>();
 
-				void append_latency()
-				{
-					var CAP = int.MaxValue / 32;
-
-					// Weirdly, preallocating CAP slots seems to make less than 300ms difference.
-					var cube = new CCube<object>();
-
-					// Before testing the setter with preallocated CAP, move the AppendIndex to CAP
-					// cube.MoveAppendIndex(CAP, true);
-
-					var start = DateTime.Now;
-
-					// Parallel.For(0, CAP, (i) => cube.Append(i));
-
-					for (int i = 0; i < CAP; i++)
-						cube.Append(i);
-
-					var cubeTime = DateTime.Now.Subtract(start);
-
-					cube = null;
-					GC.Collect(2);
-
-					// Something expandable and concurrent.
-					// The CCQ seems to be more efficient than the CCStack.
-					var queue = new ConcurrentQueue<object>();
-					start = DateTime.Now;
-
-					// Parallel.For(0, CAP, (i) => stack.Push(i));
-
-					//for (int i = 0; i < CAP; i++)
-					//	queue.Enqueue(i);
-
-					var qTime = DateTime.Now.Subtract(start);
-
-					$"Allocating {CAP} objects: cube {cubeTime.TotalMilliseconds}ms stack {qTime.TotalMilliseconds} ".AsTestInfo();
-				}
-
-				//if (!parallelAppend(rdm, qb)) return;
-				//if (!parallelAppendRemoveLast(rdm, qb)) return;
-				//if (!shrink(qb)) return;
-				//if (!expand(qb)) return;
-				//if (!customExpand()) return;
-				//if (!gears()) return;
-				//if (!format()) return;
-				//if (!take()) return;
+				if (!parallelAppend(rdm, qb)) return;
+				if (!parallelAppendRemoveLast(rdm, qb)) return;
+				if (!shrink(qb)) return;
+				if (!expand(qb)) return;
+				if (!customExpand()) return;
+				if (!gears()) return;
+				if (!format()) return;
+				if (!take()) return;
 
 				append_latency();
 
@@ -84,6 +47,50 @@ namespace Tests.Surface.Collections
 				Passed = false;
 				FailureMessage = ex.Message;
 			}
+		}
+
+		void append_latency()
+		{
+			var CAP = int.MaxValue / 32;
+			long startTicks = 0;
+			long stopTicks = 0;
+			TimeSpan cubeTime;
+			TimeSpan queueTime;
+
+			// Preallocating CAP slots seems to make very little difference
+			var cube = new CCube<object>(0, false);
+
+			// Before testing the setter with preallocated CAP, move the AppendIndex to CAP
+			// cube.MoveAppendIndex(CAP, true);
+
+			// Just to be sure that the positioning will remain
+			Interlocked.Exchange(ref startTicks, DateTime.Now.Ticks);
+
+			// Parallel.For(0, CAP, (i) => cube.Append(i));
+
+			for (int i = 0; i < CAP; i++)
+				cube.Append(i);
+
+			Interlocked.Exchange(ref stopTicks, DateTime.Now.Ticks);
+			cubeTime = new TimeSpan(stopTicks - startTicks);
+			cube = null;
+			GC.Collect(2);
+
+			// Something expandable and concurrent.
+			// The CCQ seems to be more efficient than the CCStack.
+			var queue = new ConcurrentQueue<object>();
+
+			Interlocked.Exchange(ref startTicks, DateTime.Now.Ticks);
+
+			// Parallel.For(0, CAP, (i) => stack.Push(i));
+
+			for (int i = 0; i < CAP; i++)
+				queue.Enqueue(i);
+
+			Interlocked.Exchange(ref stopTicks, DateTime.Now.Ticks);
+			queueTime = new TimeSpan(stopTicks - startTicks);
+
+			$"Allocating {CAP} objects: cube {cubeTime.TotalMilliseconds}ms queue {queueTime.TotalMilliseconds} ".AsTestInfo();
 		}
 
 		bool customExpand()

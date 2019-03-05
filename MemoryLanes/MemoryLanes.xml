@@ -44,9 +44,8 @@
         <member name="T:System.Collections.Concurrent.CCube`1">
             <summary>
             A virtual contiguous array backed by a cube of jagged arrays. 
-            Unlike the linked list based concurrent structures, supports indexed RW and expansion.
-            The not-null items count is always known so one could get/set, Append() or Take() freely. 
-            For no good reason is limited to int.MaxValue/2 length.
+            Unlike the linked list based concurrent structures, supports parallel indexed RW and expansion.
+            The capacity is (int.MaxValue + 1) / 2 slots.
             </summary>
             <remarks>
             One must inspect the Drive property before accessing the API and assert that the 
@@ -61,11 +60,13 @@
             </summary>
             <param name="expansion">If not set DEF_EXP is used.</param>
         </member>
-        <member name="M:System.Collections.Concurrent.CCube`1.#ctor(System.Int32,System.Collections.Concurrent.CCubeExpansion)">
+        <member name="M:System.Collections.Concurrent.CCube`1.#ctor(System.Int32,System.Boolean,System.Collections.Concurrent.CCubeExpansion)">
             <summary>
-            Allocates one block of 1024 cells.
+            Creates the cube with initBlocks * SIDE slots. Note that the AppendIndex is -1 and 
+            the setter will blow unless one uses Append() or MoveAppendIndex() to AllocatedSlots for example.
             </summary>
-            <param name="initSlots">To preallocate. The min value is SIDE.</param>
+            <param name="slots">To preallocate. The min value is SIDE.</param>
+            <param name="countNotNulls">Can be set only here.</param>
             <param name="expansion">A callback that must return the desired AllocatedSlots count.</param>
         </member>
         <member name="F:System.Collections.Concurrent.CCube`1.BlockLength">
@@ -73,9 +74,14 @@
             The virtual array incremental size.
             </summary>
         </member>
-        <member name="P:System.Collections.Concurrent.CCube`1.Capacity">
+        <member name="F:System.Collections.Concurrent.CCube`1.Capacity">
             <summary>
             The maximum number of slots that could be allocated.
+            </summary>
+        </member>
+        <member name="F:System.Collections.Concurrent.CCube`1.CountNotNulls">
+            <summary>
+            If true Append and set will update the ItemsCount.
             </summary>
         </member>
         <member name="P:System.Collections.Concurrent.CCube`1.AppendIndex">
@@ -101,8 +107,7 @@
         <member name="E:System.Collections.Concurrent.CCube`1.OnGearShift">
             <summary>
             Will be triggered when the Drive changes. 
-            The callbacks are invoked in a new Task, wrapped in try/catch block, 
-            i.e. all exceptions are swallowed.
+            The callbacks are invoked in a new Task, all exceptions are swallowed.
             </summary>
         </member>
         <member name="M:System.Collections.Concurrent.CCube`1.OnGearShiftReset">
@@ -141,9 +146,10 @@
             <remarks>
             One can use Take() and Append() in multi-producer, multi-consumer scenarios, since both are safe,
             </remarks>
-            <param name="index">The position in the array, must be less than AppendIndex.</param>
+            <param name="index">The position in the array, must be less than AllocatedSlots.</param>
             <returns>The reference at index.</returns>
             <exception cref="T:System.InvalidOperationException">When Drive is P.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">The index is negative or beyond AllocatedSlots.</exception>
         </member>
         <member name="M:System.Collections.Concurrent.CCube`1.Append(`0)">
             <summary>
@@ -154,7 +160,7 @@
             <param name="item">The object reference</param>
             <returns>The index of the item, -1 if fails.</returns>
             <exception cref="T:System.InvalidOperationException">When Drive != Gear.Straight</exception>
-            <exception cref="T:System.InvariantException">On attempt to append beyond Capacity.</exception>
+            <exception cref="T:System.OutOfMemoryException">Guess what</exception>
         </member>
         <member name="M:System.Collections.Concurrent.CCube`1.RemoveLast(System.Int32@)">
             <summary>
