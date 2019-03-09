@@ -1,5 +1,5 @@
 ﻿~~~~~~~~~~~~~~~~~~~~~
-MemoryLanes v1.2
+MemoryLanes v1.3
 ~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -10,9 +10,6 @@ FEATURES/MILESTONES
 TASKS                                                                 
 =====================
 
-[x] no-luck gate 
-[x] Lane to/from stream
-[x] Lane.Format
 
 
 TESTS

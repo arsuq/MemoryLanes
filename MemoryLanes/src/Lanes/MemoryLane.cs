@@ -68,41 +68,44 @@ namespace System
 			else pass = allocLobby.WaitOne(awaitMS);
 
 			if (pass)
-			{
-				// Volatile read
-				var oldoffset = Offset;
-				var newoffset = oldoffset + size;
-
-				if (!IsClosed && newoffset <= CAP)
+				try
 				{
-					var bail = false;
+					// Volatile read
+					var oldoffset = Offset;
+					var newoffset = oldoffset + size;
 
-					// Just makes the slot, then the derived lane will set it 
-					// at 'Allocations' position.
-					if (track)
+					if (!IsClosed && newoffset <= CAP)
 					{
-						// If the lane can't track more fragments, bail
-						// and let Alloc() check the next lane
-						if (Tracker.Capacity >= allocations + 1) Tracker.Append(null);
-						else bail = true;
-					}
+						var bail = false;
 
-					if (!bail)
-					{
-						Interlocked.Exchange(ref offset, newoffset);
-						Interlocked.Increment(ref allocations);
-						Interlocked.Exchange(ref lastAllocTick, DateTime.Now.Ticks);
+						// Just makes the slot, then the derived lane will set it 
+						// at 'Allocations' position.
+						if (track)
+						{
+							// If the lane can't track more fragments, bail
+							// and let Alloc() check the next lane
+							if (Tracker.Capacity >= allocations + 1) Tracker.Append(null);
+							else bail = true;
+						}
 
-						frag = new FragmentRange(oldoffset, size, allocations - 1);
+						if (!bail)
+						{
+							Interlocked.Exchange(ref offset, newoffset);
+							Interlocked.Increment(ref allocations);
+							Interlocked.Exchange(ref lastAllocTick, DateTime.Now.Ticks);
 
-						result = true;
+							frag = new FragmentRange(oldoffset, size, allocations - 1);
+
+							result = true;
+						}
 					}
 				}
-
-				// The lane reset mode is read-only hence incorrect lock release is not possible.
-				if (track) allocLobby.Set();
-				else spinGate.Exit();
-			}
+				finally
+				{
+					// The lane reset mode is read-only hence incorrect lock release is not possible.
+					if (track) allocLobby.Set();
+					else spinGate.Exit();
+				}
 
 			return result;
 		}
@@ -240,21 +243,21 @@ namespace System
 			spinGate.Enter(ref isLocked);
 
 			if (isLocked)
-			{
-				Interlocked.Exchange(ref isClosed, close ? 1 : 0);
-
-				if (reset)
+				try
 				{
-					Interlocked.Exchange(ref offset, 0);
-					Interlocked.Exchange(ref allocations, 0);
-					Interlocked.Increment(ref laneCycle);
+					Interlocked.Exchange(ref isClosed, close ? 1 : 0);
 
-					if (ResetMode == MemoryLaneResetMode.TrackGhosts)
-						Tracker.MoveAppendIndex(0, true);
+					if (reset)
+					{
+						Interlocked.Exchange(ref offset, 0);
+						Interlocked.Exchange(ref allocations, 0);
+						Interlocked.Increment(ref laneCycle);
+
+						if (ResetMode == MemoryLaneResetMode.TrackGhosts)
+							Tracker.MoveAppendIndex(0, true);
+					}
 				}
-
-				spinGate.Exit();
-			}
+				finally { spinGate.Exit(); }
 			else throw new SynchronizationException(SynchronizationException.Code.LockAcquisition);
 		}
 

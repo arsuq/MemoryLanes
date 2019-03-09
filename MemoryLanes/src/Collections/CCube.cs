@@ -282,9 +282,7 @@ namespace System.Collections.Concurrent
 				if (idx < CAPACITY && idx >= slots)
 					lock (commonLock)
 					{
-						// This can be optimized to release the awaiting appends all at once after the expansion,
-						// since the smallest augmentation is SIDE slots, i.e. there must be 1025 queued threads 
-						// and a single SIDE expansion before having a missed append.
+						// [!] Suppress optimization urges
 
 						// Read after the wait
 						aidx = Volatile.Read(ref appendIndex);
