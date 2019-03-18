@@ -81,7 +81,7 @@ namespace Tests.Surface.Collections
 
 		void append_latency()
 		{
-			var CAP = int.MaxValue / 32;
+			var CAP = int.MaxValue / 32; // 67108863
 			long startTicks = 0;
 			long stopTicks = 0;
 			TimeSpan cubeTime;
@@ -96,7 +96,7 @@ namespace Tests.Surface.Collections
 			// Just to be sure that the positioning will remain
 			Interlocked.Exchange(ref startTicks, DateTime.Now.Ticks);
 
-			Parallel.For(0, CAP, (i) => tsr.Append(i));
+			Parallel.For(0, CAP, new ParallelOptions() { MaxDegreeOfParallelism = 100 }, (i) => tsr.Append(i));
 
 			//for (int i = 0; i < CAP; i++)
 			//	tsr.Append(i);
@@ -112,7 +112,7 @@ namespace Tests.Surface.Collections
 
 			Interlocked.Exchange(ref startTicks, DateTime.Now.Ticks);
 
-			Parallel.For(0, CAP, (i) => queue.Enqueue(i));
+			Parallel.For(0, CAP, new ParallelOptions() { MaxDegreeOfParallelism = 100 }, (i) => queue.Enqueue(i));
 
 			//for (int i = 0; i < CAP; i++)
 			//	queue.Enqueue(i);

@@ -32,7 +32,7 @@ namespace System.Collections.Concurrent
 		/// </summary>
 		Straight = 1,
 		/// <summary>
-		/// Concurrent RemoveLast() gets and sets are enabled.
+		/// Concurrent Take(), RemoveLast() gets and sets are enabled.
 		/// </summary>
 		/// <remarks>
 		/// Reading is allowed if less than AlloatedSlots, Writes must be less than AppendIndex.
@@ -129,7 +129,8 @@ namespace System.Collections.Concurrent
 
 		/// <summary>
 		/// Shifts the gear and blocks until all operations in the old drive mode complete.
-		/// If OnGearShift is not null it's launched in a new Task, wrapped in a try catch, swallowing potential exceptions.
+		/// If OnGearShift is not null it's launched in a new Task, wrapped in a try catch block,
+		/// swallowing all potential exceptions.
 		/// </summary>
 		/// <param name="g">The new concurrent mode.</param>
 		/// <param name="f">Guarantees the execution of f() within the lock scope, in case that other shifts are waiting.</param>
@@ -235,7 +236,7 @@ namespace System.Collections.Concurrent
 		/// <param name="item">The object reference</param>
 		/// <returns>The index of the item, -1 if fails.</returns>
 		/// <exception cref="System.InvalidOperationException">When Drive != Gear.Straight</exception>
-		/// <exception cref="System.OutOfMemoryException">Guess what</exception>
+		/// <exception cref="System.OutOfMemoryException"></exception>
 		public int Append(T item)
 		{
 			// Must increment the ccops before the drive check, otherwise a whole Shift() execution
@@ -307,19 +308,19 @@ namespace System.Collections.Concurrent
 		{
 			Interlocked.Increment(ref concurrentOps);
 
-			if (Drive != TesseractGear.Reverse)
+			try
 			{
-				Interlocked.Decrement(ref concurrentOps);
-				throw new InvalidOperationException("Wrong drive");
+				if (Drive != TesseractGear.Reverse) throw new InvalidOperationException("Wrong drive");
+
+				pos = Interlocked.Decrement(ref appendIndex) + 1;
+				return set(pos, null);
+
 			}
-
-			pos = Interlocked.Decrement(ref appendIndex) + 1;
-			var item = set(pos, null);
-
-			if (Interlocked.Decrement(ref concurrentOps) == 0 && Drive != TesseractGear.Reverse)
-				gearShift.Set();
-
-			return item;
+			finally
+			{
+				if (Interlocked.Decrement(ref concurrentOps) == 0 && Drive != TesseractGear.Reverse)
+					gearShift.Set();
+			}
 		}
 
 		/// <summary>
@@ -346,13 +347,10 @@ namespace System.Collections.Concurrent
 		/// Iterates all cells from 0 up to AppendIndex and yields each item
 		/// if it's not null at the time of the check.
 		/// </summary>
-		/// <remarks>
-		/// Doesn't check for potential resizing in the loop (Gear.P), because the traversal could
-		/// be very slow (can't lock) or very fast (the assert is too expensive on the cache).
-		/// The Consumer could guarantee the correct drive before calling this method.
-		/// </remarks>
+		/// <param name="assertGear">If true volatile-reads the Drive at each iteration. False by default. </param>
 		/// <returns>A not null item.</returns>
-		public IEnumerable<T> NotNullItems()
+		/// <exception cref="InvalidOperationException">If the Drive is P</exception>
+		public IEnumerable<T> NotNullItems(bool assertGear = false)
 		{
 			T item = null;
 			var j = AppendIndex;
@@ -361,9 +359,11 @@ namespace System.Collections.Concurrent
 			if (j >= 0 && blocks[p.D0] != null && blocks[p.D0].Length > p.D1 &&
 				blocks[p.D0][p.D1] != null && blocks[p.D0][p.D1].Length > p.D2 &&
 				blocks[p.D0][p.D1][p.D2] != null && blocks[p.D0][p.D1][p.D2].Length > p.D3)
-				for (int i = 0; i <= AppendIndex; i++)
+				for (int i = 0; i <= j; i++)
 				{
-					p = new TesseractPos(i);
+					if (assertGear && Drive == TesseractGear.P) throw new InvalidOperationException("Wrong drive");
+
+					p.Set(i);
 
 					item = Volatile.Read(ref blocks[p.D0][p.D1][p.D2][p.D3]);
 					if (item != null)
@@ -380,10 +380,12 @@ namespace System.Collections.Concurrent
 		{
 			int result = -1;
 			int aIdx = AppendIndex;
+			var p = new TesseractPos(0);
 
 			for (var i = 0; i <= aIdx; i++)
 			{
-				var p = new TesseractPos(i);
+				p.Set(i);
+
 				if (Volatile.Read(ref blocks[p.D0][p.D1][p.D2][p.D3]) == item)
 				{
 					result = i;
@@ -414,46 +416,40 @@ namespace System.Collections.Concurrent
 					var als = Volatile.Read(ref allocatedSlots);
 
 					if (Drive != TesseractGear.P) throw new InvalidOperationException("Wrong drive");
-					if (length < 0 ) throw new ArgumentOutOfRangeException("length");
+					if (length < 0) throw new ArgumentOutOfRangeException("length");
 					if (length == als) return;
 
 					var p = new TesseractPos(als);
-					var d0 = p.D0;
-					var d1 = p.D1;
-					var d2 = p.D2;
 
 					if (length > als) alloc(length, als);
 					else
 					{
 						while (als > length)
 						{
-							d2--;
-							if (d2 < 1)
+							p.D2--;
+							if (p.D2 < 1)
 							{
-								blocks[d0][d1] = null;
-								d1--;
-								if (d1 < 1)
+								blocks[p.D0][p.D1] = null;
+								p.D1--;
+								if (p.D1 < 1)
 								{
-									d0--;
-									d1 = SIDE;
+									p.D0--;
+									p.D1 = SIDE - 1;
 								}
-								d2 = SIDE;
+								p.D2 = SIDE - 1;
 							}
-							else blocks[d0][d1][d2] = null;
+							else blocks[p.D0][p.D1][p.D2] = null;
 
 							als -= SIDE;
 						}
 
 						Volatile.Write(ref allocatedSlots, als);
-
 						Interlocked.Exchange(ref appendIndex, length - 1);
 
 						if (CountNotNulls)
 						{
-							if (d0 < 0) d0 = 0;
 							int notNull = 0;
 							foreach (var c in NotNullItems()) notNull++;
-
 							Interlocked.Exchange(ref notNullsCount, notNull);
 						}
 					}
@@ -556,21 +552,9 @@ namespace System.Collections.Concurrent
 				{
 					blocks[p.D0][p.D1][p.D2] = new T[SIDE];
 					allocated += SIDE;
+					p.Set(allocated);
 				}
-
-				p.D2++;
-
-				if (p.D2 >= SIDE)
-				{
-					p.D1++;
-					p.D2 = 0;
-
-					if (p.D1 >= SIDE)
-					{
-						p.D0++;
-						p.D1 = 0;
-					}
-				}
+				else break;
 			}
 
 			Volatile.Write(ref allocatedSlots, allocated);

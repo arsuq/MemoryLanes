@@ -2,34 +2,42 @@
    License, v. 2.0. If a copy of the MPL was not distributed with this
    file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+using System.Runtime.InteropServices;
+
 namespace System.Collections.Concurrent
 {
-	ref struct TesseractPos
+	struct TesseractPos
 	{
-		public TesseractPos(in int index)
+		public TesseractPos(int index)
 		{
-			D0 = index >> CUBE_SHIFT;
-			var r = index & CUBE_REM;
-			D1 = r >> PLANE_SHIFT;
-			r = r & PLANE_REM;
-			D2 = r >> BASE_SHIFT;
-			D3 = r & BASE_REM;
+			// Skip zero init and copy the set
+			unsafe
+			{
+				byte* p = (byte*)&index;
+
+				D0 = p[3];
+				D1 = p[2];
+				D2 = p[1];
+				D3 = p[0];
+			}
+		}
+
+		public void Set(int index)
+		{
+			unsafe
+			{
+				byte* p = (byte*)&index;
+
+				D0 = p[3];
+				D1 = p[2];
+				D2 = p[1];
+				D3 = p[0];
+			}
 		}
 
 		public int D0;
 		public int D1;
 		public int D2;
 		public int D3;
-
-		public const int BASE_SHIFT = 8;
-		public const int PLANE_SHIFT = 16;
-		public const int CUBE_SHIFT = 24;
-
-		public const int BASE_REM = 255;
-		public const int PLANE_REM = (1 << 16) - 1;
-		public const int CUBE_REM = (1 << 24) - 1;
-
-		public const int PLANE = 1 << 16;
-		public const int CUBE = 1 << 24;
 	}
 }

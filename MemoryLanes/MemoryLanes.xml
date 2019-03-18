@@ -30,7 +30,7 @@
         </member>
         <member name="F:System.Collections.Concurrent.TesseractGear.Reverse">
             <summary>
-            Concurrent RemoveLast() gets and sets are enabled.
+            Concurrent Take(), RemoveLast() gets and sets are enabled.
             </summary>
             <remarks>
             Reading is allowed if less than AlloatedSlots, Writes must be less than AppendIndex.
@@ -114,7 +114,8 @@
         <member name="M:System.Collections.Concurrent.Tesseract`1.Clutch(System.Collections.Concurrent.TesseractGear,System.Action,System.Int32)">
             <summary>
             Shifts the gear and blocks until all operations in the old drive mode complete.
-            If OnGearShift is not null it's launched in a new Task, wrapped in a try catch, swallowing potential exceptions.
+            If OnGearShift is not null it's launched in a new Task, wrapped in a try catch block,
+            swallowing all potential exceptions.
             </summary>
             <param name="g">The new concurrent mode.</param>
             <param name="f">Guarantees the execution of f() within the lock scope, in case that other shifts are waiting.</param>
@@ -156,7 +157,7 @@
             <param name="item">The object reference</param>
             <returns>The index of the item, -1 if fails.</returns>
             <exception cref="T:System.InvalidOperationException">When Drive != Gear.Straight</exception>
-            <exception cref="T:System.OutOfMemoryException">Guess what</exception>
+            <exception cref="T:System.OutOfMemoryException"></exception>
         </member>
         <member name="M:System.Collections.Concurrent.Tesseract`1.RemoveLast(System.Int32@)">
             <summary>
@@ -173,17 +174,14 @@
             <param name="item">The object reference</param>
             <returns>True if found and null-ed</returns>
         </member>
-        <member name="M:System.Collections.Concurrent.Tesseract`1.NotNullItems">
+        <member name="M:System.Collections.Concurrent.Tesseract`1.NotNullItems(System.Boolean)">
             <summary>
             Iterates all cells from 0 up to AppendIndex and yields each item
             if it's not null at the time of the check.
             </summary>
-            <remarks>
-            Doesn't check for potential resizing in the loop (Gear.P), because the traversal could
-            be very slow (can't lock) or very fast (the assert is too expensive on the cache).
-            The Consumer could guarantee the correct drive before calling this method.
-            </remarks>
+            <param name="assertGear">If true volatile-reads the Drive at each iteration. False by default. </param>
             <returns>A not null item.</returns>
+            <exception cref="T:System.InvalidOperationException">If the Drive is P</exception>
         </member>
         <member name="M:System.Collections.Concurrent.Tesseract`1.IndexOf(`0)">
             <summary>
