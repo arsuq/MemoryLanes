@@ -114,7 +114,7 @@ There are two disposal modes, which could be set in the HighwaySettings construc
 
 
 
-## Usage scenarios
+## Usage
 
 The original purpose for the lanes is message assembling in socket communication, which
 demands quick memory allocation and release. In most cases the received bytes are 
@@ -225,5 +225,5 @@ In **System.IO**:
 
 In **System.Collections.Concurrent**:
 
-- CCube
+- Tesseract
 

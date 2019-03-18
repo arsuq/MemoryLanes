@@ -4,7 +4,7 @@
 
 namespace System.Collections.Concurrent
 {
-	readonly ref struct TesseractPos
+	ref struct TesseractPos
 	{
 		public TesseractPos(in int index)
 		{
@@ -16,10 +16,10 @@ namespace System.Collections.Concurrent
 			D3 = r & BASE_REM;
 		}
 
-		public readonly int D0;
-		public readonly int D1;
-		public readonly int D2;
-		public readonly int D3;
+		public int D0;
+		public int D1;
+		public int D2;
+		public int D3;
 
 		public const int BASE_SHIFT = 8;
 		public const int PLANE_SHIFT = 16;

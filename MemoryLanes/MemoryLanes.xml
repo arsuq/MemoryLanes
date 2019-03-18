@@ -15,7 +15,7 @@
         </member>
         <member name="T:System.Collections.Concurrent.TesseractGear">
             <summary>
-            The allowed concurrent operations
+            The allowed concurrent operations.
             </summary>
         </member>
         <member name="F:System.Collections.Concurrent.TesseractGear.N">
@@ -63,8 +63,8 @@
         </member>
         <member name="M:System.Collections.Concurrent.Tesseract`1.#ctor(System.Int32,System.Boolean,System.Collections.Concurrent.TesseractExpansion)">
             <summary>
-            Preallocates slots. Note that the AppendIndex is -1 and the setter will blow unless 
-            one uses Append() or MoveAppendIndex() to AllocatedSlots for example.
+            Initializes the cube. If preallocating, note that the AppendIndex is -1 and the setter will blow 
+            unless one uses Append() or MoveAppendIndex() to AllocatedSlots for example.
             </summary>
             <param name="slots">To preallocate. The min value is SIDE.</param>
             <param name="countNotNulls">Can be set only here.</param>
@@ -72,12 +72,7 @@
         </member>
         <member name="F:System.Collections.Concurrent.Tesseract`1.BlockLength">
             <summary>
-            The virtual array incremental size.
-            </summary>
-        </member>
-        <member name="F:System.Collections.Concurrent.Tesseract`1.Capacity">
-            <summary>
-            The maximum number of slots that could be allocated.
+            The virtual array increment length.
             </summary>
         </member>
         <member name="F:System.Collections.Concurrent.Tesseract`1.CountNotNulls">
@@ -233,12 +228,7 @@
         </member>
         <member name="F:System.Collections.Concurrent.Tesseract`1.DEF_EXP">
             <summary>
-            The default cube expansion = 2^15 slots.
-            </summary>
-        </member>
-        <member name="F:System.Collections.Concurrent.Tesseract`1.CAPACITY">
-            <summary>
-            Int.MaxValue
+            The default cube expansion = 2^13 slots.
             </summary>
         </member>
         <member name="T:System.HeapFragment">

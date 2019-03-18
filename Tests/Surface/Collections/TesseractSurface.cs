@@ -39,7 +39,7 @@ namespace Tests.Surface.Collections
 				if (!format()) return;
 				if (!take()) return;
 
-				//append_latency();
+				// append_latency();
 
 				Passed = true;
 				IsComplete = true;
@@ -477,7 +477,10 @@ namespace Tests.Surface.Collections
 			"Producers are Done".AsInfo();
 			Task.WaitAll(C);
 
-			var als = Tesseract<object>.SIDE + (2 * Tesseract<object>.DEF_EXP);
+			var allocs = CAP / Tesseract<object>.DEF_EXP;
+			if (CAP % Tesseract<object>.DEF_EXP != 0) allocs++;
+
+			var als = Tesseract<object>.SIDE + (allocs * Tesseract<object>.DEF_EXP);
 
 			if (tsr.AllocatedSlots != als)
 			{

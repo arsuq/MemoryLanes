@@ -76,28 +76,17 @@ namespace System
 
 					if (!IsClosed && newoffset <= CAP)
 					{
-						var bail = false;
-
 						// Just makes the slot, then the derived lane will set it 
 						// at 'Allocations' position.
-						if (track)
-						{
-							// If the lane can't track more fragments, bail
-							// and let Alloc() check the next lane
-							if (Tracker.Capacity >= allocations + 1) Tracker.Append(null);
-							else bail = true;
-						}
+						if (track) Tracker.Append(null);
 
-						if (!bail)
-						{
-							Interlocked.Exchange(ref offset, newoffset);
-							Interlocked.Increment(ref allocations);
-							Interlocked.Exchange(ref lastAllocTick, DateTime.Now.Ticks);
+						Interlocked.Exchange(ref offset, newoffset);
+						Interlocked.Increment(ref allocations);
+						Interlocked.Exchange(ref lastAllocTick, DateTime.Now.Ticks);
 
-							frag = new FragmentRange(oldoffset, size, allocations - 1);
+						frag = new FragmentRange(oldoffset, size, allocations - 1);
 
-							result = true;
-						}
+						result = true;
 					}
 				}
 				finally
@@ -390,7 +379,7 @@ namespace System
 			Allocation = allocation;
 		}
 
-		// Should be long, but Memory<T> uses int for now
+		// Should be long, but Memory<T> uses int
 		public readonly int Offset;
 		public readonly int Length;
 		public readonly int Allocation;

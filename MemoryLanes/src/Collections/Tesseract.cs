@@ -19,7 +19,7 @@ namespace System.Collections.Concurrent
 	public delegate int TesseractExpansion(in int allocatedSlots);
 
 	/// <summary>
-	/// The allowed concurrent operations
+	/// The allowed concurrent operations.
 	/// </summary>
 	public enum TesseractGear
 	{
@@ -65,8 +65,8 @@ namespace System.Collections.Concurrent
 		public Tesseract(TesseractExpansion expansion = null) : this(SIDE, true, expansion) { }
 
 		/// <summary>
-		/// Preallocates slots. Note that the AppendIndex is -1 and the setter will blow unless 
-		/// one uses Append() or MoveAppendIndex() to AllocatedSlots for example.
+		/// Initializes the cube. If preallocating, note that the AppendIndex is -1 and the setter will blow 
+		/// unless one uses Append() or MoveAppendIndex() to AllocatedSlots for example.
 		/// </summary>
 		/// <param name="slots">To preallocate. The min value is SIDE.</param>
 		/// <param name="countNotNulls">Can be set only here.</param>
@@ -74,24 +74,18 @@ namespace System.Collections.Concurrent
 		public Tesseract(int slots, bool countNotNulls, TesseractExpansion expansion = null)
 		{
 			if (slots < SIDE) slots = SIDE;
-			if (slots > CAPACITY) throw new ArgumentOutOfRangeException("slots");
 
 			CountNotNulls = countNotNulls;
 			this.expansion = expansion;
 			blocks = new T[SIDE][][][];
 			direction = 1;
-			alloc(slots);
+			allocatedSlots = alloc(slots, 0);
 		}
 
 		/// <summary>
-		/// The virtual array incremental size.
+		/// The virtual array increment length.
 		/// </summary>
 		public readonly int BlockLength = SIDE;
-
-		/// <summary>
-		/// The maximum number of slots that could be allocated.
-		/// </summary>
-		public readonly int Capacity = CAPACITY;
 
 		/// <summary>
 		/// If true Append and set will update the ItemsCount.
@@ -262,32 +256,27 @@ namespace System.Collections.Concurrent
 				var slots = Volatile.Read(ref allocatedSlots);
 				var idx = ccadd + aidx;
 
-				if (idx < CAPACITY && idx >= slots)
+				if (idx >= slots)
 					lock (commonLock)
 					{
-						// [!] Suppress optimization urges
-
 						// Read after the wait
 						aidx = Volatile.Read(ref appendIndex);
 						slots = Volatile.Read(ref allocatedSlots);
 						ccadd = Volatile.Read(ref concurrentOps);
 						idx = ccadd + aidx;
 
-						if (idx < CAPACITY && idx >= slots)
+						if (idx >= slots)
 						{
-							var p = new TesseractPos(slots);
-							var d1 = p.D1;
-
-							// The default expansion assumes a usage of at least x1000 slots,
+							// The default expansion assumes usage of at least x1000 slots,
 							// thus the petty increments are skipped and 32 SIDE blocks are
 							// constantly added. This also avoids over-committing like  
-							// the List Count doubling for example. 
-							var newCap = expansion != null ? expansion(slots) : allocatedSlots + DEF_EXP;
-							if (newCap > CAPACITY) newCap = CAPACITY;
+							// the List length doubling. 
+							var newCap = expansion != null ? expansion(slots) : slots + DEF_EXP;
 
-							alloc(newCap);
+							// No capacity checks are needed since the Tesseract can store uint.MaxValue
+							// slots and one can demand only int.MaxValue.
 
-							slots = Volatile.Read(ref allocatedSlots);
+							slots = alloc(newCap, slots);
 							aidx = Volatile.Read(ref appendIndex);
 						}
 					}
@@ -422,20 +411,21 @@ namespace System.Collections.Concurrent
 
 				try
 				{
-					var als = AllocatedSlots;
+					var als = Volatile.Read(ref allocatedSlots);
 
 					if (Drive != TesseractGear.P) throw new InvalidOperationException("Wrong drive");
-					if (length < 0 || length > Capacity) throw new ArgumentOutOfRangeException("length");
+					if (length < 0 ) throw new ArgumentOutOfRangeException("length");
 					if (length == als) return;
 
 					var p = new TesseractPos(als);
+					var d0 = p.D0;
 					var d1 = p.D1;
 					var d2 = p.D2;
 
-					if (length > als) alloc(length);
+					if (length > als) alloc(length, als);
 					else
 					{
-						while (allocatedSlots > length)
+						while (als > length)
 						{
 							d2--;
 							if (d2 < 1)
@@ -451,8 +441,10 @@ namespace System.Collections.Concurrent
 							}
 							else blocks[d0][d1][d2] = null;
 
-							allocatedSlots -= SIDE;
+							als -= SIDE;
 						}
+
+						Volatile.Write(ref allocatedSlots, als);
 
 						Interlocked.Exchange(ref appendIndex, length - 1);
 
@@ -552,39 +544,38 @@ namespace System.Collections.Concurrent
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		void alloc(in int slots)
+		int alloc(in int slots, int allocated)
 		{
-			var d1 = 0;
-			var d2 = 0;
+			var p = new TesseractPos(allocated);
 
-			Thread.MemoryBarrier();
-
-			while (slots > allocatedSlots)
+			while (slots > allocated)
 			{
-				if (blocks[d0] == null) blocks[d0] = new T[SIDE][][];
-				if (blocks[d0][d1] == null) blocks[d0][d1] = new T[SIDE][];
-				if (blocks[d0][d1][d2] == null)
+				if (blocks[p.D0] == null) blocks[p.D0] = new T[SIDE][][];
+				if (blocks[p.D0][p.D1] == null) blocks[p.D0][p.D1] = new T[SIDE][];
+				if (blocks[p.D0][p.D1][p.D2] == null)
 				{
-					blocks[d0][d1][d2] = new T[SIDE];
-					allocatedSlots += SIDE;
+					blocks[p.D0][p.D1][p.D2] = new T[SIDE];
+					allocated += SIDE;
 				}
 
-				d2++;
+				p.D2++;
 
-				if (d2 >= SIDE)
+				if (p.D2 >= SIDE)
 				{
-					d1++;
-					d2 = 0;
+					p.D1++;
+					p.D2 = 0;
 
-					if (d1 >= SIDE)
+					if (p.D1 >= SIDE)
 					{
-						d0++;
-						d1 = 0;
+						p.D0++;
+						p.D1 = 0;
 					}
 				}
 			}
 
-			Thread.MemoryBarrier();
+			Volatile.Write(ref allocatedSlots, allocated);
+
+			return allocatedSlots;
 		}
 
 		// Tracks the AppendIndex movement, the indexer is not counted as an op.
@@ -593,21 +584,15 @@ namespace System.Collections.Concurrent
 		int appendIndex = -1;
 		int notNullsCount;
 		int direction;
-		// The main side index
-		int d0;
 
 		/// <summary>
 		/// A block length = 256.
 		/// </summary>
 		public const int SIDE = 1 << 8;
 		/// <summary>
-		/// The default cube expansion = 2^15 slots.
+		/// The default cube expansion = 2^13 slots.
 		/// </summary>
-		public const int DEF_EXP = 1 << 15;
-		/// <summary>
-		/// Int.MaxValue
-		/// </summary>
-		public const int CAPACITY = int.MaxValue;
+		public const int DEF_EXP = 1 << 13;
 		const int PLANE = 1 << 16;
 		const int CUBE = 1 << 24;
 
