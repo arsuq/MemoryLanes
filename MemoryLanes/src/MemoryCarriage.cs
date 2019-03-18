@@ -23,7 +23,7 @@ namespace System
 			if (settings.RegisterForProcessExitCleanup)
 				AppDomain.CurrentDomain.ProcessExit += (s, e) => Dispose();
 
-			Lanes = new CCube<L>();
+			Lanes = new Tesseract<L>();
 
 			noluckGate = new SemaphoreSlim(settings.ConcurrentNewLaneAllocations, settings.ConcurrentNewLaneAllocations);
 		}
@@ -422,7 +422,7 @@ namespace System
 		int freeGhostsGate = 0;
 		bool isDisposed;
 		SemaphoreSlim noluckGate;
-		CCube<L> Lanes;
+		Tesseract<L> Lanes;
 	}
 
 	/// <summary>

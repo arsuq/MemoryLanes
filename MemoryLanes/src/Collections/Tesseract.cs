@@ -51,7 +51,7 @@ namespace System.Collections.Concurrent
 	/// </summary>
 	/// <remarks>
 	/// One must inspect the Drive property before accessing the API and assert that the 
-	/// concurrency mode (Gear) allows the operation. If not, one must wait for the ShiftGear()
+	/// concurrency mode (Gear) allows the operation. If not, one must wait for the Clutch()
 	/// to transition into a correct one.
 	/// </remarks>
 	/// <typeparam name="T">A class</typeparam>
@@ -81,42 +81,6 @@ namespace System.Collections.Concurrent
 			blocks = new T[SIDE][][][];
 			direction = 1;
 			alloc(slots);
-		}
-
-		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		void alloc(in int slots)
-		{
-			var d1 = 0;
-			var d2 = 0;
-
-			Thread.MemoryBarrier();
-
-			while (slots > allocatedSlots)
-			{
-				if (blocks[d0] == null) blocks[d0] = new T[SIDE][][];
-				if (blocks[d0][d1] == null) blocks[d0][d1] = new T[SIDE][];
-				if (blocks[d0][d1][d2] == null)
-				{
-					blocks[d0][d1][d2] = new T[SIDE];
-					allocatedSlots += SIDE;
-				}
-
-				d2++;
-
-				if (d2 >= SIDE)
-				{
-					d1++;
-					d2 = 0;
-
-					if (d1 >= SIDE)
-					{
-						d0++;
-						d1 = 0;
-					}
-				}
-			}
-
-			Thread.MemoryBarrier();
 		}
 
 		/// <summary>
@@ -178,7 +142,7 @@ namespace System.Collections.Concurrent
 		/// <param name="timeout">In milliseconds, by default is -1, which is indefinitely.</param>
 		/// <returns>The old gear.</returns>
 		/// <exception cref="System.SynchronizationException">Code.SignalAwaitTimeout</exception>
-		public TesseractGear ShiftGear(TesseractGear g, Action f = null, int timeout = -1)
+		public TesseractGear Clutch(TesseractGear g, Action f = null, int timeout = -1)
 		{
 			// One call at a time
 			lock (shiftLock)
@@ -314,15 +278,16 @@ namespace System.Collections.Concurrent
 							var p = new TesseractPos(slots);
 							var d1 = p.D1;
 
-							// The default expansion assumes at least x10K slots usage,
-							// thus the petty increments from 1K to 32K are skipped and 32 SIDE blocks are
-							// constantly added. This also avoids over-committing such as 
-							// the Count doubling used in List for example. 
+							// The default expansion assumes a usage of at least x1000 slots,
+							// thus the petty increments are skipped and 32 SIDE blocks are
+							// constantly added. This also avoids over-committing like  
+							// the List Count doubling for example. 
 							var newCap = expansion != null ? expansion(slots) : allocatedSlots + DEF_EXP;
 							if (newCap > CAPACITY) newCap = CAPACITY;
 
 							alloc(newCap);
 
+							slots = Volatile.Read(ref allocatedSlots);
 							aidx = Volatile.Read(ref appendIndex);
 						}
 					}
@@ -586,6 +551,42 @@ namespace System.Collections.Concurrent
 			return old;
 		}
 
+		[MethodImpl(MethodImplOptions.AggressiveInlining)]
+		void alloc(in int slots)
+		{
+			var d1 = 0;
+			var d2 = 0;
+
+			Thread.MemoryBarrier();
+
+			while (slots > allocatedSlots)
+			{
+				if (blocks[d0] == null) blocks[d0] = new T[SIDE][][];
+				if (blocks[d0][d1] == null) blocks[d0][d1] = new T[SIDE][];
+				if (blocks[d0][d1][d2] == null)
+				{
+					blocks[d0][d1][d2] = new T[SIDE];
+					allocatedSlots += SIDE;
+				}
+
+				d2++;
+
+				if (d2 >= SIDE)
+				{
+					d1++;
+					d2 = 0;
+
+					if (d1 >= SIDE)
+					{
+						d0++;
+						d1 = 0;
+					}
+				}
+			}
+
+			Thread.MemoryBarrier();
+		}
+
 		// Tracks the AppendIndex movement, the indexer is not counted as an op.
 		int concurrentOps;
 		int allocatedSlots;
@@ -603,6 +604,9 @@ namespace System.Collections.Concurrent
 		/// The default cube expansion = 2^15 slots.
 		/// </summary>
 		public const int DEF_EXP = 1 << 15;
+		/// <summary>
+		/// Int.MaxValue
+		/// </summary>
 		public const int CAPACITY = int.MaxValue;
 		const int PLANE = 1 << 16;
 		const int CUBE = 1 << 24;

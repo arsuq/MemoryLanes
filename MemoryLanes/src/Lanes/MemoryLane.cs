@@ -27,7 +27,7 @@ namespace System
 			ResetMode = rm;
 
 			if (rm == MemoryLaneResetMode.TrackGhosts)
-				Tracker = new CCube<WeakReference<MemoryFragment>>();
+				Tracker = new Tesseract<WeakReference<MemoryFragment>>();
 		}
 
 		/// <summary>
@@ -352,7 +352,7 @@ namespace System
 		public readonly MemoryLaneResetMode ResetMode;
 
 		// The Tracker index is the Allocation index of the fragment
-		CCube<WeakReference<MemoryFragment>> Tracker = null;
+		Tesseract<WeakReference<MemoryFragment>> Tracker = null;
 
 		SpinLock spinGate = new SpinLock();
 		SpinLock resetGate = new SpinLock();

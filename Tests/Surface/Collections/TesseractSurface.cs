@@ -39,7 +39,7 @@ namespace Tests.Surface.Collections
 				if (!format()) return;
 				if (!take()) return;
 
-				append_latency();
+				//append_latency();
 
 				Passed = true;
 				IsComplete = true;
@@ -179,7 +179,7 @@ namespace Tests.Surface.Collections
 
 		bool shrink(Tesseract<object> arr)
 		{
-			arr.ShiftGear(TesseractGear.P);
+			arr.Clutch(TesseractGear.P);
 			arr.Resize(20000);
 
 			var oldCap = arr.AllocatedSlots;
@@ -213,15 +213,15 @@ namespace Tests.Surface.Collections
 
 		bool parallelAppendRemoveLast(Random rdm, Tesseract<object> arr)
 		{
-			arr.ShiftGear(TesseractGear.P);
+			arr.Clutch(TesseractGear.P);
 			arr.Resize(0);
-			arr.ShiftGear(TesseractGear.Straight);
+			arr.Clutch(TesseractGear.Straight);
 
 			for (int i = 0; i < 200; i++)
 			{
-				arr.ShiftGear(TesseractGear.Straight);
+				arr.Clutch(TesseractGear.Straight);
 				arr.Append(i);
-				arr.ShiftGear(TesseractGear.Reverse);
+				arr.Clutch(TesseractGear.Reverse);
 				arr.RemoveLast(out int x);
 			}
 
@@ -232,7 +232,7 @@ namespace Tests.Surface.Collections
 				Thread.Sleep(rdm.Next(20, 100));
 				if (i % 2 == 0)
 				{
-					arr.ShiftGear(TesseractGear.Straight);
+					arr.Clutch(TesseractGear.Straight);
 					arr.Append(i);
 					Interlocked.Increment(ref count);
 				}
@@ -240,7 +240,7 @@ namespace Tests.Surface.Collections
 				{
 					if (arr.ItemsCount > 1)
 					{
-						arr.ShiftGear(TesseractGear.Reverse);
+						arr.Clutch(TesseractGear.Reverse);
 						arr.RemoveLast(out int x);
 						Interlocked.Decrement(ref count);
 					}
@@ -324,7 +324,7 @@ namespace Tests.Surface.Collections
 
 				"Gears.Straight".AsSuccess();
 
-				arr.ShiftGear(TesseractGear.N);
+				arr.Clutch(TesseractGear.N);
 
 				Parallel.For(0, 200, (i) =>
 				{
@@ -334,7 +334,7 @@ namespace Tests.Surface.Collections
 
 				"Gears.N".AsSuccess();
 
-				arr.ShiftGear(TesseractGear.Reverse);
+				arr.Clutch(TesseractGear.Reverse);
 
 				Parallel.For(0, 200, (i) =>
 				{
@@ -343,14 +343,14 @@ namespace Tests.Surface.Collections
 
 				"Gears.Reverse".AsSuccess();
 
-				arr.ShiftGear(TesseractGear.P);
+				arr.Clutch(TesseractGear.P);
 				arr.Resize(0);
 				arr.OnGearShiftReset();
 
 				Parallel.For(0, 200, (i) =>
 				{
-					arr.ShiftGear(TesseractGear.Straight, () => arr.Append(i));
-					arr.ShiftGear(TesseractGear.Reverse, () => arr.RemoveLast(out int p));
+					arr.Clutch(TesseractGear.Straight, () => arr.Append(i));
+					arr.Clutch(TesseractGear.Reverse, () => arr.RemoveLast(out int p));
 				});
 
 				"Competing shifts".AsSuccess();
@@ -372,7 +372,7 @@ namespace Tests.Surface.Collections
 			for (int i = 0; i < 100; i++)
 				arr.Append(i);
 
-			arr.ShiftGear(TesseractGear.N);
+			arr.Clutch(TesseractGear.N);
 			object o = 3;
 			arr.Format(o);
 
@@ -408,7 +408,11 @@ namespace Tests.Surface.Collections
 						try
 						{
 							var nextInt = Interlocked.Increment(ref next);
-							if (nextInt <= CAP) tsr.Append(nextInt);
+							if (nextInt <= CAP)
+							{
+								var appIdx = tsr.Append(nextInt);
+								if (appIdx < 0) $"Appended {nextInt} at -1".AsError();
+							}
 							else break;
 						}
 						catch
@@ -423,7 +427,7 @@ namespace Tests.Surface.Collections
 			// Consumers
 			var C = new Task[10];
 
-			for (int i = 0; i < P.Length; i++)
+			for (int i = 0; i < C.Length; i++)
 			{
 				C[i] = new Task(() =>
 				{
