@@ -12,9 +12,9 @@ using TestSurface;
 
 namespace Tests.Surface.Collections
 {
-	public class CCubeSurface : ITestSurface
+	public class TesseractSurface : ITestSurface
 	{
-		public string Info => "Tests the CCube class.";
+		public string Info => "Tests the Tesseract class.";
 
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
@@ -26,7 +26,9 @@ namespace Tests.Surface.Collections
 			try
 			{
 				var rdm = new Random();
-				var qb = new CCube<object>();
+				var qb = new Tesseract<object>();
+
+				pos();
 
 				if (!parallelAppend(rdm, qb)) return;
 				if (!parallelAppendRemoveLast(rdm, qb)) return;
@@ -49,6 +51,34 @@ namespace Tests.Surface.Collections
 			}
 		}
 
+		bool pos()
+		{
+			var I = new int[] { 111, 333, 517, 67440, 8_888_888, 1_234_432_323 };
+			var E = new (int d0, int d1, int d2, int d3)[] {
+				(0, 0, 0, 111),
+				(0, 0, 1, 77),
+				(0, 0, 2, 5),
+				(0, 1, 7, 112),
+				(0, 135, 162, 56),
+				(73, 147, 241, 67),
+			};
+
+			for (int i = 0; i < I.Length; i++)
+			{
+				var p = new TesseractPos(I[i]);
+				var c = E[i];
+
+				if (p.D0 != c.d0 || p.D1 != c.d1 || p.D2 != c.d2 || p.D3 != c.d3)
+				{
+					FailureMessage = "TesseractPos ctor is incorrect.";
+					Passed = false;
+					return false;
+				}
+			}
+
+			return true;
+		}
+
 		void append_latency()
 		{
 			var CAP = int.MaxValue / 32;
@@ -58,7 +88,7 @@ namespace Tests.Surface.Collections
 			TimeSpan queueTime;
 
 			// Preallocating CAP slots produces weird results, try it...
-			var cube = new CCube<object>(0, false);
+			var tsr = new Tesseract<object>(0, false);
 
 			// Before testing the setter with preallocated CAP, move the AppendIndex to CAP
 			// cube.MoveAppendIndex(CAP, true);
@@ -66,14 +96,14 @@ namespace Tests.Surface.Collections
 			// Just to be sure that the positioning will remain
 			Interlocked.Exchange(ref startTicks, DateTime.Now.Ticks);
 
-			Parallel.For(0, CAP, (i) => cube.Append(i));
+			Parallel.For(0, CAP, (i) => tsr.Append(i));
 
 			//for (int i = 0; i < CAP; i++)
-			//	cube.Append(i);
+			//	tsr.Append(i);
 
 			Interlocked.Exchange(ref stopTicks, DateTime.Now.Ticks);
 			cubeTime = new TimeSpan(stopTicks - startTicks);
-			cube = null;
+			tsr = null;
 			GC.Collect(2);
 
 			// Something expandable and concurrent.
@@ -90,16 +120,16 @@ namespace Tests.Surface.Collections
 			Interlocked.Exchange(ref stopTicks, DateTime.Now.Ticks);
 			queueTime = new TimeSpan(stopTicks - startTicks);
 
-			$"Allocating {CAP} objects: cube {cubeTime.TotalMilliseconds}ms queue {queueTime.TotalMilliseconds} ".AsTestInfo();
+			$"Allocating {CAP} objects: tesseract {cubeTime.TotalMilliseconds}ms queue {queueTime.TotalMilliseconds} ".AsTestInfo();
 		}
 
 		bool customExpand()
 		{
-			var ccaexp = new CCube<object>((in int slots) => slots < 1500 ? slots * 2 : Convert.ToInt32(slots * 1.5));
+			var ccaexp = new Tesseract<object>((in int slots) => slots < 300 ? slots * 2 : Convert.ToInt32(slots * 1.5));
 			var firstExp = ccaexp.BlockLength + 1;
 			var secondExp = ccaexp.BlockLength * 2 + 1;
 
-			for (int i = 0; i < 5000; i++)
+			for (int i = 0; i < 800; i++)
 			{
 				ccaexp.Append(i);
 
@@ -130,7 +160,7 @@ namespace Tests.Surface.Collections
 			return true;
 		}
 
-		bool expand(CCube<object> arr)
+		bool expand(Tesseract<object> arr)
 		{
 			var doubleCap = arr.AllocatedSlots * 2;
 			arr.Resize(doubleCap);
@@ -147,19 +177,20 @@ namespace Tests.Surface.Collections
 			return true;
 		}
 
-		bool shrink(CCube<object> arr)
+		bool shrink(Tesseract<object> arr)
 		{
-			arr.ShiftGear(CCubeGear.P);
+			arr.ShiftGear(TesseractGear.P);
 			arr.Resize(20000);
 
 			var oldCap = arr.AllocatedSlots;
 			var newCap = oldCap / 3;
+			var side = arr.BlockLength;
 
 			arr.Resize(newCap);
 
-			var p = new CCubePos(newCap);
+			var p = new TesseractPos(newCap);
 
-			var slots = p.D0 * arr.BlockLength * arr.BlockLength + p.D1 * arr.BlockLength;
+			var slots = p.D0 * side * side * side + p.D1 * side * side + p.D2 * side;
 
 			if (arr.AllocatedSlots != slots)
 			{
@@ -180,17 +211,17 @@ namespace Tests.Surface.Collections
 			return true;
 		}
 
-		bool parallelAppendRemoveLast(Random rdm, CCube<object> arr)
+		bool parallelAppendRemoveLast(Random rdm, Tesseract<object> arr)
 		{
-			arr.ShiftGear(CCubeGear.P);
+			arr.ShiftGear(TesseractGear.P);
 			arr.Resize(0);
-			arr.ShiftGear(CCubeGear.Straight);
+			arr.ShiftGear(TesseractGear.Straight);
 
 			for (int i = 0; i < 200; i++)
 			{
-				arr.ShiftGear(CCubeGear.Straight);
+				arr.ShiftGear(TesseractGear.Straight);
 				arr.Append(i);
-				arr.ShiftGear(CCubeGear.Reverse);
+				arr.ShiftGear(TesseractGear.Reverse);
 				arr.RemoveLast(out int x);
 			}
 
@@ -201,7 +232,7 @@ namespace Tests.Surface.Collections
 				Thread.Sleep(rdm.Next(20, 100));
 				if (i % 2 == 0)
 				{
-					arr.ShiftGear(CCubeGear.Straight);
+					arr.ShiftGear(TesseractGear.Straight);
 					arr.Append(i);
 					Interlocked.Increment(ref count);
 				}
@@ -209,7 +240,7 @@ namespace Tests.Surface.Collections
 				{
 					if (arr.ItemsCount > 1)
 					{
-						arr.ShiftGear(CCubeGear.Reverse);
+						arr.ShiftGear(TesseractGear.Reverse);
 						arr.RemoveLast(out int x);
 						Interlocked.Decrement(ref count);
 					}
@@ -235,7 +266,7 @@ namespace Tests.Surface.Collections
 			return true;
 		}
 
-		bool parallelAppend(Random rdm, CCube<object> arr)
+		bool parallelAppend(Random rdm, Tesseract<object> arr)
 		{
 			var controlArr = new List<object>();
 
@@ -277,7 +308,7 @@ namespace Tests.Surface.Collections
 
 		bool gears()
 		{
-			var arr = new CCube<object>();
+			var arr = new Tesseract<object>();
 			var rdm = new Random();
 
 			try
@@ -293,7 +324,7 @@ namespace Tests.Surface.Collections
 
 				"Gears.Straight".AsSuccess();
 
-				arr.ShiftGear(CCubeGear.N);
+				arr.ShiftGear(TesseractGear.N);
 
 				Parallel.For(0, 200, (i) =>
 				{
@@ -303,7 +334,7 @@ namespace Tests.Surface.Collections
 
 				"Gears.N".AsSuccess();
 
-				arr.ShiftGear(CCubeGear.Reverse);
+				arr.ShiftGear(TesseractGear.Reverse);
 
 				Parallel.For(0, 200, (i) =>
 				{
@@ -312,14 +343,14 @@ namespace Tests.Surface.Collections
 
 				"Gears.Reverse".AsSuccess();
 
-				arr.ShiftGear(CCubeGear.P);
+				arr.ShiftGear(TesseractGear.P);
 				arr.Resize(0);
 				arr.OnGearShiftReset();
 
 				Parallel.For(0, 200, (i) =>
 				{
-					arr.ShiftGear(CCubeGear.Straight, () => arr.Append(i));
-					arr.ShiftGear(CCubeGear.Reverse, () => arr.RemoveLast(out int p));
+					arr.ShiftGear(TesseractGear.Straight, () => arr.Append(i));
+					arr.ShiftGear(TesseractGear.Reverse, () => arr.RemoveLast(out int p));
 				});
 
 				"Competing shifts".AsSuccess();
@@ -336,12 +367,12 @@ namespace Tests.Surface.Collections
 
 		bool format()
 		{
-			var arr = new CCube<object>();
+			var arr = new Tesseract<object>();
 
 			for (int i = 0; i < 100; i++)
 				arr.Append(i);
 
-			arr.ShiftGear(CCubeGear.N);
+			arr.ShiftGear(TesseractGear.N);
 			object o = 3;
 			arr.Format(o);
 
@@ -360,7 +391,7 @@ namespace Tests.Surface.Collections
 
 		bool take()
 		{
-			var cca = new CCube<object>();
+			var tsr = new Tesseract<object>();
 			var CAP = 50_000;
 			int next = 0, sum = 0;
 			var compareSum = (CAP / 2) * (1 + CAP);
@@ -376,13 +407,13 @@ namespace Tests.Surface.Collections
 					{
 						try
 						{
-							if (cca.AppendIndex >= CAP) break;
 							var nextInt = Interlocked.Increment(ref next);
-							if (nextInt <= CAP) cca.Append(nextInt);
+							if (nextInt <= CAP) tsr.Append(nextInt);
 							else break;
 						}
 						catch
 						{
+							"Breaking Producer".AsInnerInfo();
 							break;
 						}
 					}
@@ -400,10 +431,21 @@ namespace Tests.Surface.Collections
 					{
 						try
 						{
-							while (j > cca.AppendIndex)
-								Thread.Sleep(20);
+							var waits = 0;
 
-							var o = cca.Take(j);
+							while (j > tsr.AppendIndex)
+							{
+								Thread.Sleep(1);
+								waits++;
+
+								if (waits > 10_000)
+								{
+									$"j: {j} AppendIndex: {tsr.AppendIndex} ".AsError();
+									waits = 0;
+								}
+							}
+
+							var o = tsr.Take(j);
 
 							if (o != null)
 							{
@@ -413,6 +455,7 @@ namespace Tests.Surface.Collections
 						}
 						catch (InvariantException)
 						{
+							"Consumer Invariant exception".AsError();
 							break;
 						}
 					}
@@ -427,21 +470,22 @@ namespace Tests.Surface.Collections
 			}
 
 			Task.WaitAll(P);
+			"Producers are Done".AsInfo();
 			Task.WaitAll(C);
 
-			var als = 1024 + (2 * CCube<object>.DEF_EXP);
+			var als = Tesseract<object>.SIDE + (2 * Tesseract<object>.DEF_EXP);
 
-			if (cca.AllocatedSlots != als)
+			if (tsr.AllocatedSlots != als)
 			{
-				FailureMessage = $"Wrong AllocatedSlots {cca.AllocatedSlots}, expected {CAP}";
+				FailureMessage = $"Wrong AllocatedSlots {tsr.AllocatedSlots}, expected {CAP}";
 				Passed = false;
 				return false;
 			}
 
 			for (int i = 0; i < CAP; i++)
-				if (cca[i] != null)
+				if (tsr[i] != null)
 				{
-					FailureMessage = $"Take at {i} failed. There is a value: {cca[i]}";
+					FailureMessage = $"Take at {i} failed. There is a value: {tsr[i]}";
 					Passed = false;
 					return false;
 				}
