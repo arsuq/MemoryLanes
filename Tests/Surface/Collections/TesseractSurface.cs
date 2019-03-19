@@ -120,7 +120,7 @@ namespace Tests.Surface.Collections
 			Interlocked.Exchange(ref stopTicks, DateTime.Now.Ticks);
 			queueTime = new TimeSpan(stopTicks - startTicks);
 
-			$"Allocating {CAP} objects: tesseract {cubeTime.TotalMilliseconds}ms queue {queueTime.TotalMilliseconds} ".AsTestInfo();
+			$"Allocating {CAP} objects: tesseract {cubeTime.TotalMilliseconds}ms queue {queueTime.TotalMilliseconds}ms ".AsTestInfo();
 		}
 
 		bool customExpand()
@@ -216,13 +216,14 @@ namespace Tests.Surface.Collections
 			arr.Clutch(TesseractGear.P);
 			arr.Resize(0);
 			arr.Clutch(TesseractGear.Straight);
+			var pos = 0;
 
 			for (int i = 0; i < 200; i++)
 			{
 				arr.Clutch(TesseractGear.Straight);
 				arr.Append(i);
 				arr.Clutch(TesseractGear.Reverse);
-				arr.RemoveLast(out int x);
+				arr.RemoveLast(ref pos);
 			}
 
 			int count = 0;
@@ -241,7 +242,7 @@ namespace Tests.Surface.Collections
 					if (arr.ItemsCount > 1)
 					{
 						arr.Clutch(TesseractGear.Reverse);
-						arr.RemoveLast(out int x);
+						arr.RemoveLast(ref pos);
 						Interlocked.Decrement(ref count);
 					}
 				}
@@ -335,10 +336,11 @@ namespace Tests.Surface.Collections
 				"Gears.N".AsSuccess();
 
 				arr.Clutch(TesseractGear.Reverse);
+				var _ = 0;
 
 				Parallel.For(0, 200, (i) =>
 				{
-					arr.RemoveLast(out int pos);
+					arr.RemoveLast(ref _);
 				});
 
 				"Gears.Reverse".AsSuccess();
@@ -350,7 +352,7 @@ namespace Tests.Surface.Collections
 				Parallel.For(0, 200, (i) =>
 				{
 					arr.Clutch(TesseractGear.Straight, () => arr.Append(i));
-					arr.Clutch(TesseractGear.Reverse, () => arr.RemoveLast(out int p));
+					arr.Clutch(TesseractGear.Reverse, () => arr.RemoveLast(ref _));
 				});
 
 				"Competing shifts".AsSuccess();

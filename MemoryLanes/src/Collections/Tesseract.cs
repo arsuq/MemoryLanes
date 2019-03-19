@@ -233,6 +233,11 @@ namespace System.Collections.Concurrent
 		/// If there is not enough space locks until enough blocks are
 		/// allocated and then switches back to fully concurrent mode.
 		/// </summary>
+		/// <remarks>
+		/// If the expansion callback throws or out-of-memory is thrown the cube should be considered unrecoverable.
+		/// In that situation the gear will be jammed in Straight position and there is no way to shift it.
+		/// If there are ongoing Clutch calls they will wait until their timeouts expire or forever (the default).
+		/// </remarks>
 		/// <param name="item">The object reference</param>
 		/// <returns>The index of the item, -1 if fails.</returns>
 		/// <exception cref="System.InvalidOperationException">When Drive != Gear.Straight</exception>
@@ -247,12 +252,13 @@ namespace System.Collections.Concurrent
 			// in this already not-cache-friendly structure.
 			var ccadd = Interlocked.Increment(ref concurrentOps);
 			var pos = -1;
+			Exception ex = null;
 
-			try
+			// Check if the Drive is TesseractGear.Straight
+			// Try catch-ing this costs ~0.1x slowdown, 
+			// If alloc throws OutOfMemory there is no hope anyways, if expansion throws...that's dumb
+			if (Volatile.Read(ref direction) == 1)
 			{
-				// Check if the Drive is TesseractGear.Straight
-				if (Volatile.Read(ref direction) != 1) throw new InvalidOperationException("Wrong drive");
-
 				var aidx = Volatile.Read(ref appendIndex);
 				var slots = Volatile.Read(ref allocatedSlots);
 				var idx = ccadd + aidx;
@@ -288,12 +294,13 @@ namespace System.Collections.Concurrent
 					set(pos, item);
 				}
 			}
-			finally
-			{
-				// If it's the last exiting operation for the old direction
-				if (Interlocked.Decrement(ref concurrentOps) == 0 && Volatile.Read(ref direction) != 1)
-					gearShift.Set();
-			}
+			else ex = new InvalidOperationException("Wrong drive");
+
+			// If it's the last exiting operation for the old direction
+			if (Interlocked.Decrement(ref concurrentOps) == 0 && Volatile.Read(ref direction) != 1)
+				gearShift.Set();
+
+			if (ex != null) throw ex;
 
 			return pos;
 		}
@@ -304,23 +311,26 @@ namespace System.Collections.Concurrent
 		/// <param name="pos">The item position.</param>
 		/// <returns>The removed item.</returns>
 		/// <exception cref="System.InvalidOperationException">When Drive != Gear.Reverse</exception>
-		public T RemoveLast(out int pos)
+		public T RemoveLast(ref int pos)
 		{
 			Interlocked.Increment(ref concurrentOps);
 
-			try
-			{
-				if (Drive != TesseractGear.Reverse) throw new InvalidOperationException("Wrong drive");
+			Exception ex = null;
+			T r = null;
 
+			if (Drive == TesseractGear.Reverse)
+			{
 				pos = Interlocked.Decrement(ref appendIndex) + 1;
-				return set(pos, null);
+				r = set(pos, null);
+			}
+			else ex = new InvalidOperationException("Wrong drive");
 
-			}
-			finally
-			{
-				if (Interlocked.Decrement(ref concurrentOps) == 0 && Drive != TesseractGear.Reverse)
-					gearShift.Set();
-			}
+			if (Interlocked.Decrement(ref concurrentOps) == 0 && Drive != TesseractGear.Reverse)
+				gearShift.Set();
+
+			if (ex != null) throw ex;
+
+			return r;
 		}
 
 		/// <summary>

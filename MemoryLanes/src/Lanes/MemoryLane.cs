@@ -68,33 +68,30 @@ namespace System
 			else pass = allocLobby.WaitOne(awaitMS);
 
 			if (pass)
-				try
+			{
+				// Volatile read
+				var oldoffset = Offset;
+				var newoffset = oldoffset + size;
+
+				if (!IsClosed && newoffset <= CAP)
 				{
-					// Volatile read
-					var oldoffset = Offset;
-					var newoffset = oldoffset + size;
+					// Just makes the slot, then the derived lane will set it 
+					// at 'Allocations' position.
+					if (track) Tracker.Append(null);
 
-					if (!IsClosed && newoffset <= CAP)
-					{
-						// Just makes the slot, then the derived lane will set it 
-						// at 'Allocations' position.
-						if (track) Tracker.Append(null);
+					Interlocked.Exchange(ref offset, newoffset);
+					Interlocked.Increment(ref allocations);
+					Interlocked.Exchange(ref lastAllocTick, DateTime.Now.Ticks);
 
-						Interlocked.Exchange(ref offset, newoffset);
-						Interlocked.Increment(ref allocations);
-						Interlocked.Exchange(ref lastAllocTick, DateTime.Now.Ticks);
+					frag = new FragmentRange(oldoffset, size, allocations - 1);
 
-						frag = new FragmentRange(oldoffset, size, allocations - 1);
-
-						result = true;
-					}
+					result = true;
 				}
-				finally
-				{
-					// The lane reset mode is read-only hence incorrect lock release is not possible.
-					if (track) allocLobby.Set();
-					else spinGate.Exit();
-				}
+				
+				// The lane reset mode is read-only hence incorrect lock release is not possible.
+				if (track) allocLobby.Set();
+				else spinGate.Exit();
+			}
 
 			return result;
 		}
