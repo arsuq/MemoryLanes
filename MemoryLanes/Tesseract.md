@@ -75,20 +75,20 @@ the total objects count via the *ItemsCount* property.
 
 > The atomics cost increases with contention. One can verify this by benchmarking a
 > preallocated Tesseract (will never lock) with an *empty* one. The lock acquiring plus
-> the array allocation are nothing compared to the cache thrashing penalty.
+> the array allocation are nothing compared to the cache trashing penalty.
 
 ### Expansion
 
 One could design a custom growth by providing a *TesseractExpansion* callback in the constructor.
-Whenever more slots are needed it will be called and the returned new size will be allocated.
-The default behavior however (no callback) is much simpler - a 32xSIDE blocks are added at
-each allocation, i.e. 8192 slots.
+Whenever more slots are needed it will be called with the current number of slots and the returned
+new size will be allocated. The default behavior however (no callback) is much simpler - 
+32xSIDE blocks are added at each allocation, i.e. 8192 slots.
 
 > The default expansion count may seem too much, compared to a classic length doubling, 
 > however it's actually more conservative after 10K when the 2x growth overcommits and locks
 > huge memory blocks.
 
-The cube is very GC friendly, all blocks are 4K bytes in size and will be compacted.
+The cube is very GC friendly, all arrays are 4K bytes in size and will be compacted.
 Also partial or full deallocation will be noticeable, unlike LOH releases which the GC avoids collecting.
 
 ### Exceptions

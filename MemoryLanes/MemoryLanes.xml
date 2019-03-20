@@ -1548,6 +1548,7 @@
             <param name="source">The source stream.</param>
             <param name="count">Number of bytes to copy from source.</param>
             <returns>The copied bytes count.</returns>
+            <exception cref="T:System.ArgumentOutOfRangeException">The count is less than 1 or greater than LaneCapacity</exception>
         </member>
         <member name="M:System.MemoryLane.FullTrace">
             <summary>
