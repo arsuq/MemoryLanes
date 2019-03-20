@@ -1,9 +1,9 @@
 
+![](Logo128.jpg)
+
 # Memory Lanes
 
 > v1.3
-
-![](Logo128.jpg)
 
 ## Description 
 
@@ -122,7 +122,7 @@ immediately converted into a managed heap object and then discarded. With proper
 one could make use of the different storage locations by using a heap highway for small messages
 and a mapped highway when working with megabytes of data. 
 
-> In general one should think more about fragment lifetimes than size variety.
+> In general, one should think more about fragment lifetimes than size variety.
 
 ### Consistent fragment lifetime
 
