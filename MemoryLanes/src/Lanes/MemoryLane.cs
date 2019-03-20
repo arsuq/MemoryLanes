@@ -79,15 +79,14 @@ namespace System
 					// at 'Allocations' position.
 					if (track) Tracker.Append(null);
 
-					Interlocked.Exchange(ref offset, newoffset);
 					Interlocked.Increment(ref allocations);
-					Interlocked.Exchange(ref lastAllocTick, DateTime.Now.Ticks);
+					Volatile.Write(ref offset, newoffset);
+					Volatile.Write(ref lastAllocTick, DateTime.Now.Ticks);
 
 					frag = new FragmentRange(oldoffset, size, allocations - 1);
-
 					result = true;
 				}
-				
+
 				// The lane reset mode is read-only hence incorrect lock release is not possible.
 				if (track) allocLobby.Set();
 				else spinGate.Exit();
@@ -256,8 +255,11 @@ namespace System
 		/// <param name="source">The source stream.</param>
 		/// <param name="count">Number of bytes to copy from source.</param>
 		/// <returns>The copied bytes count.</returns>
+		/// <exception cref="ArgumentOutOfRangeException">The count is less than 1 or greater than LaneCapacity</exception>
 		public int Format(Stream source, int count)
 		{
+			if (count < 1 || count > LaneCapacity) throw new ArgumentOutOfRangeException("count");
+
 			var read = 0;
 
 			lock (formatLock)

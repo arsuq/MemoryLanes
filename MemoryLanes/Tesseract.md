@@ -16,22 +16,22 @@ with minor differences.
 
 The main accessors are:
 
-| Method           | Description                                                  |
-| ---------------- | ------------------------------------------------------------ |
-| *Append*         | Adds an item and moves the AppendIndex, allocates if needed  |
-| *Take*           | Replaces the cell value with a null and returns the original |
-| *RemoveLast*     | Like Append but decrements the AppendIndex                   |
-| *get*            | Can read values up to the AllocatedSlots index               |
-| *set*            | Can set a cell if its index is less than AppendIndex         |
-| *AppendIndex*    | The current position                                         |
-| *AllocatedSlots* | The number of readable cells                                 |
-| *ItemsCount*     | If CountNotNulls returns the total not null cells count      |
-| *Clutch*         | Changes the TesseractGear (the Drive mode)                   |
-| *Resize*         | Shrinks or expands explicitly                                |
-| *Format*         | Replaces all cells with an argument                          |
-| *IndexOf*        | Searches for an object                                       |
-| *Remove*         | Removes the cell at the IndexOf result                       |
-| *NotNullItems*   | Enumerates the array and yields the cell if it's not null    |
+| Method           | Description                                                     |
+| ---------------- | --------------------------------------------------------------- |
+| *Append*         | Adds an item and moves the AppendIndex, allocates if needed     |
+| *Take*           | Replaces the cell value with a null and returns the original    |
+| *RemoveLast*     | Like Append but decrements the AppendIndex                      |
+| *get*            | Can read values up to the AllocatedSlots index                  |
+| *set*            | Can set a cell if its index is less than AppendIndex            |
+| *AppendIndex*    | The current position                                            |
+| *AllocatedSlots* | The number of readable cells                                    |
+| *ItemsCount*     | If CountNotNulls is true returns the total not-null cells count |
+| *Clutch*         | Changes the TesseractGear (the Drive mode)                      |
+| *Resize*         | Shrinks or expands explicitly                                   |
+| *Format*         | Replaces all cells with an argument                             |
+| *IndexOf*        | Searches for an object                                          |
+| *Remove*         | Removes the cell at the IndexOf result                          |
+| *NotNullItems*   | Enumerates the array and yields the cell if it's not null       |
 
 
 
@@ -95,7 +95,7 @@ Also partial or full deallocation will be noticeable, unlike LOH releases which 
 
 If Append throws *OutOfMemoryException* exception or the user expansion callback throws, 
 the *Drive* will be stuck in *Straight* position. Any ongoing *Clutch* calls will timeout 
-(if set) or wait indefinitely. Except that all Straight methods will work normally.
+(if set) or wait indefinitely. Except that all *Straight* methods will continue to work normally.
 
 > Avoid try catch-ing in the TesseractExpansion callback as it is unnecessarily expensive
 > in the context of a simple calculation such as AllocatedSlots * X.

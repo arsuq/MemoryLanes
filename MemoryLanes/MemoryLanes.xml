@@ -1193,6 +1193,28 @@
             </exception>
             <exception cref="T:System.ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
         </member>
+        <member name="P:System.IMemoryHighway.Item(System.Int32)">
+            <summary>
+            Gets a specific lane.
+            </summary>
+            <param name="index">The index must be less than the LastLaneIndex value. </param>
+            <returns>The Lane</returns>
+            <exception cref="T:System.ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
+        </member>
+        <member name="M:System.IMemoryHighway.GetLanes">
+            <summary>
+            Creates a new List instance with the selection of all non null cells in the underlying array.
+            </summary>
+            <returns>A read only list of MemoryLane objects.</returns>
+            <exception cref="T:System.ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
+        </member>
+        <member name="M:System.IMemoryHighway.CreateStream(System.Int32)">
+            <summary>
+            Creates a HighwayStream from the current highway,
+            </summary>
+            <param name="fragmentSize">The incremental memory size.</param>
+            <returns>The Stream.</returns>
+        </member>
         <member name="M:System.IMemoryHighway.GetTotalActiveFragments">
             <summary>
             Returns an aggregate of all active fragments in all lanes.
@@ -1234,13 +1256,6 @@
             </summary>
             <exception cref="T:System.ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
         </member>
-        <member name="M:System.IMemoryHighway.CreateStream(System.Int32)">
-            <summary>
-            Creates a HighwayStream from the current highway,
-            </summary>
-            <param name="fragmentSize">The incremental memory size.</param>
-            <returns>The Stream.</returns>
-        </member>
         <member name="P:System.IMemoryHighway.LastAllocTickAnyLane">
             <summary>
             The last allocation time. 
@@ -1255,21 +1270,6 @@
             <summary>
             When overridden returns the highway storage type.
             </summary>
-        </member>
-        <member name="M:System.IMemoryHighway.GetLanes">
-            <summary>
-            Creates a new List instance with the selection of all non null cells in the underlying array.
-            </summary>
-            <returns>A read only list of MemoryLane objects.</returns>
-            <exception cref="T:System.ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
-        </member>
-        <member name="P:System.IMemoryHighway.Item(System.Int32)">
-            <summary>
-            Gets a specific lane.
-            </summary>
-            <param name="index">The index must be less than the LastLaneIndex value. </param>
-            <returns>The Lane</returns>
-            <exception cref="T:System.ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
         </member>
         <member name="M:System.IMemoryHighway.FullTrace">
             <summary>

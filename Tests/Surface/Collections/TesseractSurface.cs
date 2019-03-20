@@ -136,7 +136,7 @@ namespace Tests.Surface.Collections
 			Interlocked.Exchange(ref stopTicks, DateTime.Now.Ticks);
 			queueTime = new TimeSpan(stopTicks - startTicks);
 
-			$"Allocating {CAP} objects: tesseract {cubeTime.TotalMilliseconds}ms queue {queueTime.TotalMilliseconds}ms ".AsTestInfo();
+			$"Allocating {CAP} objects: Tesseract {cubeTime.TotalMilliseconds}ms Queue {queueTime.TotalMilliseconds}ms ".AsTestInfo();
 		}
 
 		bool customExpand()

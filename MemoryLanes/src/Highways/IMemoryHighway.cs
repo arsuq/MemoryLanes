@@ -35,6 +35,28 @@ namespace System
 		MemoryFragment AllocFragment(int size, int awaitMS = -1);
 
 		/// <summary>
+		/// Gets a specific lane.
+		/// </summary>
+		/// <param name="index">The index must be less than the LastLaneIndex value. </param>
+		/// <returns>The Lane</returns>
+		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
+		MemoryLane this[int index] { get; }
+
+		/// <summary>
+		/// Creates a new List instance with the selection of all non null cells in the underlying array.
+		/// </summary>
+		/// <returns>A read only list of MemoryLane objects.</returns>
+		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
+		IReadOnlyList<MemoryLane> GetLanes();
+
+		/// <summary>
+		/// Creates a HighwayStream from the current highway,
+		/// </summary>
+		/// <param name="fragmentSize">The incremental memory size.</param>
+		/// <returns>The Stream.</returns>
+		HighwayStream CreateStream(int fragmentSize);
+
+		/// <summary>
 		/// Returns an aggregate of all active fragments in all lanes.
 		/// </summary>
 		/// <returns>The number of active fragments</returns>
@@ -76,13 +98,6 @@ namespace System
 		void FreeGhosts();
 
 		/// <summary>
-		/// Creates a HighwayStream from the current highway,
-		/// </summary>
-		/// <param name="fragmentSize">The incremental memory size.</param>
-		/// <returns>The Stream.</returns>
-		HighwayStream CreateStream(int fragmentSize);
-
-		/// <summary>
 		/// The last allocation time. 
 		/// </summary>
 		long LastAllocTickAnyLane { get; }
@@ -96,21 +111,6 @@ namespace System
 		/// When overridden returns the highway storage type.
 		/// </summary>
 		StorageType Type { get; }
-
-		/// <summary>
-		/// Creates a new List instance with the selection of all non null cells in the underlying array.
-		/// </summary>
-		/// <returns>A read only list of MemoryLane objects.</returns>
-		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
-		IReadOnlyList<MemoryLane> GetLanes();
-
-		/// <summary>
-		/// Gets a specific lane.
-		/// </summary>
-		/// <param name="index">The index must be less than the LastLaneIndex value. </param>
-		/// <returns>The Lane</returns>
-		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
-		MemoryLane this[int index] { get; }
 
 		/// <summary>
 		/// Prints all lanes' status.

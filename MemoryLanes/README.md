@@ -91,7 +91,7 @@ public interface IMemoryHighway : IDisposable
 ### Reliable disposal
 
 
-There are two disposal modes, which could be set in the HighwaySettings constructor:
+There are two disposal modes that can be set in the HighwaySettings constructor:
 
 - **FragmentDispose (default)** In this mode the consumer *must* dispose all fragments in order 
 	to reset the lane. The only other option to unfreeze a lane is to *Force()* reset it, which is unsafe.
@@ -116,24 +116,25 @@ There are two disposal modes, which could be set in the HighwaySettings construc
 
 ## Usage
 
-The original purpose for the lanes is message assembling in socket communication, which
+The original purpose of the lanes is message assembling in socket communication, which
 demands quick memory allocation and release. In most cases the received bytes are 
 immediately converted into a managed heap object and then discarded. With proper framing
 one could make use of the different storage locations by using a heap highway for small messages
 and a mapped highway when working with megabytes of data. 
 
+> In general one should think more about fragment lifetimes than size variety.
+
 ### Consistent fragment lifetime
 
-In cases when the lifetime of the fragments is short a two lane highway works fine. 
-The second lane is needed for very high loads of concurrent allocations which prevents resetting by
+When the lifetime of the fragments is short a two lane highway works fine. 
+The second lane is needed for very high loads of concurrent allocations which prevent resetting by
 always appending new fragments. When the first lane is full the MemoryCarriage will
 shift the allocations to the next one, allowing the first to reset.
 
 ### Unpredictable fragment lifetime 
 
-In network communication there is no delivery guarantee so the two lanes initial layout would be too optimistic.
-Sometimes even small messages can be delivered in snail pace due to connectivity problems. In such cases 
-having a dedicated highway per client is one option to reduce the probability of having a pinned lane. 
+In network communication even small messages can be delivered in snail pace due to connectivity problems. 
+Having a dedicated highway per client is one option for reducing the probability of a pinned lane. 
 Alternatively, one may use a highway with multiple short lanes, expecting long living fragments and infrequent resets.
 That way the amount of locked bytes is constrained to a value that seems reasonable in the specific case.
 
@@ -145,11 +146,34 @@ Additionally to the lanes API one could use the native heap directly through the
 **MarshalSlot** class. It is a MemoryFragment thus having the same Read/Write/Span
 accessors, but it is not part of any lane and doesn't affect other fragments. 
 
+### Streams
+
+Both the *MemoryFragment* and the *MemoryCarriage* (the Highways) have Stream facades, namely:
+*FragmentStream* and *HighwayStream*. These are *System.IO.Stream* implementations operating on the
+corresponding memory storage. One must be careful when using the *FragmentStream* as it has a fixed length.
+The *HighwayStream* demands a fragment size in the constructor which will be the default expansion tile.
+When more space is needed, more tiles are allocated, *Dispose()* resets the used fragments only.
+
+Example: Serialize a managed object graph in IMemoryHighway.
+
+```csharp
+T obj;              // An object to serialize
+IMemoryHighway hw;  // Any storage
+
+using ( var hs = hw.CreateStream(4000) )
+{
+    var bf = new BinaryFormatter();
+    bf.Serialize(hs, obj);
+
+    // Use the bits
+}
+```
+
 
 ## Highway limits
 
 Using the MemoryCarriage is somewhat similar to a stack allocation, although the space isn't fixed,
-unless one configures it to be so by passing an instance of the **HighwaySettings** class in the
+unless one configures it to be so. This is done by passing an instance of the **HighwaySettings** class in the
 Highway constructor.
 
 ```csharp
@@ -162,6 +186,12 @@ public class HighwaySettings
 	public const int MIN_LANE_CAPACITY = 1;
 	public const int MAX_LANE_CAPACITY = 2_000_000_000;
 	public const long MAX_HIGHWAY_CAPACITY = 200_000_000_000;
+
+	public static int DefaultLaneCapacity = 8_000_000;
+	public int NoWaitLapsBeforeNewLane = 2;
+	public int ConcurrentNewLaneAllocations = 1;
+	public int NewLaneAllocationTimeoutMS = 100;
+	public bool RegisterForProcessExitCleanup = true;
 
 	public readonly int DefaultCapacity;
 	public readonly int MaxLanesCount;
