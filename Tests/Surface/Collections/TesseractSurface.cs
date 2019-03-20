@@ -2,31 +2,47 @@
    License, v. 2.0. If a copy of the MPL was not distributed with this
    file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
+#define TSR_INT
+
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using TestSurface;
 
 namespace Tests.Surface.Collections
 {
+
+#if TSR_INT
+	using TSR = Tesseract;
+	using OBJ = Int32;
+#else
+	using TSR = Tesseract<object>;
+	using OBJ = Object;
+#endif
+
 	public class TesseractSurface : ITestSurface
 	{
-		public string Info => "Tests the Tesseract class.";
+		public string Info => "Tests either the Tesseract<T> or the TesseractInt class.";
 
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
 		public bool IsComplete { get; private set; }
 		public bool IndependentLaunchOnly => false;
 
+#if TSR_INT
+		public const int NULL = 0;
+#else
+		public const object NULL = null;
+#endif
+
 		public async Task Run(IDictionary<string, List<string>> args)
 		{
 			try
 			{
 				var rdm = new Random();
-				var qb = new Tesseract<object>();
+				var qb = new TSR();
 
 				pos();
 
@@ -39,7 +55,7 @@ namespace Tests.Surface.Collections
 				if (!format()) return;
 				if (!take()) return;
 
-				// append_latency();
+				append_latency();
 
 				Passed = true;
 				IsComplete = true;
@@ -88,7 +104,7 @@ namespace Tests.Surface.Collections
 			TimeSpan queueTime;
 
 			// Preallocating CAP slots produces weird results, try it...
-			var tsr = new Tesseract<object>(0, false);
+			var tsr = new TSR(0, false);
 
 			// Before testing the setter with preallocated CAP, move the AppendIndex to CAP
 			// cube.MoveAppendIndex(CAP, true);
@@ -107,14 +123,14 @@ namespace Tests.Surface.Collections
 			GC.Collect(2);
 
 			// Something expandable and concurrent.
-			// The CCQ seems to be more efficient than the CCStack.
-			var queue = new ConcurrentQueue<object>();
+			// The ccQ seems to be more efficient than the ccStack.
+			var queue = new ConcurrentQueue<OBJ>();
 
 			Interlocked.Exchange(ref startTicks, DateTime.Now.Ticks);
 
 			Parallel.For(0, CAP, new ParallelOptions() { MaxDegreeOfParallelism = 100 }, (i) => queue.Enqueue(i));
 
-			//for (int i = 0; i < CAP; i++)
+			// for (int i = 0; i < CAP; i++)
 			//	queue.Enqueue(i);
 
 			Interlocked.Exchange(ref stopTicks, DateTime.Now.Ticks);
@@ -125,9 +141,9 @@ namespace Tests.Surface.Collections
 
 		bool customExpand()
 		{
-			var ccaexp = new Tesseract<object>((in int slots) => slots < 300 ? slots * 2 : Convert.ToInt32(slots * 1.5));
-			var firstExp = ccaexp.BlockLength + 1;
-			var secondExp = ccaexp.BlockLength * 2 + 1;
+			var ccaexp = new TSR((in int slots) => slots < 300 ? slots * 2 : Convert.ToInt32(slots * 1.5));
+			var firstExp = ccaexp.Side + 1;
+			var secondExp = ccaexp.Side * 2 + 1;
 
 			for (int i = 0; i < 800; i++)
 			{
@@ -135,7 +151,7 @@ namespace Tests.Surface.Collections
 
 				if (i == firstExp)
 				{
-					if (ccaexp.AllocatedSlots != ccaexp.BlockLength * 2)
+					if (ccaexp.AllocatedSlots != ccaexp.Side * 2)
 					{
 						Passed = false;
 						FailureMessage = $"Expansion is wrong, Expected 20, got {ccaexp.AllocatedSlots}";
@@ -145,7 +161,7 @@ namespace Tests.Surface.Collections
 
 				if (i == secondExp)
 				{
-					if (ccaexp.AllocatedSlots != ccaexp.BlockLength * 3)
+					if (ccaexp.AllocatedSlots != ccaexp.Side * 3)
 					{
 						Passed = false;
 						FailureMessage = $"Expansion is wrong, Expected 30, got {ccaexp.AllocatedSlots}";
@@ -160,7 +176,7 @@ namespace Tests.Surface.Collections
 			return true;
 		}
 
-		bool expand(Tesseract<object> arr)
+		bool expand(TSR arr)
 		{
 			var doubleCap = arr.AllocatedSlots * 2;
 			arr.Resize(doubleCap);
@@ -177,14 +193,14 @@ namespace Tests.Surface.Collections
 			return true;
 		}
 
-		bool shrink(Tesseract<object> arr)
+		bool shrink(TSR arr)
 		{
 			arr.Clutch(TesseractGear.P);
 			arr.Resize(20000);
 
 			var oldCap = arr.AllocatedSlots;
 			var newCap = oldCap / 3;
-			var side = arr.BlockLength;
+			var side = arr.Side;
 
 			arr.Resize(newCap);
 
@@ -211,7 +227,7 @@ namespace Tests.Surface.Collections
 			return true;
 		}
 
-		bool parallelAppendRemoveLast(Random rdm, Tesseract<object> arr)
+		bool parallelAppendRemoveLast(Random rdm, TSR arr)
 		{
 			arr.Clutch(TesseractGear.P);
 			arr.Resize(0);
@@ -228,7 +244,7 @@ namespace Tests.Surface.Collections
 
 			int count = 0;
 
-			Parallel.For(0, 200, (i) =>
+			Parallel.For(1, 201, (i) =>
 			{
 				Thread.Sleep(rdm.Next(20, 100));
 				if (i % 2 == 0)
@@ -267,25 +283,26 @@ namespace Tests.Surface.Collections
 			return true;
 		}
 
-		bool parallelAppend(Random rdm, Tesseract<object> arr)
+		bool parallelAppend(Random rdm, TSR arr)
 		{
-			var controlArr = new List<object>();
+			var controlArr = new List<OBJ>();
 
-			Parallel.For(0, 2000, (i) =>
+			// Do not add 0 for the TSR_INT will not count it 
+			Parallel.For(1, 2000, (i) =>
 			{
 				Thread.Sleep(rdm.Next(2, 60));
-				arr.Append((object)i);
+				arr.Append(i);
 			});
 
 			for (int i = 0; i <= arr.AppendIndex; i++)
 				controlArr.Add(arr[i]);
 
-			var L = new List<object>(arr.NotNullItems());
+			var L = new List<OBJ>(arr.NotNullItems());
 			L.Sort();
 
 			for (int i = 0; i < 100; i++)
 			{
-				if ((int)L[i] != i)
+				if ((int)L[i] != i + 1)
 				{
 					FailureMessage = "Parallel Append() fails.";
 					Passed = false;
@@ -309,7 +326,7 @@ namespace Tests.Surface.Collections
 
 		bool gears()
 		{
-			var arr = new Tesseract<object>();
+			var arr = new TSR();
 			var rdm = new Random();
 
 			try
@@ -369,13 +386,13 @@ namespace Tests.Surface.Collections
 
 		bool format()
 		{
-			var arr = new Tesseract<object>();
+			var arr = new TSR();
 
 			for (int i = 0; i < 100; i++)
 				arr.Append(i);
 
 			arr.Clutch(TesseractGear.N);
-			object o = 3;
+			OBJ o = 3;
 			arr.Format(o);
 
 			foreach (var item in arr.NotNullItems())
@@ -393,7 +410,7 @@ namespace Tests.Surface.Collections
 
 		bool take()
 		{
-			var tsr = new Tesseract<object>();
+			var tsr = new TSR();
 			var CAP = 50_000;
 			int next = 0, sum = 0;
 			var compareSum = (CAP / 2) * (1 + CAP);
@@ -453,7 +470,7 @@ namespace Tests.Surface.Collections
 
 							var o = tsr.Take(j);
 
-							if (o != null)
+							if (o != NULL)
 							{
 								int v = (int)o;
 								Interlocked.Add(ref sum, v);
@@ -479,10 +496,10 @@ namespace Tests.Surface.Collections
 			"Producers are Done".AsInfo();
 			Task.WaitAll(C);
 
-			var allocs = CAP / Tesseract<object>.DEF_EXP;
-			if (CAP % Tesseract<object>.DEF_EXP != 0) allocs++;
+			var allocs = CAP / TSR.DEF_EXP;
+			if (CAP % TSR.DEF_EXP != 0) allocs++;
 
-			var als = Tesseract<object>.SIDE + (allocs * Tesseract<object>.DEF_EXP);
+			var als = TSR.SIDE + (allocs * TSR.DEF_EXP);
 
 			if (tsr.AllocatedSlots != als)
 			{
@@ -492,7 +509,7 @@ namespace Tests.Surface.Collections
 			}
 
 			for (int i = 0; i < CAP; i++)
-				if (tsr[i] != null)
+				if (tsr[i] != NULL)
 				{
 					FailureMessage = $"Take at {i} failed. There is a value: {tsr[i]}";
 					Passed = false;

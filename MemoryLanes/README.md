@@ -225,5 +225,6 @@ In **System.IO**:
 
 In **System.Collections.Concurrent**:
 
-- Tesseract
+- [Tesseract](Tesseract.md)
+
 

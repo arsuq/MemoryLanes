@@ -9,6 +9,11 @@ using System.Threading.Tasks;
 
 namespace System.Collections.Concurrent
 {
+	// This is a copy of the Tesseract<T> code file with the replacement of
+	// T with Int32 and null with 0. Everything else is untouched.
+
+	using T = Int32;
+
 	/// <summary>
 	/// A virtual contiguous array backed by a 4D cube of jagged arrays. 
 	/// Unlike the linked list based concurrent structures, supports indexed RW while expanding.
@@ -19,8 +24,7 @@ namespace System.Collections.Concurrent
 	/// concurrency mode (Gear) allows the operation. If not, one must wait for the Clutch()
 	/// to transition into a correct one.
 	/// </remarks>
-	/// <typeparam name="T">A class</typeparam>
-	public class Tesseract<T> where T : class
+	public class Tesseract
 	{
 		/// <summary>
 		/// Inits a hypercube with a SIDE number of slots. 
@@ -33,13 +37,13 @@ namespace System.Collections.Concurrent
 		/// unless one uses Append() or MoveAppendIndex() to AllocatedSlots for example.
 		/// </summary>
 		/// <param name="slots">To preallocate. If not 0, the min value is SIDE.</param>
-		/// <param name="countNotNulls">Can be set only here.</param>
+		/// <param name="countNotDefs">Can be set only here.</param>
 		/// <param name="expansion">A callback that must return the desired AllocatedSlots count.</param>
-		public Tesseract(int slots, bool countNotNulls, TesseractExpansion expansion = null)
+		public Tesseract(int slots, bool countNotDefs, TesseractExpansion expansion = null)
 		{
 			if (slots > 0 && slots < SIDE) slots = SIDE;
 
-			CountNotNulls = countNotNulls;
+			CountNotNulls = countNotDefs;
 			this.expansion = expansion;
 			blocks = new T[SIDE / 2][][][];
 			direction = 1;
@@ -62,7 +66,7 @@ namespace System.Collections.Concurrent
 		public int AppendIndex => Volatile.Read(ref appendIndex);
 
 		/// <summary>
-		/// The not null items count, -1 if CountNotNulls is false.
+		/// The non zero cells count, -1 if CountNotNulls is false.
 		/// </summary>
 		public int ItemsCount => CountNotNulls ? Volatile.Read(ref notNullsCount) : -1;
 
@@ -148,7 +152,7 @@ namespace System.Collections.Concurrent
 		/// RemoveLast() and get can safely be executed concurrently.
 		/// </remarks>
 		/// <param name="index">For set must be less than AppendIndex, for get less than AllocatedSlots </param>
-		/// <returns>The object reference at the index</returns>
+		/// <returns>The value at index</returns>
 		/// <exception cref="ArgumentOutOfRangeException">index</exception>
 		/// <exception cref="System.InvalidOperationException">If the Drive is wrong</exception>
 		public T this[int index]
@@ -180,7 +184,7 @@ namespace System.Collections.Concurrent
 		/// One can use Take() and Append() in multi-producer, multi-consumer scenarios, since both are safe,
 		/// </remarks>
 		/// <param name="index">The position in the array, must be less than AllocatedSlots.</param>
-		/// <returns>The reference at index.</returns>
+		/// <returns>The value at index</returns>
 		/// <exception cref="System.InvalidOperationException">When Drive is P.</exception>
 		/// <exception cref="ArgumentOutOfRangeException">The index is negative or beyond AllocatedSlots.</exception>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -189,7 +193,7 @@ namespace System.Collections.Concurrent
 			if (Drive == TesseractGear.P) throw new InvalidOperationException("Wrong drive");
 			if (index < 0 || index > AllocatedSlots) throw new ArgumentOutOfRangeException("index");
 
-			return set(index, null);
+			return set(index, NULL);
 		}
 
 		/// <summary>
@@ -202,11 +206,11 @@ namespace System.Collections.Concurrent
 		/// In that situation the gear will be jammed in Straight position and there is no way to shift it.
 		/// If there are ongoing Clutch calls they will wait until their timeouts expire or forever (the default).
 		/// </remarks>
-		/// <param name="item">The object reference</param>
+		/// <param name="v">The value</param>
 		/// <returns>The index of the item, -1 if fails.</returns>
 		/// <exception cref="System.InvalidOperationException">When Drive != Gear.Straight</exception>
 		/// <exception cref="System.OutOfMemoryException"></exception>
-		public int Append(T item)
+		public int Append(T v)
 		{
 			// Must increment the ccops before the drive check, otherwise a whole Shift() execution
 			// could interleave after the gear assert and change the direction.
@@ -254,7 +258,7 @@ namespace System.Collections.Concurrent
 				if (aidx < slots)
 				{
 					pos = Interlocked.Increment(ref appendIndex);
-					set(pos, item);
+					set(pos, v);
 				}
 			}
 			else ex = new InvalidOperationException("Wrong drive");
@@ -269,22 +273,22 @@ namespace System.Collections.Concurrent
 		}
 
 		/// <summary>
-		/// Nulls the AppendIndex cell, decrements the AppendIndex value and returns the item that was there.
+		/// Nulls the AppendIndex cell, decrements the AppendIndex value and returns the value that was there.
 		/// </summary>
-		/// <param name="pos">The item position.</param>
-		/// <returns>The removed item.</returns>
+		/// <param name="pos">The value position.</param>
+		/// <returns>The removed int.</returns>
 		/// <exception cref="System.InvalidOperationException">When Drive != Gear.Reverse</exception>
 		public T RemoveLast(ref int pos)
 		{
 			Interlocked.Increment(ref concurrentOps);
 
 			Exception ex = null;
-			T r = null;
+			T r = NULL;
 
 			if (Drive == TesseractGear.Reverse)
 			{
 				pos = Interlocked.Decrement(ref appendIndex) + 1;
-				r = set(pos, null);
+				r = set(pos, NULL);
 			}
 			else ex = new InvalidOperationException("Wrong drive");
 
@@ -297,19 +301,19 @@ namespace System.Collections.Concurrent
 		}
 
 		/// <summary>
-		/// Looks for the item and nulls the array cell.
+		/// Looks for the item and zeroes the array cell.
 		/// </summary>
-		/// <param name="item">The object reference</param>
-		/// <returns>True if found and null-ed</returns>
-		public bool Remove(T item)
+		/// <param name="v">The value</param>
+		/// <returns>True if found and zeroed</returns>
+		public bool Remove(T v)
 		{
-			if (item == null) return false;
+			if (v == NULL) return false;
 
-			var idx = IndexOf(item);
+			var idx = IndexOf(v);
 
 			if (idx >= 0)
 			{
-				this[idx] = null;
+				this[idx] = NULL;
 				return true;
 			}
 
@@ -317,15 +321,14 @@ namespace System.Collections.Concurrent
 		}
 
 		/// <summary>
-		/// Iterates all cells from 0 up to AppendIndex and yields each item
-		/// if it's not null at the time of the check.
+		/// Iterates all cells from 0 up to AppendIndex and yields each value
+		/// if it's not 0 at the time of the check.
 		/// </summary>
 		/// <param name="assertGear">If true volatile-reads the Drive at each iteration. False by default. </param>
-		/// <returns>A not null item.</returns>
 		/// <exception cref="InvalidOperationException">If the Drive is P</exception>
 		public IEnumerable<T> NotNullItems(bool assertGear = false)
 		{
-			T item = null;
+			T item = NULL;
 			var j = AppendIndex;
 			var p = new TesseractPos(j);
 
@@ -339,7 +342,7 @@ namespace System.Collections.Concurrent
 					p.Set(i);
 
 					item = Volatile.Read(ref blocks[p.D0][p.D1][p.D2][p.D3]);
-					if (item != null)
+					if (item != NULL)
 						yield return item;
 				}
 		}
@@ -348,9 +351,9 @@ namespace System.Collections.Concurrent
 		/// Searches for an item by traversing all cells up to AppendIndex.
 		/// The reads are volatile. 
 		/// </summary>
-		/// <param name="item">The object ref</param>
-		/// <returns>A positive value if the item is found, -1 otherwise.</returns>
-		public int IndexOf(T item)
+		/// <param name="v">The value</param>
+		/// <returns>A positive value if the int is found, -1 otherwise.</returns>
+		public int IndexOf(T v)
 		{
 			int result = -1;
 			int aIdx = AppendIndex;
@@ -360,7 +363,7 @@ namespace System.Collections.Concurrent
 			{
 				p.Set(i);
 
-				if (Volatile.Read(ref blocks[p.D0][p.D1][p.D2][p.D3]) == item)
+				if (Volatile.Read(ref blocks[p.D0][p.D1][p.D2][p.D3]) == v)
 				{
 					result = i;
 					break;
@@ -373,7 +376,6 @@ namespace System.Collections.Concurrent
 		/// <summary>
 		/// Expands or shrinks the virtual array to the number of SIDE tiles fitting the requested length.
 		/// If the AppendIndex is greater that the new length, it's cut to length -1.
-		/// If shrinking, the number of not-null values, i.e. ItemsCount is also updated.
 		/// </summary>
 		/// <param name="length">The new length.</param>
 		/// <exception cref="System.ArgumentOutOfRangeException">If length is negative or greater than the capacity.</exception>
@@ -436,13 +438,13 @@ namespace System.Collections.Concurrent
 		}
 
 		/// <summary>
-		/// Sets the provided item (ref or null) to all available cells.
+		/// Sets the provided value to all cells.
 		/// The Drive must be N.
 		/// </summary>
 		/// <remarks>The method is synchronized.</remarks>
-		/// <param name="item">The ref to be set</param>
+		/// <param name="v">The int to be set</param>
 		/// <exception cref="System.InvalidOperationException">Drive is not N or Straight</exception>
-		public void Format(T item)
+		public void Format(T v)
 		{
 			lock (commonLock)
 			{
@@ -458,7 +460,7 @@ namespace System.Collections.Concurrent
 						for (int d1 = 0; d1 <= p.D1; d1++)
 							for (int d2 = 0; d2 <= p.D2; d2++)
 								for (int d3 = 0; d3 <= p.D3; d3++)
-									blocks[d0][d1][d2][d3] = item;
+									blocks[d0][d1][d2][d3] = v;
 				}
 				finally
 				{
@@ -504,11 +506,11 @@ namespace System.Collections.Concurrent
 			var old = Interlocked.Exchange(ref blocks[p.D0][p.D1][p.D2][p.D3], value);
 
 			if (CountNotNulls)
-				if (old != null)
+				if (old != NULL)
 				{
-					if (value == null) Interlocked.Decrement(ref notNullsCount);
+					if (value == NULL) Interlocked.Decrement(ref notNullsCount);
 				}
-				else if (value != null) Interlocked.Increment(ref notNullsCount);
+				else if (value != NULL) Interlocked.Increment(ref notNullsCount);
 
 			return old;
 		}
@@ -551,6 +553,8 @@ namespace System.Collections.Concurrent
 		/// The default cube expansion = 2^13 slots.
 		/// </summary>
 		public const int DEF_EXP = 1 << 13;
+
+		public const int NULL = 0;
 
 		TesseractExpansion expansion;
 		object commonLock = new object();
