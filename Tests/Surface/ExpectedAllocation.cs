@@ -42,11 +42,12 @@ namespace Tests.Surface
 				RandomizeFragDisposal = true,
 				RandomizeLength = true,
 				AllocDelayMS = 0,
+				AllocTries = 1,
 				FragmentDisposeAfterMS = 60
 			};
 
 			if (args.ContainsKey("-count")) allocArgs.Count = int.Parse(args["-count"][0]);
-			if (args.ContainsKey("-size")) allocArgs.Count = int.Parse(args["-size"][0]);
+			if (args.ContainsKey("-size")) allocArgs.Size = int.Parse(args["-size"][0]);
 
 			if (allocArgs.Count * allocArgs.Size > 12_000_000)
 			{

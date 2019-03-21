@@ -36,8 +36,8 @@ namespace System
 
 		public override StorageType Type => StorageType.ManagedHeapLane;
 
-		protected override HeapFragment createFragment(HeapLane ml, int size, int awaitMS) =>
-			ml.AllocHeapFragment(size, awaitMS);
+		protected override HeapFragment createFragment(HeapLane ml, int size, int tries) =>
+			ml.AllocHeapFragment(size, tries);
 
 		protected override HeapLane createLane(int size) => new HeapLane(size, settings.Disposal);
 

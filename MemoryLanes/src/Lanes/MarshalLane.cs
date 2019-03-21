@@ -30,14 +30,14 @@ namespace System
 		/// Blocks a fragment of the lane.
 		/// </summary>
 		/// <param name="size">Number of bytes.</param>
-		/// <param name="awaitMS">Waiting for the operation in milliseconds. By default is indefinitely.</param>
-		/// <returns>A MarshalLaneFragment if succeeds, null if fails.</returns>
+		/// <param name="tries">The number of fails before switching to another lane.</param>
+		/// <returns>A MarshalLaneFragment or null.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public MarshalLaneFragment AllocMarshalFragment(int size, int awaitMS = -1)
+		public MarshalLaneFragment AllocMarshalFragment(int size, int tries)
 		{
 			var fr = new FragmentRange();
 
-			if (Alloc(size, ref fr, awaitMS))
+			if (Alloc(size, ref fr, tries))
 			{
 				var frag = new MarshalLaneFragment(
 					fr.Offset, fr.Length, lanePtr, this,
@@ -56,8 +56,8 @@ namespace System
 		/// </summary>
 		/// <returns>Null if fails.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override MemoryFragment Alloc(int size, int awaitMS = -1) =>
-			AllocMarshalFragment(size, awaitMS);
+		public override MemoryFragment Alloc(int size, int tries = 10) =>
+			AllocMarshalFragment(size, tries);
 
 		/// <summary>
 		/// Frees the native memory.

@@ -78,7 +78,10 @@ namespace System
 		/// Allocates a generic fragment with a specified length.
 		/// </summary>
 		/// <param name="size">The number of bytes to allocate.</param>
-		/// <param name="awaitMS">The lane lock await in milliseconds, by default awaits forever (-1)</param>
+		/// <param name="tries">
+		/// The number of fails before switching to another lane. 
+		/// If 0 the HighwaySettings.LaneAllocTries value is used.
+		/// </param>
 		/// <returns>A new fragment.</returns>
 		/// <exception cref="System.ArgumentOutOfRangeException">
 		/// If size is negative or greater than HighwaySettings.MAX_LANE_CAPACITY.
@@ -89,30 +92,29 @@ namespace System
 		/// One should never see this one!
 		/// </exception>
 		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
-		public F Alloc(int size, int awaitMS = -1)
+		public F Alloc(int size, int tries = 0)
 		{
 			if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");
 			if (Lanes == null || Lanes.AllocatedSlots == 0) throw new MemoryLaneException(MemoryLaneException.Code.NotInitialized);
 			if (size < 0 || size > HighwaySettings.MAX_LANE_CAPACITY) throw new ArgumentOutOfRangeException("size");
+			if (tries == 0) tries = settings.LaneAllocTries;
 
 			F frag = null;
 			var lanesCount = Lanes.AppendIndex;
 
-			// Start from the oldest lane
-			// If awaitMS > -1 (this is for the lane) cycle around a few times before making a new lane
-			var LAPS = awaitMS > -1 ? settings.NoWaitLapsBeforeNewLane : 1;
-			for (var laps = 0; laps < LAPS; laps++)
+			// Start from the oldest lane and cycle all lanes a few times before making a new lane
+			for (var laps = 0; laps < settings.LapsBeforeNewLane; laps++)
 				for (var i = 0; i <= Lanes.AppendIndex; i++)
 				{
 					var lane = Lanes[i];
 
 					if (lane != null)
 					{
-						frag = createFragment(lane, size, awaitMS);
+						frag = createFragment(lane, size, tries);
 
 						if (frag != null)
 						{
-							Interlocked.Exchange(ref lastAllocTickAnyLane, DateTime.Now.Ticks);
+							Volatile.Write(ref lastAllocTickAnyLane, DateTime.Now.Ticks);
 							return frag;
 						}
 					}
@@ -125,7 +127,7 @@ namespace System
 				if (lanesCount < Lanes.AppendIndex)
 				{
 					noluckGate.Release();
-					return Alloc(size, awaitMS);
+					return Alloc(size, tries);
 				}
 				else
 					try
@@ -139,14 +141,14 @@ namespace System
 						// The consumer can infer that by checking if the fragment is null.
 						if (ml != null)
 						{
-							frag = createFragment(ml, size, awaitMS);
+							frag = createFragment(ml, size, tries);
 
 							if (frag == null) throw new MemoryLaneException(
 								MemoryLaneException.Code.NewLaneAllocFail,
 								string.Format("Failed to allocate {0} bytes on a dedicated lane.", size));
 
 							Lanes.Append(ml);
-							Interlocked.Exchange(ref lastAllocTickAnyLane, DateTime.Now.Ticks);
+							Volatile.Write(ref lastAllocTickAnyLane, DateTime.Now.Ticks);
 						}
 					}
 					finally { noluckGate.Release(); }
@@ -157,12 +159,9 @@ namespace System
 
 		/// <summary>
 		/// Allocates a memory fragment on any of the existing lanes or on a new one.
-		/// By default the allocation awaits other allocations on the same lane, pass awaitMS > 0 in
-		/// order to skip a lane. Note however than the HighwaySettings.NoWaitLapsBeforeNewLane controls
-		/// how many cycles around all lanes should be made before allocating a new lane.
 		/// </summary>
 		/// <param name="size">The desired buffer length.</param>
-		/// <param name="awaitMS">By default the allocation awaits other allocations on the same lane.</param>
+		/// <param name="tries">The number of fails before switching to another lane.</param>
 		/// <returns>A new fragment.</returns>
 		/// <exception cref="System.ArgumentOutOfRangeException">
 		/// If size is negative or greater than HighwaySettings.MAX_LANE_CAPACITY.
@@ -173,7 +172,7 @@ namespace System
 		/// One should never see this one!
 		/// </exception>
 		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
-		public MemoryFragment AllocFragment(int size, int awaitMS) => Alloc(size, awaitMS);
+		public MemoryFragment AllocFragment(int size, int tries) => Alloc(size, tries);
 
 		/// <summary>
 		/// Calls Dispose to all lanes individually and switches the IsDisposed flag to true,
@@ -382,7 +381,7 @@ namespace System
 			return string.Join(Environment.NewLine, lines);
 		}
 
-		protected abstract F createFragment(L ml, int size, int awaitMS);
+		protected abstract F createFragment(L ml, int size, int tries);
 		protected abstract L createLane(int size);
 
 		L allocLane(int capacity, bool hidden = false)

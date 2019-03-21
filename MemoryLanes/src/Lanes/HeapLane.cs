@@ -25,14 +25,14 @@ namespace System
 		/// Tries to block the size amount of bytes on the remaining lane space.
 		/// </summary>
 		/// <param name="size">The number of bytes.</param>
-		/// <param name="awaitMS">Milliseconds to wait at the lane gate. By default waits indefinitely.</param>
+		/// <param name="tries">The number of fails before switching to another lane.</param>
 		/// <returns>Null if fails.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public HeapFragment AllocHeapFragment(int size, int awaitMS = -1)
+		public HeapFragment AllocHeapFragment(int size, int tries)
 		{
 			var fr = new FragmentRange();
 
-			if (Alloc(size, ref fr, awaitMS))
+			if (Alloc(size, ref fr, tries))
 			{
 				var mem = new Memory<byte>(lane, fr.Offset, fr.Length);
 				var frag = new HeapFragment(mem, this, () => free(laneCycle, fr.Allocation));
@@ -49,10 +49,10 @@ namespace System
 		/// Calls AllocHeapFragment with the given arguments.
 		/// </summary>
 		/// <param name="size">The desired size.</param>
-		/// <param name="awaitMS">By default waits indefinitely.</param>
+		/// <param name="tries">The number of fails before switching to another lane.</param>
 		/// <returns>Null if fails.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override MemoryFragment Alloc(int size, int awaitMS = -1) => AllocHeapFragment(size, awaitMS);
+		public override MemoryFragment Alloc(int size, int tries) => AllocHeapFragment(size, tries);
 
 		/// <summary>
 		/// Nulls the lane.

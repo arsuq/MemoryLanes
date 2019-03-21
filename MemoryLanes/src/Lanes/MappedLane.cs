@@ -38,15 +38,15 @@ namespace System
 		/// <summary>
 		/// Tries to allocate the desired amount of bytes on the remaining lane space.
 		/// </summary>
-		/// <param name="size">Length in bytes.</param>
-		/// <param name="awaitMS">Milliseconds to wait at the lane gate. By default is -1, i.e. forever.</param>
+		/// <param name="size">The length in bytes.</param>
+		/// <param name="tries">The number of fails before switching to another lane.</param>
 		/// <returns>Null if fails.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public MappedFragment AllocMappedFragment(int size, int awaitMS = -1)
+		public MappedFragment AllocMappedFragment(int size, int tries)
 		{
 			var fr = new FragmentRange();
 
-			if (Alloc(size, ref fr, awaitMS))
+			if (Alloc(size, ref fr, tries))
 			{
 				var frag = new MappedFragment(fr.Offset, fr.Length, mmva, this, () => free(laneCycle, fr.Allocation));
 
@@ -61,9 +61,11 @@ namespace System
 		/// <summary>
 		/// Calls AllocMappedFragment() with the given args.
 		/// </summary>
+		/// <param name="size">The length in bytes</param>
+		/// <param name="tries">The number of fails before switching to another lane.</param>
 		/// <returns>A casted MappedFragment if succeeds, null if fails.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override MemoryFragment Alloc(int size, int awaitMS = -1) => AllocMappedFragment(size, awaitMS);
+		public override MemoryFragment Alloc(int size, int tries) => AllocMappedFragment(size, tries);
 
 		/// <summary>
 		/// Deletes the mapped file.

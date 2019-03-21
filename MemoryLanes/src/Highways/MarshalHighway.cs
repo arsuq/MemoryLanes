@@ -35,8 +35,8 @@ namespace System
 
 		public override StorageType Type => StorageType.NativeHeapLane;
 
-		protected override MarshalLaneFragment createFragment(MarshalLane ml, int size, int awaitMS) =>
-			ml.AllocMarshalFragment(size, awaitMS);
+		protected override MarshalLaneFragment createFragment(MarshalLane ml, int size, int tries) =>
+			ml.AllocMarshalFragment(size, tries);
 
 		protected override MarshalLane createLane(int size) => new MarshalLane(size, settings.Disposal);
 

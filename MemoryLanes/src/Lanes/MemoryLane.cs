@@ -37,62 +37,48 @@ namespace System
 		/// Calling Alloc directly on the lane competes with other potential highway calls.
 		/// </remarks>
 		/// <param name="size">The requested length.</param>
-		/// <param name="awaitMS">Will bail after awaitMS milliseconds at the lane gate.
-		/// By default waits indefinitely.</param>
+		/// <param name="tries">The number of fails before switching to another lane.</param>
 		/// <returns>Null if fails.</returns>
-		public abstract MemoryFragment Alloc(int size, int awaitMS = -1);
+		public abstract MemoryFragment Alloc(int size, int tries);
 
 		/// <summary>
 		/// Attempts to allocate a fragment range in the remaining lane space.
 		/// </summary>
 		/// <param name="size">The requested length.</param>
 		/// <param name="frag">A data bag.</param>
-		/// <param name="awaitMS">Provide a spinlock wait in ms.</param>
+		/// <param name="tries">The number of fails before switching to another lane.</param>
 		/// <returns>True if the space was successfully taken.</returns>
-		internal bool Alloc(int size, ref FragmentRange frag, int awaitMS = -1)
+		internal bool Alloc(int size, ref FragmentRange frag, int tries)
 		{
-			var result = false;
-			var pass = false;
 			var CAP = LaneCapacity;
+			var oldoffset = Volatile.Read(ref offset);
+			var newoffset = oldoffset + size;
 
-			// Quick fail
-			if (isDisposed || Offset + size > CAP || IsClosed) return result;
-
-			// Ghost tracking is slower and needs event synchronization
-			var track = ResetMode == MemoryLaneResetMode.TrackGhosts;
-
-			// The allocations are serialized.
-			// Spin if not tracking ghost fragments, otherwise 
-			// wait in the lobby for a signal or bail after awaitMS 
-			if (!track) spinGate.TryEnter(awaitMS, ref pass);
-			else pass = allocLobby.WaitOne(awaitMS);
-
-			if (pass)
+			// There is space
+			while (!IsClosed && newoffset <= CAP && tries-- > 0)
 			{
-				// Volatile read
-				var oldoffset = Offset;
-				var newoffset = oldoffset + size;
-
-				if (!IsClosed && newoffset <= CAP)
+				// The observed offset is unchanged
+				if (Interlocked.CompareExchange(ref offset, newoffset, oldoffset) == oldoffset)
 				{
-					// Just makes the slot, then the derived lane will set it 
-					// at 'Allocations' position.
-					if (track) Tracker.Append(null);
+					// Just makes the slot, the derived lane will set it at 'Allocation
+					if (ResetMode == MemoryLaneResetMode.TrackGhosts) Tracker.Append(null);
 
 					Interlocked.Increment(ref allocations);
-					Volatile.Write(ref offset, newoffset);
 					Volatile.Write(ref lastAllocTick, DateTime.Now.Ticks);
 
-					frag = new FragmentRange(oldoffset, size, allocations - 1);
-					result = true;
+					frag.Allocation = allocations - 1;
+					frag.Length = size;
+					frag.Offset = oldoffset;
+
+					return true;
 				}
 
-				// The lane reset mode is read-only hence incorrect lock release is not possible.
-				if (track) allocLobby.Set();
-				else spinGate.Exit();
+				// Another thread allocated
+				oldoffset = Volatile.Read(ref offset);
+				newoffset = oldoffset + size;
 			}
 
-			return result;
+			return false;
 		}
 
 		/// <summary>
@@ -174,39 +160,28 @@ namespace System
 
 		bool resetOne(int cycle)
 		{
-			bool pass = false;
 			bool result = false;
 
-			// It's OK to spin here since there are just a few instructions ahead.
-			resetGate.TryEnter(SPIN_GATE_BAIL_MS, ref pass);
-
-			if (pass)
+			// Enter only if it's the correct lane cycle and there are allocations
+			if (LaneCycle == cycle && Allocations > 0)
 			{
-				// Enter only if it's the correct lane cycle and there are allocations
-				if (LaneCycle == cycle || Allocations > 0)
+				var allocs = Interlocked.Decrement(ref allocations);
+
+				// If all fragments are disposed, reset the offset to 0 and change the laneCycle.
+				if (allocs == 0)
 				{
-					var allocs = Interlocked.Decrement(ref allocations);
+					Interlocked.Exchange(ref offset, 0);
+					Interlocked.Increment(ref laneCycle);
 
-					// If all fragments are disposed, reset the offset to 0 and change the laneCycle.
-					if (allocs == 0)
-					{
-						Interlocked.Exchange(ref offset, 0);
-						Interlocked.Increment(ref laneCycle);
+					// The AppendIndex shift is just an Interlocked.Exchange when forced
+					if (ResetMode == MemoryLaneResetMode.TrackGhosts)
+						Tracker.MoveAppendIndex(0, true);
 
-						// The AppendIndex shift is just an Interlocked.Exchange when forced
-						if (ResetMode == MemoryLaneResetMode.TrackGhosts)
-							Tracker.MoveAppendIndex(0, true);
-
-						result = true;
-					}
-					else if (allocs > 0) result = true;
-					else throw new MemoryLaneException(MemoryLaneException.Code.LaneNegativeReset);
+					result = true;
 				}
-
-				resetGate.Exit();
+				else if (allocs > 0) result = true;
+				else throw new MemoryLaneException(MemoryLaneException.Code.LaneNegativeReset);
 			}
-			else throw new SynchronizationException(SynchronizationException.Code.LockAcquisition,
-				$"Failed to pass the resetGate in {SPIN_GATE_BAIL_MS}ms. ");
 
 			return result;
 		}
@@ -224,26 +199,17 @@ namespace System
 		/// <param name="reset">True to reset the offset and the allocations to 0.</param>
 		public void Force(bool close, bool reset = false)
 		{
-			bool isLocked = false;
-			spinGate.Enter(ref isLocked);
+			Interlocked.Exchange(ref isClosed, close ? 1 : 0);
 
-			if (isLocked)
-				try
-				{
-					Interlocked.Exchange(ref isClosed, close ? 1 : 0);
+			if (reset)
+			{
+				Interlocked.Exchange(ref offset, 0);
+				Interlocked.Exchange(ref allocations, 0);
+				Interlocked.Increment(ref laneCycle);
 
-					if (reset)
-					{
-						Interlocked.Exchange(ref offset, 0);
-						Interlocked.Exchange(ref allocations, 0);
-						Interlocked.Increment(ref laneCycle);
-
-						if (ResetMode == MemoryLaneResetMode.TrackGhosts)
-							Tracker.MoveAppendIndex(0, true);
-					}
-				}
-				finally { spinGate.Exit(); }
-			else throw new SynchronizationException(SynchronizationException.Code.LockAcquisition);
+				if (ResetMode == MemoryLaneResetMode.TrackGhosts)
+					Tracker.MoveAppendIndex(0, true);
+			}
 		}
 
 		/// <summary>
@@ -262,11 +228,11 @@ namespace System
 
 			var read = 0;
 
-			lock (formatLock)
+			lock (formatGate)
 			{
 				Force(false, true);
 
-				using (var f = Alloc(LaneCapacity))
+				using (var f = Alloc(LaneCapacity, 1))
 				{
 					Interlocked.Exchange(ref isClosed, 1);
 
@@ -342,10 +308,8 @@ namespace System
 		// The Tracker index is the Allocation index of the fragment
 		Tesseract<WeakReference<MemoryFragment>> Tracker = null;
 
-		SpinLock spinGate = new SpinLock();
-		SpinLock resetGate = new SpinLock();
-		object formatLock = new object();
-		AutoResetEvent allocLobby = new AutoResetEvent(true);
+		object formatGate = new object();
+		object allocGate = new object();
 		int freeGhostsGate;
 		int isClosed;
 	}
@@ -369,7 +333,7 @@ namespace System
 		TrackGhosts = 1
 	}
 
-	readonly struct FragmentRange
+	struct FragmentRange
 	{
 		public FragmentRange(int offset, int length, int allocation)
 		{
@@ -378,9 +342,8 @@ namespace System
 			Allocation = allocation;
 		}
 
-		// Should be long, but Memory<T> uses int
-		public readonly int Offset;
-		public readonly int Length;
-		public readonly int Allocation;
+		public int Offset;
+		public int Length;
+		public int Allocation;
 	}
 }

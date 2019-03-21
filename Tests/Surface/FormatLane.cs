@@ -55,7 +55,7 @@ namespace Tests.Surface
 
 								ms.Seek(0, SeekOrigin.Begin);
 
-								using (var f = hw[0].Alloc(cap))
+								using (var f = hw[0].Alloc(cap, 1))
 								using (var fs = f.CreateStream())
 								{
 									for (int i = 0; i < read; i++)

@@ -66,7 +66,6 @@ namespace System
 		public const int MAX_LANE_CAPACITY = 2_000_000_000;
 		public const long MAX_HIGHWAY_CAPACITY = 200_000_000_000;
 
-
 		/// <summary>
 		/// If not provided in the ctor this value will be used when allocating
 		/// new lanes in the highway. 
@@ -84,11 +83,16 @@ namespace System
 		}
 
 		/// <summary>
-		/// Controls how many full cycles around all lanes should be made and fail to enter the 
-		/// lock with the specified awaitMS before creating a new lane.
+		/// Controls how many full cycles around all lanes should be made before creating a new lane.
 		/// The default value is 2.
 		/// </summary>
-		public int NoWaitLapsBeforeNewLane = 2;
+		public int LapsBeforeNewLane = 2;
+
+		/// <summary>
+		/// The number of allocation attempts before trying another lane.
+		/// It is roughly the number of competing threads, default is (4).
+		/// </summary>
+		public int LaneAllocTries = 4;
 
 		/// <summary>
 		/// When out of space this number of new lanes could be created simultaneously.
@@ -98,10 +102,10 @@ namespace System
 		public int ConcurrentNewLaneAllocations = 1;
 
 		/// <summary>
-		/// The amount of time the Alloc() methid will wait for new lane before bailing.
-		/// The default value is 100.
+		/// The amount of time the Alloc() method will wait for new lane before bailing.
+		/// The default value is 3s.
 		/// </summary>
-		public int NewLaneAllocationTimeoutMS = 100;
+		public int NewLaneAllocationTimeoutMS = 3000;
 
 		/// <summary>
 		/// If the allocator fail to find a free slice in any lane, 

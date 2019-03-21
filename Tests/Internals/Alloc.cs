@@ -16,7 +16,7 @@ namespace Tests.Internals
 		public int Size = 14000;
 		public int InParallel = 1;
 		public int AllocDelayMS = 200;
-		public int AllocLockAwaitMs = -1;
+		public int AllocTries = 20;
 		public int FragmentDisposeAfterMS = 2000;
 		public bool RandomizeLength = true;
 		public bool RandomizeFragDisposal = true;
@@ -32,7 +32,7 @@ namespace Tests.Internals
 				$"  Size: {Size}; IsRandomized: {RandomizeLength}",
 				$"  In Parallel: {InParallel}",
 				$"  AllocDelay: {AllocDelayMS}ms; IsRandomized: {RandomizeAllocDelay}",
-				$"  AllocLockAwait: {AllocLockAwaitMs}ms",
+				$"  AllocTries: {AllocTries}",
 				$"  AwaitDisposal: {AwaitFragmentDisposal}; {FragmentDisposeAfterMS}ms; IsRandomized: {RandomizeFragDisposal}"
 			);
 		}
@@ -51,9 +51,10 @@ namespace Tests.Internals
 			var dispCounter = new CountdownEvent(args.Count);
 
 			for (int i = 0; i < inParallel; i++)
-			{
 				T[i] = Task.Run(async () =>
 				 {
+					 // [!] Do not try catch
+
 					 // Someone must process the remainder
 					 // It's ok to read from L cache if it's 0;
 					 var subCount = rem > 0 ? part + Interlocked.Exchange(ref rem, 0) : part;
@@ -67,7 +68,7 @@ namespace Tests.Internals
 						 if (allocDelayMS > 0)
 							 await Task.Delay(allocDelayMS);
 
-						 var frag = hw.AllocFragment(size, args.AllocLockAwaitMs);
+						 var frag = hw.AllocFragment(size, args.AllocTries);
 
 						 if (frag == null)
 						 {
@@ -96,7 +97,6 @@ namespace Tests.Internals
 						 });
 					 }
 				 });
-			}
 
 			Task.WaitAll(T);
 			if (args.AwaitFragmentDisposal) dispCounter.Wait();

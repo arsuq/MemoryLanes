@@ -37,7 +37,7 @@ namespace Tests.Surface
 				RandomizeFragDisposal = true,
 				RandomizeLength = false,
 				AllocDelayMS = 10,
-				AllocLockAwaitMs = -1,
+				AllocTries = 20,
 				AwaitFragmentDisposal = false,
 				FragmentDisposeAfterMS = 100,
 				Trace = 0

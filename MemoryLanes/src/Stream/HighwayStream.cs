@@ -25,7 +25,6 @@ namespace System.IO
 			if (fragmentSize < 1) throw new ArgumentOutOfRangeException("fragmentSize");
 
 			FragmentSize = fragmentSize;
-			AllocTimeoutMS = -1;
 		}
 
 		/// <summary>
@@ -194,7 +193,7 @@ namespace System.IO
 			if (available < value)
 				while (available < value)
 				{
-					var f = Highway.AllocFragment(FragmentSize, AllocTimeoutMS);
+					var f = Highway.AllocFragment(FragmentSize);
 					fragments.Add(f);
 					available += FragmentSize;
 				}
@@ -316,11 +315,6 @@ namespace System.IO
 				offset = index % FragmentSize;
 			}
 		}
-
-		/// <summary>
-		/// The lanes allocation timeout in milliseconds 
-		/// </summary>
-		public int AllocTimeoutMS { get; set; }
 
 		public readonly int FragmentSize;
 		public readonly IMemoryHighway Highway;

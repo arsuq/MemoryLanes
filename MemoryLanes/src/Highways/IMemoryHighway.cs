@@ -16,12 +16,12 @@ namespace System
 		/// Allocates a memory fragment on any of the existing lanes or on a new one.
 		/// </summary>
 		/// <remarks>
-		/// By default the allocation awaits other allocations on the same lane, pass awaitMS > 0 in 
-		/// order to skip a lane. Note however than the HighwaySettings.NoWaitLapsBeforeNewLane controls 
-		/// how many cycles around all lanes should be made before allocating a new lane.
+		/// Use HighwaySettings.LapsBeforeNewLane to control how many cycles around all 
+		/// lanes should be made before allocating a new one.
 		/// </remarks>
 		/// <param name="size">The desired buffer length.</param>
-		/// <param name="awaitMS">By default the allocation awaits other allocations on the same lane.</param>
+		/// <param name="tries">The number of fails before switching to another lane. 
+		/// If 0, the HighwaySettings.LaneAllocTries is used. </param>
 		/// <returns>A new fragment.</returns>
 		/// <exception cref="System.ArgumentOutOfRangeException">
 		/// If size is negative or greater than HighwaySettings.MAX_LANE_CAPACITY.
@@ -32,7 +32,7 @@ namespace System
 		/// One should never see this one!
 		/// </exception>
 		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
-		MemoryFragment AllocFragment(int size, int awaitMS = -1);
+		MemoryFragment AllocFragment(int size, int tries = 0);
 
 		/// <summary>
 		/// Gets a specific lane.
