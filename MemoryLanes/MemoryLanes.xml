@@ -112,8 +112,8 @@
         </member>
         <member name="M:System.Collections.Concurrent.Tesseract`1.Append(`0)">
             <summary>
-            Appends an item after the AppendIndex. 
-            If there is not enough space locks until enough blocks are
+            Appends item after the AppendIndex. 
+            If there is no free space left locks until enough blocks are
             allocated and then switches back to fully concurrent mode.
             </summary>
             <remarks>
@@ -305,9 +305,9 @@
         </member>
         <member name="M:System.Collections.Concurrent.Tesseract.Append(System.Int32)">
             <summary>
-            Appends an item after the AppendIndex. 
-            If there is not enough space locks until enough blocks are
-            allocated and then switches back to fully concurrent mode.
+            Appends item after the AppendIndex. 
+            If there is no free space left locks until enough blocks are
+            allocated and then switches back to fully concurrent mode.	
             </summary>
             <remarks>
             If the expansion callback throws or out-of-memory is thrown the cube should be considered unrecoverable.

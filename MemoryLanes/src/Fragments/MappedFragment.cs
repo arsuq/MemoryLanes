@@ -120,7 +120,7 @@ namespace System
 		/// Guards against accessing a disposed, closed or reset lane.
 		/// The default is true.
 		/// </summary>
-		public bool UseAccessChecks
+		public new bool UseAccessChecks
 		{
 			get => useAccessChecks;
 			set { useAccessChecks = value; }

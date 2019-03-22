@@ -193,8 +193,8 @@ namespace System.Collections.Concurrent
 		}
 
 		/// <summary>
-		/// Appends an item after the AppendIndex. 
-		/// If there is not enough space locks until enough blocks are
+		/// Appends item after the AppendIndex. 
+		/// If there is no free space left locks until enough blocks are
 		/// allocated and then switches back to fully concurrent mode.
 		/// </summary>
 		/// <remarks>
