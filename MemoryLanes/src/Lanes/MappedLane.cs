@@ -48,7 +48,7 @@ namespace System
 
 			if (Alloc(size, ref fr, tries))
 			{
-				var frag = new MappedFragment(fr.Offset, fr.Length, mmva, this, () => free(laneCycle, fr.Allocation));
+				var frag = new MappedFragment(fr.Offset, fr.Length, mmva, this, () => free(i[LCYCLE], fr.Allocation));
 
 				if (ResetMode == MemoryLaneResetMode.TrackGhosts)
 					track(frag, fr.Allocation);

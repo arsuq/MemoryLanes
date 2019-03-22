@@ -51,22 +51,20 @@ namespace System
 		internal bool Alloc(int size, ref FragmentRange frag, int tries)
 		{
 			var CAP = LaneCapacity;
-			var oldoffset = Volatile.Read(ref offset);
+			var oldoffset = Volatile.Read(ref i[OFFSET]);
 			var newoffset = oldoffset + size;
 
-			// There is space
 			while (!IsClosed && newoffset <= CAP && tries-- > 0)
 			{
 				// The observed offset is unchanged
-				if (Interlocked.CompareExchange(ref offset, newoffset, oldoffset) == oldoffset)
+				if (Interlocked.CompareExchange(ref i[OFFSET], newoffset, oldoffset) == oldoffset)
 				{
 					// Just makes the slot, the derived lane will set it at 'Allocation
 					if (ResetMode == MemoryLaneResetMode.TrackGhosts) Tracker.Append(null);
 
-					Interlocked.Increment(ref allocations);
 					Volatile.Write(ref lastAllocTick, DateTime.Now.Ticks);
 
-					frag.Allocation = allocations - 1;
+					frag.Allocation = Interlocked.Increment(ref i[ALLOCS]) - 1;
 					frag.Length = size;
 					frag.Offset = oldoffset;
 
@@ -74,7 +72,7 @@ namespace System
 				}
 
 				// Another thread allocated
-				oldoffset = Volatile.Read(ref offset);
+				oldoffset = Volatile.Read(ref i[OFFSET]);
 				newoffset = oldoffset + size;
 			}
 
@@ -99,7 +97,6 @@ namespace System
 			int freed = 0;
 
 			if (Interlocked.CompareExchange(ref freeGhostsGate, 1, 0) < 1)
-			{
 				try
 				{
 					int ai = Tracker.AppendIndex;
@@ -124,7 +121,6 @@ namespace System
 				{
 					Interlocked.Exchange(ref freeGhostsGate, 0);
 				}
-			}
 
 			return freed;
 		}
@@ -165,13 +161,13 @@ namespace System
 			// Enter only if it's the correct lane cycle and there are allocations
 			if (LaneCycle == cycle && Allocations > 0)
 			{
-				var allocs = Interlocked.Decrement(ref allocations);
+				var allocs = Interlocked.Decrement(ref i[ALLOCS]);
 
 				// If all fragments are disposed, reset the offset to 0 and change the laneCycle.
 				if (allocs == 0)
 				{
-					Interlocked.Exchange(ref offset, 0);
-					Interlocked.Increment(ref laneCycle);
+					Interlocked.Exchange(ref i[OFFSET], 0);
+					Interlocked.Increment(ref i[LCYCLE]);
 
 					// The AppendIndex shift is just an Interlocked.Exchange when forced
 					if (ResetMode == MemoryLaneResetMode.TrackGhosts)
@@ -203,9 +199,9 @@ namespace System
 
 			if (reset)
 			{
-				Interlocked.Exchange(ref offset, 0);
-				Interlocked.Exchange(ref allocations, 0);
-				Interlocked.Increment(ref laneCycle);
+				Interlocked.Exchange(ref i[OFFSET], 0);
+				Interlocked.Exchange(ref i[ALLOCS], 0);
+				Interlocked.Increment(ref i[LCYCLE]);
 
 				if (ResetMode == MemoryLaneResetMode.TrackGhosts)
 					Tracker.MoveAppendIndex(0, true);
@@ -266,12 +262,12 @@ namespace System
 		/// <summary>
 		/// The lane offset index.
 		/// </summary>
-		public int Offset => Volatile.Read(ref offset);
+		public int Offset => Volatile.Read(ref i[OFFSET]);
 
 		/// <summary>
 		/// The number of allocations so far. Resets to zero on a new cycle.
 		/// </summary>
-		public int Allocations => Volatile.Read(ref allocations);
+		public int Allocations => Volatile.Read(ref i[ALLOCS]);
 
 		/// <summary>
 		/// The last allocation timer tick.
@@ -286,7 +282,7 @@ namespace System
 		/// <summary>
 		/// The current lane cycle, i.e. number of resets.
 		/// </summary>
-		public int LaneCycle => Volatile.Read(ref laneCycle);
+		public int LaneCycle => Volatile.Read(ref i[LCYCLE]);
 
 		/// <summary>
 		/// If true the underlying memory storage is released.
@@ -298,10 +294,12 @@ namespace System
 		public const int TRACKER_ASSUMED_MIN_FRAG_SIZE_BYTES = 32;
 
 		protected bool isDisposed;
-		protected int allocations;
-		protected int offset;
 		protected long lastAllocTick;
-		protected int laneCycle;
+
+		// The indices of Allocations, Offset and LaneCycle
+		protected const int ALLOCS = 32;
+		protected const int OFFSET = 64;
+		protected const int LCYCLE = 96;
 
 		public readonly MemoryLaneResetMode ResetMode;
 
@@ -312,6 +310,8 @@ namespace System
 		object allocGate = new object();
 		int freeGhostsGate;
 		int isClosed;
+
+		protected int[] i = new int[97];
 	}
 
 	/// <summary>

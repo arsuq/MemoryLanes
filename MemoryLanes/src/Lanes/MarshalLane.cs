@@ -41,7 +41,7 @@ namespace System
 			{
 				var frag = new MarshalLaneFragment(
 					fr.Offset, fr.Length, lanePtr, this,
-					() => free(laneCycle, fr.Allocation));
+					() => free(i[LCYCLE], fr.Allocation));
 
 				if (ResetMode == MemoryLaneResetMode.TrackGhosts)
 					track(frag, fr.Allocation);

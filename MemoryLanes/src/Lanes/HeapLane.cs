@@ -35,7 +35,7 @@ namespace System
 			if (Alloc(size, ref fr, tries))
 			{
 				var mem = new Memory<byte>(lane, fr.Offset, fr.Length);
-				var frag = new HeapFragment(mem, this, () => free(laneCycle, fr.Allocation));
+				var frag = new HeapFragment(mem, this, () => free(i[LCYCLE], fr.Allocation));
 
 				if (ResetMode == MemoryLaneResetMode.TrackGhosts)
 					track(frag, fr.Allocation);
