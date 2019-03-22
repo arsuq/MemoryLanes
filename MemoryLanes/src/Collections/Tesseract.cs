@@ -169,7 +169,7 @@ namespace System.Collections.Concurrent
 				if (Drive == TesseractGear.P) throw new InvalidOperationException("Wrong drive");
 				if (index < 0 || index > AppendIndex) throw new ArgumentOutOfRangeException("index");
 
-				set(index, value, false);
+				set(index, value);
 			}
 		}
 
@@ -189,7 +189,7 @@ namespace System.Collections.Concurrent
 			if (Drive == TesseractGear.P) throw new InvalidOperationException("Wrong drive");
 			if (index < 0 || index > AllocatedSlots) throw new ArgumentOutOfRangeException("index");
 
-			return set(index, null, true);
+			return set(index, null);
 		}
 
 		/// <summary>
@@ -254,7 +254,7 @@ namespace System.Collections.Concurrent
 				if (aidx < slots)
 				{
 					pos = Interlocked.Increment(ref appendIndex);
-					set(pos, item, false);
+					set(pos, item);
 				}
 			}
 			else ex = new InvalidOperationException("Wrong drive");
@@ -284,7 +284,7 @@ namespace System.Collections.Concurrent
 			if (Drive == TesseractGear.Reverse)
 			{
 				pos = Interlocked.Decrement(ref appendIndex) + 1;
-				r = set(pos, null, true);
+				r = set(pos, null);
 			}
 			else ex = new InvalidOperationException("Wrong drive");
 
@@ -498,22 +498,17 @@ namespace System.Collections.Concurrent
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		T set(in int index, in T value, in bool exchange)
+		T set(in int index, in T value)
 		{
 			var p = new TesseractPos(index);
-			T old = null;
+			var old = Interlocked.Exchange(ref blocks[p.D0][p.D1][p.D2][p.D3], value);
 
-			if (exchange)
-			{
-				old = Interlocked.Exchange(ref blocks[p.D0][p.D1][p.D2][p.D3], value);
-				if (CountNotNulls)
-					if (old != null)
-					{
-						if (value == null) Interlocked.Decrement(ref notNullsCount);
-					}
-					else if (value != null) Interlocked.Increment(ref notNullsCount);
-			}
-			else Volatile.Write(ref blocks[p.D0][p.D1][p.D2][p.D3], value);
+			if (CountNotNulls)
+				if (old != null)
+				{
+					if (value == null) Interlocked.Decrement(ref notNullsCount);
+				}
+				else if (value != null) Interlocked.Increment(ref notNullsCount);
 
 			return old;
 		}
