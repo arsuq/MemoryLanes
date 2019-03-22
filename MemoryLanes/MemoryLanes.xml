@@ -1171,6 +1171,11 @@
             <param name="stg">Generic settings for all MemoryCarriage derivatives.</param>
             <param name="lanes">The initial setup.</param>
         </member>
+        <member name="F:System.HeapHighway.DEF_HEAP_LANES">
+            <summary>
+            Set before calling the default ctor.
+            </summary>
+        </member>
         <member name="T:System.IMemoryHighway">
             <summary>
             A MemoryCarriage contract
@@ -1309,6 +1314,11 @@
             <param name="stg">Generic settings for all MemoryCarriage derivatives.</param>
             <param name="lanes">The initial setup.</param>
         </member>
+        <member name="F:System.MappedHighway.DEF_MMF_LANES">
+            <summary>
+            Set before calling the default ctor.
+            </summary>
+        </member>
         <member name="T:System.MarshalHighway">
             <summary>
             Allocates memory lanes via Marshal.AllocHGlobal
@@ -1332,6 +1342,11 @@
             </summary>
             <param name="stg">Generic settings for all MemoryCarriage derivatives.</param>
             <param name="lanes">The initial setup.</param>
+        </member>
+        <member name="F:System.MarshalHighway.DEF_NHEAP_LANES">
+            <summary>
+            Set before calling the default ctor.
+            </summary>
         </member>
         <member name="T:System.HeapLane">
             <summary>

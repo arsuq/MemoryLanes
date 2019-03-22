@@ -92,7 +92,18 @@ public interface IMemoryHighway : IDisposable
 
 The default highway constructor will create two lanes - 8M and 4M in length. For a HeapHighway
 one can avoid the LOH by configuring the initial lanes to be less than 80K in size, as well as the 
-```DefaultLaneCapacity``` in the settings as it's the expansion length. See [Expansion]
+```DefaultLaneCapacity``` in the settings as it's the expansion length (see [expansion]).
+
+All highways publicly expose their default layout as a static int[] array:
+
++ *HeapHighway* - DEF_HEAP_LANES
++ *MarshalHighway* - DEF_NHEAP_LANES
++ *MappedHighway* - DEF_MMF_LANES
+
+These are used by the default ctor, so one could override the values and then use
+the parameterless constructor. The ```HighwaySettings.DefaultLaneCapacity``` 
+should also be changed if no settings instance is provided.
+
 
 
 ### Reliable disposal

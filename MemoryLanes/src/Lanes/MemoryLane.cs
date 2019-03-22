@@ -166,7 +166,7 @@ namespace System
 				// If all fragments are disposed, reset the offset to 0 and change the laneCycle.
 				if (allocs == 0)
 				{
-					Interlocked.Exchange(ref i[OFFSET], 0);
+					Volatile.Write(ref i[OFFSET], 0);
 					Interlocked.Increment(ref i[LCYCLE]);
 
 					// The AppendIndex shift is just an Interlocked.Exchange when forced
