@@ -42,8 +42,9 @@ namespace System.Collections.Concurrent
 			CountNotNulls = countNotNulls;
 			this.expansion = expansion;
 			blocks = new T[SIDE / 2][][][];
-			direction = 1;
-			allocatedSlots = alloc(slots, 0);
+			i[DRIVE] = 1;
+			i[SLOTS] = alloc(slots, 0);
+			i[INDEX] = -1;
 		}
 
 		/// <summary>
@@ -59,22 +60,22 @@ namespace System.Collections.Concurrent
 		/// <summary>
 		/// The current set index. 
 		/// </summary>
-		public int AppendIndex => Volatile.Read(ref appendIndex);
+		public int AppendIndex => Volatile.Read(ref i[INDEX]);
 
 		/// <summary>
 		/// The not null items count, -1 if CountNotNulls is false.
 		/// </summary>
-		public int ItemsCount => CountNotNulls ? Volatile.Read(ref notNullsCount) : -1;
+		public int ItemsCount => CountNotNulls ? Volatile.Read(ref i[NNCNT]) : -1;
 
 		/// <summary>
 		/// The allocated slots.
 		/// </summary>
-		public int AllocatedSlots => Volatile.Read(ref allocatedSlots);
+		public int AllocatedSlots => Volatile.Read(ref i[SLOTS]);
 
 		/// <summary>
 		/// The allowed set of concurrent operations.
 		/// </summary>
-		public TesseractGear Drive => (TesseractGear)Volatile.Read(ref direction);
+		public TesseractGear Drive => (TesseractGear)Volatile.Read(ref i[DRIVE]);
 
 		/// <summary>
 		/// Will be triggered when the Drive changes. 
@@ -113,10 +114,10 @@ namespace System.Collections.Concurrent
 					// There must be no other resets anywhere
 					gearShift.Reset();
 
-					old = Interlocked.Exchange(ref direction, (int)g);
+					old = Interlocked.Exchange(ref i[DRIVE], (int)g);
 
 					// Wait for all concurrent operations to finish
-					if (Volatile.Read(ref concurrentOps) > 0)
+					if (Volatile.Read(ref i[CCOPS]) > 0)
 						if (!gearShift.WaitOne(timeout))
 							throw new SynchronizationException(SynchronizationException.Code.SignalAwaitTimeout);
 
@@ -214,7 +215,7 @@ namespace System.Collections.Concurrent
 			// all other ops will throw WrongDrive and decrement it. 
 			// Using the ccops instead of a dedicated ccAppends counter saves two atomics,
 			// in this already not-cache-friendly structure.
-			var ccadd = Interlocked.Increment(ref concurrentOps);
+			var ccadd = Interlocked.Increment(ref i[CCOPS]);
 			var pos = -1;
 			Exception ex = null;
 
@@ -222,17 +223,17 @@ namespace System.Collections.Concurrent
 			// If alloc throws OutOfMemory there is no hope anyways, if expansion throws...that's dumb
 			if (Drive == TesseractGear.Straight)
 			{
-				var aidx = Volatile.Read(ref appendIndex);
-				var slots = Volatile.Read(ref allocatedSlots);
+				var aidx = Volatile.Read(ref i[INDEX]);
+				var slots = Volatile.Read(ref i[SLOTS]);
 				var idx = ccadd + aidx;
 
 				if (idx >= slots)
 					lock (commonLock)
 					{
 						// Read after the wait
-						aidx = Volatile.Read(ref appendIndex);
-						slots = Volatile.Read(ref allocatedSlots);
-						ccadd = Volatile.Read(ref concurrentOps);
+						aidx = Volatile.Read(ref i[INDEX]);
+						slots = Volatile.Read(ref i[SLOTS]);
+						ccadd = Volatile.Read(ref i[CCOPS]);
 						idx = ccadd + aidx;
 
 						if (idx >= slots)
@@ -247,20 +248,20 @@ namespace System.Collections.Concurrent
 							// slots and one can demand only int.MaxValue.
 
 							slots = alloc(newCap, slots);
-							aidx = Volatile.Read(ref appendIndex);
+							aidx = Volatile.Read(ref i[INDEX]);
 						}
 					}
 
 				if (aidx < slots)
 				{
-					pos = Interlocked.Increment(ref appendIndex);
+					pos = Interlocked.Increment(ref i[INDEX]);
 					set(pos, item);
 				}
 			}
 			else ex = new InvalidOperationException("Wrong drive");
 
 			// If it's the last exiting operation for the old direction
-			if (Interlocked.Decrement(ref concurrentOps) == 0 && Drive != TesseractGear.Straight)
+			if (Interlocked.Decrement(ref i[CCOPS]) == 0 && Drive != TesseractGear.Straight)
 				gearShift.Set();
 
 			if (ex != null) throw ex;
@@ -276,19 +277,19 @@ namespace System.Collections.Concurrent
 		/// <exception cref="System.InvalidOperationException">When Drive != Gear.Reverse</exception>
 		public T RemoveLast(ref int pos)
 		{
-			Interlocked.Increment(ref concurrentOps);
+			Interlocked.Increment(ref i[CCOPS]);
 
 			Exception ex = null;
 			T r = null;
 
 			if (Drive == TesseractGear.Reverse)
 			{
-				pos = Interlocked.Decrement(ref appendIndex) + 1;
+				pos = Interlocked.Decrement(ref i[INDEX]) + 1;
 				r = set(pos, null);
 			}
 			else ex = new InvalidOperationException("Wrong drive");
 
-			if (Interlocked.Decrement(ref concurrentOps) == 0 && Drive != TesseractGear.Reverse)
+			if (Interlocked.Decrement(ref i[CCOPS]) == 0 && Drive != TesseractGear.Reverse)
 				gearShift.Set();
 
 			if (ex != null) throw ex;
@@ -382,11 +383,11 @@ namespace System.Collections.Concurrent
 		{
 			lock (commonLock)
 			{
-				Interlocked.Increment(ref concurrentOps);
+				Interlocked.Increment(ref i[CCOPS]);
 
 				try
 				{
-					var als = Volatile.Read(ref allocatedSlots);
+					var als = Volatile.Read(ref i[SLOTS]);
 
 					if (Drive != TesseractGear.P) throw new InvalidOperationException("Wrong drive");
 					if (length < 0) throw new ArgumentOutOfRangeException("length");
@@ -416,20 +417,20 @@ namespace System.Collections.Concurrent
 							als -= SIDE;
 						}
 
-						Volatile.Write(ref allocatedSlots, als);
-						Interlocked.Exchange(ref appendIndex, length - 1);
+						Volatile.Write(ref i[SLOTS], als);
+						Interlocked.Exchange(ref i[INDEX], length - 1);
 
 						if (CountNotNulls)
 						{
 							int notNull = 0;
 							foreach (var c in NotNullItems()) notNull++;
-							Interlocked.Exchange(ref notNullsCount, notNull);
+							Interlocked.Exchange(ref i[NNCNT], notNull);
 						}
 					}
 				}
 				finally
 				{
-					Interlocked.Decrement(ref concurrentOps);
+					Interlocked.Decrement(ref i[CCOPS]);
 					gearShift.Set();
 				}
 			}
@@ -446,7 +447,7 @@ namespace System.Collections.Concurrent
 		{
 			lock (commonLock)
 			{
-				Interlocked.Increment(ref concurrentOps);
+				Interlocked.Increment(ref i[CCOPS]);
 
 				try
 				{
@@ -462,7 +463,7 @@ namespace System.Collections.Concurrent
 				}
 				finally
 				{
-					Interlocked.Decrement(ref concurrentOps);
+					Interlocked.Decrement(ref i[CCOPS]);
 				}
 			}
 		}
@@ -478,21 +479,21 @@ namespace System.Collections.Concurrent
 		/// <exception cref="ArgumentOutOfRangeException">Index is negative or greater than AllocatedSlots</exception>
 		public void MoveAppendIndex(int newIndex, bool forced = false)
 		{
-			if (forced) Interlocked.Exchange(ref appendIndex, newIndex);
+			if (forced) Interlocked.Exchange(ref i[INDEX], newIndex);
 			else
 				lock (commonLock)
 				{
-					Interlocked.Increment(ref concurrentOps);
+					Interlocked.Increment(ref i[CCOPS]);
 					try
 					{
 						if (Drive != TesseractGear.P) throw new InvalidOperationException("Wrong drive");
 						if (newIndex < 0 || newIndex >= AllocatedSlots) throw new ArgumentOutOfRangeException("newIndex");
 
-						Interlocked.Exchange(ref appendIndex, newIndex);
+						Interlocked.Exchange(ref i[INDEX], newIndex);
 					}
 					finally
 					{
-						Interlocked.Decrement(ref concurrentOps);
+						Interlocked.Decrement(ref i[CCOPS]);
 					}
 				}
 		}
@@ -501,14 +502,17 @@ namespace System.Collections.Concurrent
 		T set(in int index, in T value)
 		{
 			var p = new TesseractPos(index);
+			// A little more speed could be squeezed out for some ops, when 
+			// the returned value is not needed and the null counting is off.
+			// In these cases Volatile.Write is cheaper. 
 			var old = Interlocked.Exchange(ref blocks[p.D0][p.D1][p.D2][p.D3], value);
 
 			if (CountNotNulls)
 				if (old != null)
 				{
-					if (value == null) Interlocked.Decrement(ref notNullsCount);
+					if (value == null) Interlocked.Decrement(ref i[NNCNT]);
 				}
-				else if (value != null) Interlocked.Increment(ref notNullsCount);
+				else if (value != null) Interlocked.Increment(ref i[NNCNT]);
 
 			return old;
 		}
@@ -531,17 +535,18 @@ namespace System.Collections.Concurrent
 				else break;
 			}
 
-			Volatile.Write(ref allocatedSlots, allocated);
+			Volatile.Write(ref i[SLOTS], allocated);
 
-			return allocatedSlots;
+			return allocated;
 		}
 
-		// Tracks the AppendIndex movement, the indexer is not counted as an op.
-		int concurrentOps;
-		int allocatedSlots;
-		int appendIndex = -1;
-		int notNullsCount;
-		int direction;
+		// These are the indices for the ConcurrentOps, AllocatedSlots, AppendIndex,
+		// NotNullsCount and Drive variables. The sepatation is 128 bytes.
+		const int CCOPS = 32;
+		const int SLOTS = 64;
+		const int INDEX = 96;
+		const int NNCNT = 128;
+		const int DRIVE = 160;
 
 		/// <summary>
 		/// A block length = 256.
@@ -558,5 +563,6 @@ namespace System.Collections.Concurrent
 		ManualResetEvent gearShift = new ManualResetEvent(false);
 
 		T[][][][] blocks = null;
+		int[] i = new int[161];
 	}
 }
