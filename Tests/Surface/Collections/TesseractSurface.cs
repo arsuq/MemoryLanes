@@ -55,7 +55,7 @@ namespace Tests.Surface.Collections
 				if (!format()) return;
 				if (!take()) return;
 
-				// append_latency();
+				//append_latency();
 
 				Passed = true;
 				IsComplete = true;

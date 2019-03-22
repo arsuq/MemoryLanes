@@ -224,7 +224,7 @@ namespace System.Collections.Concurrent
 
 			// Try catch-ing this costs ~0.1x slowdown, 
 			// If alloc throws OutOfMemory there is no hope anyways, if expansion throws...that's dumb
-			if (Drive == TesseractGear.Straight)
+			if (Volatile.Read(ref direction) == 1)
 			{
 				var aidx = Volatile.Read(ref appendIndex);
 				var slots = Volatile.Read(ref allocatedSlots);
