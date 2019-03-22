@@ -173,7 +173,7 @@ namespace System.Collections.Concurrent
 				if (Drive == TesseractGear.P) throw new InvalidOperationException("Wrong drive");
 				if (index < 0 || index > AppendIndex) throw new ArgumentOutOfRangeException("index");
 
-				set(index, value);
+				set(index, value, false);
 			}
 		}
 
@@ -193,7 +193,7 @@ namespace System.Collections.Concurrent
 			if (Drive == TesseractGear.P) throw new InvalidOperationException("Wrong drive");
 			if (index < 0 || index > AllocatedSlots) throw new ArgumentOutOfRangeException("index");
 
-			return set(index, NULL);
+			return set(index, NULL, true);
 		}
 
 		/// <summary>
@@ -258,7 +258,7 @@ namespace System.Collections.Concurrent
 				if (aidx < slots)
 				{
 					pos = Interlocked.Increment(ref appendIndex);
-					set(pos, v);
+					set(pos, v, false);
 				}
 			}
 			else ex = new InvalidOperationException("Wrong drive");
@@ -288,7 +288,7 @@ namespace System.Collections.Concurrent
 			if (Drive == TesseractGear.Reverse)
 			{
 				pos = Interlocked.Decrement(ref appendIndex) + 1;
-				r = set(pos, NULL);
+				r = set(pos, NULL, true);
 			}
 			else ex = new InvalidOperationException("Wrong drive");
 
@@ -500,17 +500,22 @@ namespace System.Collections.Concurrent
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		T set(in int index, in T value)
+		T set(in int index, in T value, in bool exchange)
 		{
 			var p = new TesseractPos(index);
-			var old = Interlocked.Exchange(ref blocks[p.D0][p.D1][p.D2][p.D3], value);
+			T old = NULL;
 
-			if (CountNotNulls)
-				if (old != NULL)
-				{
-					if (value == NULL) Interlocked.Decrement(ref notNullsCount);
-				}
-				else if (value != NULL) Interlocked.Increment(ref notNullsCount);
+			if (exchange)
+			{
+				old = Interlocked.Exchange(ref blocks[p.D0][p.D1][p.D2][p.D3], value);
+				if (CountNotNulls)
+					if (old != null)
+					{
+						if (value == null) Interlocked.Decrement(ref notNullsCount);
+					}
+					else if (value != null) Interlocked.Increment(ref notNullsCount);
+			}
+			else Volatile.Write(ref blocks[p.D0][p.D1][p.D2][p.D3], value);
 
 			return old;
 		}
