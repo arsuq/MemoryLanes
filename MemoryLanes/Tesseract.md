@@ -7,9 +7,9 @@
 The MemoryLanes use a concurrent data structure for tracking fragments. 
 It's a virtual array allowing **safe multi-threaded, indexed access** to its cells 
 **while expanding**. The actual storage are four jagged arrays with a side of 256 slots
-and total capacity of 2^31. The generic Tesseract is constrained to reference types only
-for the atomic ops to work, but there is an integer based version which is the same code
-with minor differences.
+and total capacity of 2^31. It's constrained to reference types only for the atomic ops to work,
+but one could use the ```TesseractCell<T>``` (T : struct) as a class wrapper. The Cell is implicitly
+convertible from and to T.
  
 
 ## Accessors
@@ -21,6 +21,7 @@ The main accessors are:
 | *Append*         | Adds an item and moves the AppendIndex, allocates if needed     |
 | *Take*           | Replaces the cell value with a null and returns the original    |
 | *RemoveLast*     | Like Append but decrements the AppendIndex                      |
+| *CAS*            | Compare and exchange operation                                  |
 | *get*            | Can read values up to the AllocatedSlots index                  |
 | *set*            | Can set a cell if its index is less than AppendIndex            |
 | *AppendIndex*    | The current position                                            |
@@ -40,12 +41,12 @@ The main accessors are:
 The cube supports different sets of concurrent operations at a time which can be observed as
 the *Drive* property.
 
-| TesseractGear | Allowed operations                                 |
-| ------------- | -------------------------------------------------- |
-| *N*           | get, set, Take, Format, NotNullItems               |
-| *Straight*    | get, set, Take, NotNullItems, Append (the default) |
-| *Reverse*     | get, set, Take, NotNullItems, RemoveLast           |
-| *P*           | Resize only                                        |
+| TesseractGear | Allowed operations                                                        |
+| ------------- | ------------------------------------------------------------------------- |
+| *N*           | get, set, Take, CAS, NotNullItems, expand Resize, MoveAppendIndex, Format |
+| *Straight*    | get, set, Take, CAS, NotNullItems, expand Resize, Append, (the default)   |
+| *Reverse*     | get, set, Take, CAS, NotNullItems, expand Resize, RemoveLast              |
+| *P*           | MoveAppendIndex, Resize                                                   |
 
 The Drive can be changed by the *Clutch* method which is synchronized and will
 block until all ongoing operations complete. 
@@ -53,13 +54,13 @@ block until all ongoing operations complete.
 ## Internals
 
 The ability to expand without copying data is in the predefined structure of the cube. 
-There is an overhead of one reference (16 bytes) for each SIDE (4096 bytes), 
-however the benefit of having a page size block is the ability to be defragmented by the GC.
+There is an overhead of one reference for each SIDE (4096 bytes), however the benefit 
+of having a page size block is the ability to be defragmented by the GC.
 
-The SIDE is not a byte length by chance. For quicker division and modular arithmetic it should be
+The SIDE is not a byte length by chance. For quicker division and modular arithmetic it has to be
 a power of two, so that right shift and bitwise AND can be used. That said, one can do better.
 The Tesseract indexing does not compute anything, it just interprets the four bytes of the
-integer index as the direct 4D coordinates. Nothing beats that. 
+integer index as the direct 4D coordinates. 
 
 ### Locking
 

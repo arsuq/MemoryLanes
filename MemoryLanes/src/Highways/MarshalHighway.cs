@@ -41,7 +41,7 @@ namespace System
 		protected override MarshalLane createLane(int size) => new MarshalLane(size, settings.Disposal);
 
 		/// <summary>
-		/// Set before calling the default ctor.
+		/// Update before calling the default ctor.
 		/// </summary>
 		public static int[] DEF_NHEAP_LANES = new int[] { 8_000_000, 4_000_000 };
 	}

@@ -39,7 +39,7 @@ namespace Tests.Surface
 				var stg = new HighwaySettings((FRAGS_COUNT / 2) * ALLOC_SIZE);
 				var iH = new Dictionary<string, IMemoryHighway>();
 
-				// Set the no-luckGate capacity
+				// Update the no-luckGate capacity
 				stg.ConcurrentNewLaneAllocations = cc;
 
 				iH.Add("nh", new MarshalHighway(stg, stg.DefaultCapacity));

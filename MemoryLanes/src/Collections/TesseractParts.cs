@@ -5,7 +5,44 @@
 namespace System.Collections.Concurrent
 {
 	/// <summary>
-	/// An expansion calculator for the Tesseract.
+	/// For structs wrapping. 
+	/// </summary>
+	/// <typeparam name="T">A struct</typeparam>
+	public class TesseractCell<T> : IComparable<TesseractCell<T>> where T : struct, IComparable<T>
+	{
+		public TesseractCell() { }
+		public TesseractCell(T v) { Value = v; }
+
+		public readonly T Value;
+
+		public static implicit operator T(TesseractCell<T> c) => c != null ? c.Value : default(T);
+		public static implicit operator TesseractCell<T>(T v) => new TesseractCell<T>(v);
+		public int CompareTo(TesseractCell<T> other) => Value.CompareTo(other.Value);
+		public override bool Equals(object obj) => this.Equals(obj as TesseractCell<T>);
+		public override int GetHashCode() => HashCode.Combine(Value);
+
+		public bool Equals(TesseractCell<T> c)
+		{
+			if (Object.ReferenceEquals(c, null)) return false;
+			if (Object.ReferenceEquals(this, c)) return true;
+			if (this.GetType() != c.GetType()) return false;
+
+			return c.Value.Equals(Value);
+		}
+	}
+
+	class TesseractKeyCell<K, V>
+	{
+		public TesseractKeyCell() { }
+		public TesseractKeyCell(K key, V value) { Key = key; Value = value; }
+		public TesseractKeyCell<K, V> Clone(in V value) => new TesseractKeyCell<K, V>(Key, value);
+
+		public readonly K Key;
+		public readonly V Value;
+	}
+
+	/// <summary>
+	/// An Expansion calculator for the Tesseract.
 	/// An instance is called whenever more blocks are needed.
 	/// One could expand differently, depending on the current array size.
 	/// </summary>
@@ -19,22 +56,25 @@ namespace System.Collections.Concurrent
 	public enum TesseractGear
 	{
 		/// <summary>
-		/// Concurrent gets, sets and Take() are enabled, but not Append/Remove or Resize.
+		/// Concurrent gets, sets, Take(), expand Resize() and NotNullItems() are enabled,
+		/// but not Append/Remove or shrink Resize.
 		/// </summary>
 		N = 0,
 		/// <summary>
-		/// Concurrent Append(), Take(), gets and sets are enabled.
+		/// Concurrent Append(), Take(), gets and sets, expand Resize() and NotNullItems() are enabled.
+		/// MoveAppendIndex() is not allowed.
 		/// </summary>
 		Straight = 1,
 		/// <summary>
-		/// Concurrent Take(), RemoveLast() gets and sets are enabled.
+		/// Concurrent Take(), RemoveLast() gets, sets and expand Resize() are enabled.
+		/// MoveAppendIndex() is not allowed.
 		/// </summary>
 		/// <remarks>
 		/// Reading is allowed if less than AlloatedSlots, Writes must be less than AppendIndex.
 		/// </remarks>
 		Reverse = -1,
 		/// <summary>
-		/// Only Resize() is allowed.
+		/// Shrink Resize() is allowed.
 		/// </summary>
 		P = -2
 	}
@@ -74,5 +114,16 @@ namespace System.Collections.Concurrent
 		public byte D1;
 		public byte D2;
 		public byte D3;
+	}
+
+	public enum TesseractPrime
+	{
+		P193 = 193,
+		P6151 = 6151,
+		P24593 = 24593,
+		P49157 = 49157,
+		P196613 = 196613,
+		P1572869 = 1572869,
+		P12582917 = 12582917,
 	}
 }

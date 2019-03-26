@@ -40,7 +40,7 @@ namespace System.Collections.Concurrent
 			if (slots > 0 && slots < SIDE) slots = SIDE;
 
 			CountNotNulls = countNotNulls;
-			this.expansion = expansion;
+			this.Expansion = expansion;
 			blocks = new T[SIDE / 2][][][];
 			i[DRIVE] = 1;
 			i[SLOTS] = alloc(slots, 0);
@@ -53,9 +53,19 @@ namespace System.Collections.Concurrent
 		public readonly int Side = SIDE;
 
 		/// <summary>
+		/// The number of slots to be added if no Expansion function is provided.
+		/// </summary>
+		public readonly int DefaultExpansion = DEF_EXP;
+
+		/// <summary>
 		/// If true Append and set will update the ItemsCount.
 		/// </summary>
 		public readonly bool CountNotNulls;
+
+		/// <summary>
+		/// The growth function.
+		/// </summary>
+		public readonly TesseractExpansion Expansion;
 
 		/// <summary>
 		/// The current set index. 
@@ -144,11 +154,7 @@ namespace System.Collections.Concurrent
 		/// <summary>
 		/// Access to the individual cells.
 		/// </summary>
-		/// <remarks>
-		/// Reading is allowed beyond the AppendIndex if less than AllocatedSlots. This means that 
-		/// RemoveLast() and get can safely be executed concurrently.
-		/// </remarks>
-		/// <param name="index">For set must be less than AppendIndex, for get less than AllocatedSlots </param>
+		/// <param name="index">Must be less than AllocatedSlots</param>
 		/// <returns>The object reference at the index</returns>
 		/// <exception cref="ArgumentOutOfRangeException">index</exception>
 		/// <exception cref="System.InvalidOperationException">If the Drive is wrong</exception>
@@ -157,8 +163,6 @@ namespace System.Collections.Concurrent
 			get
 			{
 				if (Drive == TesseractGear.P) throw new InvalidOperationException("Wrong drive");
-
-				// Reading values is allowed beyond the Append index
 				if (index < 0 || index > AllocatedSlots) throw new ArgumentOutOfRangeException("index");
 
 				var p = new TesseractPos(index);
@@ -168,7 +172,7 @@ namespace System.Collections.Concurrent
 			set
 			{
 				if (Drive == TesseractGear.P) throw new InvalidOperationException("Wrong drive");
-				if (index < 0 || index > AppendIndex) throw new ArgumentOutOfRangeException("index");
+				if (index < 0 || index > AllocatedSlots) throw new ArgumentOutOfRangeException("index");
 
 				set(index, value);
 			}
@@ -194,12 +198,37 @@ namespace System.Collections.Concurrent
 		}
 
 		/// <summary>
+		/// Sets value at index if the current value equals the comparand.
+		/// </summary>
+		/// <param name="index">The index must be less than AllocatedSlots.</param>
+		/// <param name="value">The value to be set at index.</param>
+		/// <param name="comparand">Will be compared to this[index]</param>
+		/// <returns></returns>
+		public T CAS(in int index, in T value, in T comparand)
+		{
+			if (Drive == TesseractGear.P) throw new InvalidOperationException("Wrong drive");
+			if (index < 0 || index > AllocatedSlots) throw new ArgumentOutOfRangeException("index");
+
+			var p = new TesseractPos(index);
+			var r = Interlocked.CompareExchange(ref blocks[p.D0][p.D1][p.D2][p.D3], value, comparand);
+
+			if (CountNotNulls)
+				if (r != null)
+				{
+					if (value == null) Interlocked.Decrement(ref i[NNCNT]);
+				}
+				else if (value != null) Interlocked.Increment(ref i[NNCNT]);
+
+			return r;
+		}
+
+		/// <summary>
 		/// Appends item after the AppendIndex. 
 		/// If there is no free space left locks until enough blocks are
 		/// allocated and then switches back to fully concurrent mode.
 		/// </summary>
 		/// <remarks>
-		/// If the expansion callback throws or out-of-memory is thrown the cube should be considered unrecoverable.
+		/// If the Expansion callback throws or out-of-memory is thrown the cube should be considered unrecoverable.
 		/// In that situation the gear will be jammed in Straight position and there is no way to shift it.
 		/// If there are ongoing Clutch calls they will wait until their timeouts expire or forever (the default).
 		/// </remarks>
@@ -220,7 +249,7 @@ namespace System.Collections.Concurrent
 			Exception ex = null;
 
 			// Try catch-ing this costs ~0.1x slowdown, 
-			// If alloc throws OutOfMemory there is no hope anyways, if expansion throws...that's dumb
+			// If alloc throws OutOfMemory there is no hope anyways, if Expansion throws...that's dumb
 			if (Drive == TesseractGear.Straight)
 			{
 				var aidx = Volatile.Read(ref i[INDEX]);
@@ -238,11 +267,11 @@ namespace System.Collections.Concurrent
 
 						if (idx >= slots)
 						{
-							// The default expansion assumes usage of at least x1000 slots,
+							// The default Expansion assumes usage of at least x1000 slots,
 							// thus the petty increments are skipped and 32 SIDE blocks are
 							// constantly added. This also avoids over-committing like  
 							// the List length doubling. 
-							var newCap = expansion != null ? expansion(slots) : slots + DEF_EXP;
+							var newCap = Expansion != null ? Expansion(slots) : slots + DEF_EXP;
 
 							// No capacity checks are needed since the Tesseract can store uint.MaxValue
 							// slots and one can demand only int.MaxValue.
@@ -324,30 +353,27 @@ namespace System.Collections.Concurrent
 		/// <param name="assertGear">If true volatile-reads the Drive at each iteration. False by default. </param>
 		/// <returns>A not null item.</returns>
 		/// <exception cref="InvalidOperationException">If the Drive is P</exception>
-		public IEnumerable<T> NotNullItems(bool assertGear = false)
+		public IEnumerable<T> NotNullItems(bool assertGear = false, bool allSlots = false)
 		{
 			T item = null;
-			var j = AppendIndex;
+			var j = allSlots ? AllocatedSlots - 1 : AppendIndex;
 			var p = new TesseractPos(j);
 
-			if (j >= 0 && blocks[p.D0] != null && blocks[p.D0].Length > p.D1 &&
-				blocks[p.D0][p.D1] != null && blocks[p.D0][p.D1].Length > p.D2 &&
-				blocks[p.D0][p.D1][p.D2] != null && blocks[p.D0][p.D1][p.D2].Length > p.D3)
-				for (int i = 0; i <= j; i++)
-				{
-					if (assertGear && Drive == TesseractGear.P) throw new InvalidOperationException("Wrong drive");
+			for (int i = 0; i <= j; i++)
+			{
+				if (assertGear && Drive == TesseractGear.P) throw new InvalidOperationException("Wrong drive");
 
-					p.Set(i);
+				p.Set(i);
+				item = Volatile.Read(ref blocks[p.D0][p.D1][p.D2][p.D3]);
 
-					item = Volatile.Read(ref blocks[p.D0][p.D1][p.D2][p.D3]);
-					if (item != null)
-						yield return item;
-				}
+				if (item != null)
+					yield return item;
+			}
 		}
 
 		/// <summary>
 		/// Searches for an item by traversing all cells up to AppendIndex.
-		/// The reads are volatile. 
+		/// The reads are volatile, the comparison Object.Equals().
 		/// </summary>
 		/// <param name="item">The object ref</param>
 		/// <returns>A positive value if the item is found, -1 otherwise.</returns>
@@ -361,7 +387,9 @@ namespace System.Collections.Concurrent
 			{
 				p.Set(i);
 
-				if (Volatile.Read(ref blocks[p.D0][p.D1][p.D2][p.D3]) == item)
+				var r = Volatile.Read(ref blocks[p.D0][p.D1][p.D2][p.D3]);
+
+				if (r != null && r.Equals(item))
 				{
 					result = i;
 					break;
@@ -374,31 +402,44 @@ namespace System.Collections.Concurrent
 		/// <summary>
 		/// Expands or shrinks the virtual array to the number of SIDE tiles fitting the requested length.
 		/// If the AppendIndex is greater that the new length, it's cut to length -1.
-		/// If shrinking, the number of not-null values, i.e. ItemsCount is also updated.
+		/// If shrinking and counting, the number of not-null values (ItemsCount) is also updated.
+		/// The Drive must be P when shrinking. 
 		/// </summary>
 		/// <param name="length">The new length.</param>
-		/// <exception cref="System.ArgumentOutOfRangeException">If length is negative or greater than the capacity.</exception>
-		/// <exception cref="System.InvalidOperationException">When Drive != Gear.P </exception>
-		public void Resize(int length)
+		/// <param name="expand">The intent of the caller.</param>
+		/// <exception cref="System.ArgumentOutOfRangeException">If length is negative</exception>
+		/// <exception cref="System.InvalidOperationException">
+		/// If the Drive is not P when shrinking.</exception>
+		public void Resize(int length, bool expand)
 		{
-			lock (commonLock)
-			{
-				Interlocked.Increment(ref i[CCOPS]);
+			Interlocked.Increment(ref i[CCOPS]);
+			TesseractGear inDrive = Drive;
 
-				try
+			try
+			{
+				var slots = Volatile.Read(ref i[SLOTS]);
+				if (length < 0) throw new ArgumentOutOfRangeException("length");
+				if (length == slots) return;
+
+				lock (commonLock)
 				{
 					var als = Volatile.Read(ref i[SLOTS]);
 
-					if (Drive != TesseractGear.P) throw new InvalidOperationException("Wrong drive");
-					if (length < 0) throw new ArgumentOutOfRangeException("length");
 					if (length == als) return;
-
-					var p = new TesseractPos(als);
-
-					if (length > als) alloc(length, als);
+					if (length > als)
+					{
+						if (expand) alloc(length, als);
+					}
 					else
 					{
-						while (als > length)
+						if (expand) return;
+
+						if (inDrive != TesseractGear.P) throw new InvalidOperationException("Wrong drive");
+
+						var toSize = length > 0 ? length + SIDE : 0;
+						var p = new TesseractPos(als);
+
+						while (als > toSize)
 						{
 							p.D2--;
 							if (p.D2 < 1)
@@ -418,8 +459,8 @@ namespace System.Collections.Concurrent
 						}
 
 						Volatile.Write(ref i[SLOTS], als);
-						Interlocked.Exchange(ref i[INDEX], length - 1);
 
+						if (AppendIndex >= length) Interlocked.Exchange(ref i[INDEX], length - 1);
 						if (CountNotNulls)
 						{
 							int notNull = 0;
@@ -427,12 +468,13 @@ namespace System.Collections.Concurrent
 							Interlocked.Exchange(ref i[NNCNT], notNull);
 						}
 					}
+
 				}
-				finally
-				{
-					Interlocked.Decrement(ref i[CCOPS]);
+			}
+			finally
+			{
+				if (Interlocked.Decrement(ref i[CCOPS]) == 0 && inDrive != Drive)
 					gearShift.Set();
-				}
 			}
 		}
 
@@ -469,33 +511,24 @@ namespace System.Collections.Concurrent
 		}
 
 		/// <summary>
-		/// Moves the AppendIndex to a new, than Capacity position.
-		/// The drive must be P.
+		/// Moves the AppendIndex to a new position. If not forced, the drive must be N or P.
 		/// </summary>
 		/// <param name="newIndex">The new index.</param>
-		/// <param name="forced">If true, blindly swaps the AppendIndex with the newIndex, regardless
-		/// of the Drive mode.</param>
-		/// <exception cref="InvalidOperationException">The Drive is not P</exception>
+		/// <param name="forced">If true, blindly swaps the AppendIndex with newIndex,
+		/// regardless the Drive mode or the AllocatedSlots count.</param>
+		/// <exception cref="InvalidOperationException">The Drive is not N or P</exception>
 		/// <exception cref="ArgumentOutOfRangeException">Index is negative or greater than AllocatedSlots</exception>
 		public void MoveAppendIndex(int newIndex, bool forced = false)
 		{
 			if (forced) Interlocked.Exchange(ref i[INDEX], newIndex);
 			else
-				lock (commonLock)
-				{
-					Interlocked.Increment(ref i[CCOPS]);
-					try
-					{
-						if (Drive != TesseractGear.P) throw new InvalidOperationException("Wrong drive");
-						if (newIndex < 0 || newIndex >= AllocatedSlots) throw new ArgumentOutOfRangeException("newIndex");
+			{
+				var inDrive = Drive;
+				if (inDrive == TesseractGear.Straight || inDrive == TesseractGear.Reverse) throw new InvalidOperationException("Wrong drive");
+				if (newIndex < 0 || newIndex >= AllocatedSlots) throw new ArgumentOutOfRangeException("newIndex");
 
-						Interlocked.Exchange(ref i[INDEX], newIndex);
-					}
-					finally
-					{
-						Interlocked.Decrement(ref i[CCOPS]);
-					}
-				}
+				Interlocked.Exchange(ref i[INDEX], newIndex);
+			}
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -553,11 +586,10 @@ namespace System.Collections.Concurrent
 		/// </summary>
 		public const int SIDE = 1 << 8;
 		/// <summary>
-		/// The default cube expansion = 2^13 slots.
+		/// The default cube Expansion = 2^13 slots.
 		/// </summary>
 		public const int DEF_EXP = 1 << 13;
 
-		TesseractExpansion expansion;
 		object commonLock = new object();
 		object shiftLock = new object();
 		ManualResetEvent gearShift = new ManualResetEvent(false);

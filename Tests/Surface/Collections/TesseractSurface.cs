@@ -2,7 +2,7 @@
    License, v. 2.0. If a copy of the MPL was not distributed with this
    file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-// #define TSR_INT
+#define TSR_INT
 
 using System;
 using System.Collections.Concurrent;
@@ -15,16 +15,18 @@ namespace Tests.Surface.Collections
 {
 
 #if TSR_INT
-	using TSR = Tesseract;
 	using OBJ = Int32;
+	using ARG = TesseractCell<int>;
+	using TSR = Tesseract<TesseractCell<int>>;
 #else
 	using TSR = Tesseract<object>;
 	using OBJ = Object;
+	using ARG = Object;
 #endif
 
 	public class TesseractSurface : ITestSurface
 	{
-		public string Info => "Tests either the Tesseract<T> or the TesseractInt class.";
+		public string Info => "Tests either the Tesseract<T> class.";
 
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
@@ -55,7 +57,7 @@ namespace Tests.Surface.Collections
 				if (!format()) return;
 				if (!take()) return;
 
-				//append_latency();
+				append_latency();
 
 				Passed = true;
 				IsComplete = true;
@@ -179,7 +181,7 @@ namespace Tests.Surface.Collections
 		bool expand(TSR arr)
 		{
 			var doubleCap = arr.AllocatedSlots * 2;
-			arr.Resize(doubleCap);
+			arr.Resize(doubleCap, true);
 
 			if (arr.AllocatedSlots != doubleCap)
 			{
@@ -196,17 +198,19 @@ namespace Tests.Surface.Collections
 		bool shrink(TSR arr)
 		{
 			arr.Clutch(TesseractGear.P);
-			arr.Resize(20000);
+			arr.Resize(0, false);
+			arr.Resize(20000, true);
+			arr.MoveAppendIndex(arr.AllocatedSlots - 1);
 
 			var oldCap = arr.AllocatedSlots;
 			var newCap = oldCap / 3;
 			var side = arr.Side;
 
-			arr.Resize(newCap);
+			arr.Resize(newCap, false);
 
 			var p = new TesseractPos(newCap);
 
-			var slots = p.D0 * side * side * side + p.D1 * side * side + p.D2 * side;
+			var slots = p.D2 * side + side;
 
 			if (arr.AllocatedSlots != slots)
 			{
@@ -230,7 +234,7 @@ namespace Tests.Surface.Collections
 		bool parallelAppendRemoveLast(Random rdm, TSR arr)
 		{
 			arr.Clutch(TesseractGear.P);
-			arr.Resize(0);
+			arr.Resize(0, false);
 			arr.Clutch(TesseractGear.Straight);
 			var pos = 0;
 
@@ -297,7 +301,7 @@ namespace Tests.Surface.Collections
 			for (int i = 0; i <= arr.AppendIndex; i++)
 				controlArr.Add(arr[i]);
 
-			var L = new List<OBJ>(arr.NotNullItems());
+			var L = new List<ARG>(arr.NotNullItems());
 			L.Sort();
 
 			for (int i = 0; i < 100; i++)
@@ -363,7 +367,7 @@ namespace Tests.Surface.Collections
 				"Gears.Reverse".AsSuccess();
 
 				arr.Clutch(TesseractGear.P);
-				arr.Resize(0);
+				arr.Resize(0, false);
 				arr.OnGearShiftReset();
 
 				Parallel.For(0, 200, (i) =>

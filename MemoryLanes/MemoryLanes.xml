@@ -37,9 +37,19 @@
             The virtual array increment length.
             </summary>
         </member>
+        <member name="F:System.Collections.Concurrent.Tesseract`1.DefaultExpansion">
+            <summary>
+            The number of slots to be added if no Expansion function is provided.
+            </summary>
+        </member>
         <member name="F:System.Collections.Concurrent.Tesseract`1.CountNotNulls">
             <summary>
             If true Append and set will update the ItemsCount.
+            </summary>
+        </member>
+        <member name="F:System.Collections.Concurrent.Tesseract`1.Expansion">
+            <summary>
+            The growth function.
             </summary>
         </member>
         <member name="P:System.Collections.Concurrent.Tesseract`1.AppendIndex">
@@ -89,11 +99,7 @@
             <summary>
             Access to the individual cells.
             </summary>
-            <remarks>
-            Reading is allowed beyond the AppendIndex if less than AllocatedSlots. This means that 
-            RemoveLast() and get can safely be executed concurrently.
-            </remarks>
-            <param name="index">For set must be less than AppendIndex, for get less than AllocatedSlots </param>
+            <param name="index">Must be less than AllocatedSlots</param>
             <returns>The object reference at the index</returns>
             <exception cref="T:System.ArgumentOutOfRangeException">index</exception>
             <exception cref="T:System.InvalidOperationException">If the Drive is wrong</exception>
@@ -110,6 +116,15 @@
             <exception cref="T:System.InvalidOperationException">When Drive is P.</exception>
             <exception cref="T:System.ArgumentOutOfRangeException">The index is negative or beyond AllocatedSlots.</exception>
         </member>
+        <member name="M:System.Collections.Concurrent.Tesseract`1.CAS(System.Int32@,`0@,`0@)">
+            <summary>
+            Sets value at index if the current value equals the comparand.
+            </summary>
+            <param name="index">The index must be less than AllocatedSlots.</param>
+            <param name="value">The value to be set at index.</param>
+            <param name="comparand">Will be compared to this[index]</param>
+            <returns></returns>
+        </member>
         <member name="M:System.Collections.Concurrent.Tesseract`1.Append(`0)">
             <summary>
             Appends item after the AppendIndex. 
@@ -117,7 +132,7 @@
             allocated and then switches back to fully concurrent mode.
             </summary>
             <remarks>
-            If the expansion callback throws or out-of-memory is thrown the cube should be considered unrecoverable.
+            If the Expansion callback throws or out-of-memory is thrown the cube should be considered unrecoverable.
             In that situation the gear will be jammed in Straight position and there is no way to shift it.
             If there are ongoing Clutch calls they will wait until their timeouts expire or forever (the default).
             </remarks>
@@ -141,7 +156,7 @@
             <param name="item">The object reference</param>
             <returns>True if found and null-ed</returns>
         </member>
-        <member name="M:System.Collections.Concurrent.Tesseract`1.NotNullItems(System.Boolean)">
+        <member name="M:System.Collections.Concurrent.Tesseract`1.NotNullItems(System.Boolean,System.Boolean)">
             <summary>
             Iterates all cells from 0 up to AppendIndex and yields each item
             if it's not null at the time of the check.
@@ -153,20 +168,23 @@
         <member name="M:System.Collections.Concurrent.Tesseract`1.IndexOf(`0)">
             <summary>
             Searches for an item by traversing all cells up to AppendIndex.
-            The reads are volatile. 
+            The reads are volatile, the comparison Object.Equals().
             </summary>
             <param name="item">The object ref</param>
             <returns>A positive value if the item is found, -1 otherwise.</returns>
         </member>
-        <member name="M:System.Collections.Concurrent.Tesseract`1.Resize(System.Int32)">
+        <member name="M:System.Collections.Concurrent.Tesseract`1.Resize(System.Int32,System.Boolean)">
             <summary>
             Expands or shrinks the virtual array to the number of SIDE tiles fitting the requested length.
             If the AppendIndex is greater that the new length, it's cut to length -1.
-            If shrinking, the number of not-null values, i.e. ItemsCount is also updated.
+            If shrinking and counting, the number of not-null values (ItemsCount) is also updated.
+            The Drive must be P when shrinking. 
             </summary>
             <param name="length">The new length.</param>
-            <exception cref="T:System.ArgumentOutOfRangeException">If length is negative or greater than the capacity.</exception>
-            <exception cref="T:System.InvalidOperationException">When Drive != Gear.P </exception>
+            <param name="expand">The intent of the caller.</param>
+            <exception cref="T:System.ArgumentOutOfRangeException">If length is negative</exception>
+            <exception cref="T:System.InvalidOperationException">
+            If the Drive is not P when shrinking.</exception>
         </member>
         <member name="M:System.Collections.Concurrent.Tesseract`1.Format(`0)">
             <summary>
@@ -179,13 +197,12 @@
         </member>
         <member name="M:System.Collections.Concurrent.Tesseract`1.MoveAppendIndex(System.Int32,System.Boolean)">
             <summary>
-            Moves the AppendIndex to a new, than Capacity position.
-            The drive must be P.
+            Moves the AppendIndex to a new position. If not forced, the drive must be N or P.
             </summary>
             <param name="newIndex">The new index.</param>
-            <param name="forced">If true, blindly swaps the AppendIndex with the newIndex, regardless
-            of the Drive mode.</param>
-            <exception cref="T:System.InvalidOperationException">The Drive is not P</exception>
+            <param name="forced">If true, blindly swaps the AppendIndex with newIndex,
+            regardless the Drive mode or the AllocatedSlots count.</param>
+            <exception cref="T:System.InvalidOperationException">The Drive is not N or P</exception>
             <exception cref="T:System.ArgumentOutOfRangeException">Index is negative or greater than AllocatedSlots</exception>
         </member>
         <member name="F:System.Collections.Concurrent.Tesseract`1.SIDE">
@@ -195,203 +212,18 @@
         </member>
         <member name="F:System.Collections.Concurrent.Tesseract`1.DEF_EXP">
             <summary>
-            The default cube expansion = 2^13 slots.
+            The default cube Expansion = 2^13 slots.
             </summary>
         </member>
-        <member name="T:System.Collections.Concurrent.Tesseract">
+        <member name="T:System.Collections.Concurrent.TesseractCell`1">
             <summary>
-            A virtual contiguous array backed by a 4D cube of jagged arrays. 
-            Unlike the linked list based concurrent structures, supports indexed RW while expanding.
-            The capacity is int.MaxValue slots.
+            For structs wrapping. 
             </summary>
-            <remarks>
-            One must inspect the Drive property before accessing the API and assert that the 
-            concurrency mode (Gear) allows the operation. If not, one must wait for the Clutch()
-            to transition into a correct one.
-            </remarks>
-        </member>
-        <member name="M:System.Collections.Concurrent.Tesseract.#ctor(System.Collections.Concurrent.TesseractExpansion)">
-            <summary>
-            Inits a hypercube with a SIDE number of slots. 
-            </summary>
-            <param name="expansion">If not set DEF_EXP is used.</param>
-        </member>
-        <member name="M:System.Collections.Concurrent.Tesseract.#ctor(System.Int32,System.Boolean,System.Collections.Concurrent.TesseractExpansion)">
-            <summary>
-            Initializes the cube. If preallocating, note that the AppendIndex is -1 and the setter will blow 
-            unless one uses Append() or MoveAppendIndex() to AllocatedSlots for example.
-            </summary>
-            <param name="slots">To preallocate. If not 0, the min value is SIDE.</param>
-            <param name="countNotDefs">Can be set only here.</param>
-            <param name="expansion">A callback that must return the desired AllocatedSlots count.</param>
-        </member>
-        <member name="F:System.Collections.Concurrent.Tesseract.Side">
-            <summary>
-            The virtual array increment length.
-            </summary>
-        </member>
-        <member name="F:System.Collections.Concurrent.Tesseract.CountNotNulls">
-            <summary>
-            If true Append and set will update the ItemsCount.
-            </summary>
-        </member>
-        <member name="P:System.Collections.Concurrent.Tesseract.AppendIndex">
-            <summary>
-            The current set index. 
-            </summary>
-        </member>
-        <member name="P:System.Collections.Concurrent.Tesseract.ItemsCount">
-            <summary>
-            The non zero cells count, -1 if CountNotNulls is false.
-            </summary>
-        </member>
-        <member name="P:System.Collections.Concurrent.Tesseract.AllocatedSlots">
-            <summary>
-            The allocated slots.
-            </summary>
-        </member>
-        <member name="P:System.Collections.Concurrent.Tesseract.Drive">
-            <summary>
-            The allowed set of concurrent operations.
-            </summary>
-        </member>
-        <member name="E:System.Collections.Concurrent.Tesseract.OnGearShift">
-            <summary>
-            Will be triggered when the Drive changes. 
-            The callbacks are invoked in a new Task, all exceptions are swallowed.
-            </summary>
-        </member>
-        <member name="M:System.Collections.Concurrent.Tesseract.OnGearShiftReset">
-            <summary>
-            Clears the subscribers.
-            </summary>
-        </member>
-        <member name="M:System.Collections.Concurrent.Tesseract.Clutch(System.Collections.Concurrent.TesseractGear,System.Action,System.Int32)">
-            <summary>
-            Shifts the gear and blocks until all operations in the old drive mode complete.
-            If OnGearShift is not null it's launched in a new Task, wrapped in a try catch block,
-            swallowing all potential exceptions.
-            </summary>
-            <param name="g">The new concurrent mode.</param>
-            <param name="f">Guarantees the execution of f() within the lock scope, in case that other shifts are waiting.</param>
-            <param name="timeout">In milliseconds, by default is -1, which is indefinitely.</param>
-            <returns>The old gear.</returns>
-            <exception cref="T:System.SynchronizationException">Code.SignalAwaitTimeout</exception>
-        </member>
-        <member name="P:System.Collections.Concurrent.Tesseract.Item(System.Int32)">
-            <summary>
-            Access to the individual cells.
-            </summary>
-            <remarks>
-            Reading is allowed beyond the AppendIndex if less than AllocatedSlots. This means that 
-            RemoveLast() and get can safely be executed concurrently.
-            </remarks>
-            <param name="index">For set must be less than AppendIndex, for get less than AllocatedSlots </param>
-            <returns>The value at index</returns>
-            <exception cref="T:System.ArgumentOutOfRangeException">index</exception>
-            <exception cref="T:System.InvalidOperationException">If the Drive is wrong</exception>
-        </member>
-        <member name="M:System.Collections.Concurrent.Tesseract.Take(System.Int32)">
-            <summary>
-            Takes the item at index and swaps it with null as one atomic operation.
-            </summary>
-            <remarks>
-            One can use Take() and Append() in multi-producer, multi-consumer scenarios, since both are safe,
-            </remarks>
-            <param name="index">The position in the array, must be less than AllocatedSlots.</param>
-            <returns>The value at index</returns>
-            <exception cref="T:System.InvalidOperationException">When Drive is P.</exception>
-            <exception cref="T:System.ArgumentOutOfRangeException">The index is negative or beyond AllocatedSlots.</exception>
-        </member>
-        <member name="M:System.Collections.Concurrent.Tesseract.Append(System.Int32)">
-            <summary>
-            Appends item after the AppendIndex. 
-            If there is no free space left locks until enough blocks are
-            allocated and then switches back to fully concurrent mode.	
-            </summary>
-            <remarks>
-            If the expansion callback throws or out-of-memory is thrown the cube should be considered unrecoverable.
-            In that situation the gear will be jammed in Straight position and there is no way to shift it.
-            If there are ongoing Clutch calls they will wait until their timeouts expire or forever (the default).
-            </remarks>
-            <param name="v">The value</param>
-            <returns>The index of the item, -1 if fails.</returns>
-            <exception cref="T:System.InvalidOperationException">When Drive != Gear.Straight</exception>
-            <exception cref="T:System.OutOfMemoryException"></exception>
-        </member>
-        <member name="M:System.Collections.Concurrent.Tesseract.RemoveLast(System.Int32@)">
-            <summary>
-            Nulls the AppendIndex cell, decrements the AppendIndex value and returns the value that was there.
-            </summary>
-            <param name="pos">The value position.</param>
-            <returns>The removed int.</returns>
-            <exception cref="T:System.InvalidOperationException">When Drive != Gear.Reverse</exception>
-        </member>
-        <member name="M:System.Collections.Concurrent.Tesseract.Remove(System.Int32)">
-            <summary>
-            Looks for the item and zeroes the array cell.
-            </summary>
-            <param name="v">The value</param>
-            <returns>True if found and zeroed</returns>
-        </member>
-        <member name="M:System.Collections.Concurrent.Tesseract.NotNullItems(System.Boolean)">
-            <summary>
-            Iterates all cells from 0 up to AppendIndex and yields each value
-            if it's not 0 at the time of the check.
-            </summary>
-            <param name="assertGear">If true volatile-reads the Drive at each iteration. False by default. </param>
-            <exception cref="T:System.InvalidOperationException">If the Drive is P</exception>
-        </member>
-        <member name="M:System.Collections.Concurrent.Tesseract.IndexOf(System.Int32)">
-            <summary>
-            Searches for an item by traversing all cells up to AppendIndex.
-            The reads are volatile. 
-            </summary>
-            <param name="v">The value</param>
-            <returns>A positive value if the int is found, -1 otherwise.</returns>
-        </member>
-        <member name="M:System.Collections.Concurrent.Tesseract.Resize(System.Int32)">
-            <summary>
-            Expands or shrinks the virtual array to the number of SIDE tiles fitting the requested length.
-            If the AppendIndex is greater that the new length, it's cut to length -1.
-            </summary>
-            <param name="length">The new length.</param>
-            <exception cref="T:System.ArgumentOutOfRangeException">If length is negative or greater than the capacity.</exception>
-            <exception cref="T:System.InvalidOperationException">When Drive != Gear.P </exception>
-        </member>
-        <member name="M:System.Collections.Concurrent.Tesseract.Format(System.Int32)">
-            <summary>
-            Sets the provided value to all cells.
-            The Drive must be N.
-            </summary>
-            <remarks>The method is synchronized.</remarks>
-            <param name="v">The int to be set</param>
-            <exception cref="T:System.InvalidOperationException">Drive is not N or Straight</exception>
-        </member>
-        <member name="M:System.Collections.Concurrent.Tesseract.MoveAppendIndex(System.Int32,System.Boolean)">
-            <summary>
-            Moves the AppendIndex to a new, than Capacity position.
-            The drive must be P.
-            </summary>
-            <param name="newIndex">The new index.</param>
-            <param name="forced">If true, blindly swaps the AppendIndex with the newIndex, regardless
-            of the Drive mode.</param>
-            <exception cref="T:System.InvalidOperationException">The Drive is not P</exception>
-            <exception cref="T:System.ArgumentOutOfRangeException">Index is negative or greater than AllocatedSlots</exception>
-        </member>
-        <member name="F:System.Collections.Concurrent.Tesseract.SIDE">
-            <summary>
-            A block length = 256.
-            </summary>
-        </member>
-        <member name="F:System.Collections.Concurrent.Tesseract.DEF_EXP">
-            <summary>
-            The default cube expansion = 2^13 slots.
-            </summary>
+            <typeparam name="T">A struct</typeparam>
         </member>
         <member name="T:System.Collections.Concurrent.TesseractExpansion">
             <summary>
-            An expansion calculator for the Tesseract.
+            An Expansion calculator for the Tesseract.
             An instance is called whenever more blocks are needed.
             One could expand differently, depending on the current array size.
             </summary>
@@ -405,17 +237,20 @@
         </member>
         <member name="F:System.Collections.Concurrent.TesseractGear.N">
             <summary>
-            Concurrent gets, sets and Take() are enabled, but not Append/Remove or Resize.
+            Concurrent gets, sets, Take(), expand Resize() and NotNullItems() are enabled,
+            but not Append/Remove or shrink Resize.
             </summary>
         </member>
         <member name="F:System.Collections.Concurrent.TesseractGear.Straight">
             <summary>
-            Concurrent Append(), Take(), gets and sets are enabled.
+            Concurrent Append(), Take(), gets and sets, expand Resize() and NotNullItems() are enabled.
+            MoveAppendIndex() is not allowed.
             </summary>
         </member>
         <member name="F:System.Collections.Concurrent.TesseractGear.Reverse">
             <summary>
-            Concurrent Take(), RemoveLast() gets and sets are enabled.
+            Concurrent Take(), RemoveLast() gets, sets and expand Resize() are enabled.
+            MoveAppendIndex() is not allowed.
             </summary>
             <remarks>
             Reading is allowed if less than AlloatedSlots, Writes must be less than AppendIndex.
@@ -423,7 +258,7 @@
         </member>
         <member name="F:System.Collections.Concurrent.TesseractGear.P">
             <summary>
-            Only Resize() is allowed.
+            Shrink Resize() is allowed.
             </summary>
         </member>
         <member name="T:System.HeapFragment">
@@ -1173,7 +1008,7 @@
         </member>
         <member name="F:System.HeapHighway.DEF_HEAP_LANES">
             <summary>
-            Set before calling the default ctor.
+            Update before calling the default ctor.
             </summary>
         </member>
         <member name="T:System.IMemoryHighway">
@@ -1316,7 +1151,7 @@
         </member>
         <member name="F:System.MappedHighway.DEF_MMF_LANES">
             <summary>
-            Set before calling the default ctor.
+            Update before calling the default ctor.
             </summary>
         </member>
         <member name="T:System.MarshalHighway">
@@ -1345,7 +1180,7 @@
         </member>
         <member name="F:System.MarshalHighway.DEF_NHEAP_LANES">
             <summary>
-            Set before calling the default ctor.
+            Update before calling the default ctor.
             </summary>
         </member>
         <member name="T:System.HeapLane">
