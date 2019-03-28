@@ -273,8 +273,7 @@ namespace System.Collections.Concurrent
 							// the List length doubling. 
 							var newCap = Expansion != null ? Expansion(slots) : slots + DEF_EXP;
 
-							// No capacity checks are needed since the Tesseract can store uint.MaxValue
-							// slots and one can demand only int.MaxValue.
+							if (slots < 0) slots = int.MaxValue;
 
 							slots = alloc(newCap, slots);
 							aidx = Volatile.Read(ref i[INDEX]);
@@ -410,7 +409,7 @@ namespace System.Collections.Concurrent
 		/// <exception cref="System.ArgumentOutOfRangeException">If length is negative</exception>
 		/// <exception cref="System.InvalidOperationException">
 		/// If the Drive is not P when shrinking.</exception>
-		public void Resize(int length, bool expand)
+		public bool Resize(int length, bool expand)
 		{
 			Interlocked.Increment(ref i[CCOPS]);
 			TesseractGear inDrive = Drive;
@@ -419,20 +418,17 @@ namespace System.Collections.Concurrent
 			{
 				var slots = Volatile.Read(ref i[SLOTS]);
 				if (length < 0) throw new ArgumentOutOfRangeException("length");
-				if (length == slots) return;
+				if (length == slots) return false;
 
 				lock (commonLock)
 				{
 					var als = Volatile.Read(ref i[SLOTS]);
 
-					if (length == als) return;
-					if (length > als)
-					{
-						if (expand) alloc(length, als);
-					}
+					if (length == als) return false;
+					if (length > als) return expand ? alloc(length, als) > als : false;
 					else
 					{
-						if (expand) return;
+						if (expand) return false;
 
 						if (inDrive != TesseractGear.P) throw new InvalidOperationException("Wrong drive");
 
@@ -467,8 +463,9 @@ namespace System.Collections.Concurrent
 							foreach (var c in NotNullItems()) notNull++;
 							Interlocked.Exchange(ref i[NNCNT], notNull);
 						}
-					}
 
+						return true;
+					}
 				}
 			}
 			finally

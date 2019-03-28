@@ -115,15 +115,4 @@ namespace System.Collections.Concurrent
 		public byte D2;
 		public byte D3;
 	}
-
-	public enum TesseractPrime
-	{
-		P193 = 193,
-		P6151 = 6151,
-		P24593 = 24593,
-		P49157 = 49157,
-		P196613 = 196613,
-		P1572869 = 1572869,
-		P12582917 = 12582917,
-	}
 }
