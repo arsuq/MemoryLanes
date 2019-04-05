@@ -15,7 +15,7 @@ namespace Tests
 		{
 			new Runner().Run(args);
 
-			Print.AsSystemTrace("Done. Press <Enter> to close.");
+			Print.AsSystemTrace("Done");
 		}
 	}
 }
