@@ -116,14 +116,14 @@
             <exception cref="T:System.InvalidOperationException">When Drive is P.</exception>
             <exception cref="T:System.ArgumentOutOfRangeException">The index is negative or beyond AllocatedSlots.</exception>
         </member>
-        <member name="M:System.Collections.Concurrent.Tesseract`1.CAS(System.Int32@,`0@,`0@)">
+        <member name="M:System.Collections.Concurrent.Tesseract`1.CAS(System.Int32,`0,`0)">
             <summary>
             Sets value at index if the current value equals the comparand.
             </summary>
             <param name="index">The index must be less than AllocatedSlots.</param>
             <param name="value">The value to be set at index.</param>
             <param name="comparand">Will be compared to this[index]</param>
-            <returns></returns>
+            <returns>The original value at index.</returns>
         </member>
         <member name="M:System.Collections.Concurrent.Tesseract`1.Append(`0)">
             <summary>

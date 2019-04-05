@@ -57,7 +57,7 @@ namespace Tests.Surface.Collections
 				if (!format()) return;
 				if (!take()) return;
 
-				append_latency();
+				//append_latency();
 
 				Passed = true;
 				IsComplete = true;
@@ -81,14 +81,38 @@ namespace Tests.Surface.Collections
 				(73, 147, 241, 67),
 			};
 
+			TesseractPos p;
+
 			for (int i = 0; i < I.Length; i++)
 			{
-				var p = new TesseractPos(I[i]);
+				p = new TesseractPos(I[i]);
 				var c = E[i];
 
 				if (p.D0 != c.d0 || p.D1 != c.d1 || p.D2 != c.d2 || p.D3 != c.d3)
 				{
 					FailureMessage = "TesseractPos ctor is incorrect.";
+					Passed = false;
+					return false;
+				}
+			}
+
+			int l = 1 << 25;
+			p = new TesseractPos();
+			var P = new[] {
+				256*256*256,
+				256*256,
+				256,
+				1
+			};
+
+			for (int i = 0; i < l; i++)
+			{
+				p.Set(i);
+				var c = p.D0 * P[0] + p.D1 * P[1] + p.D2 * P[2] + p.D3 * P[3];
+
+				if (c != i)
+				{
+					FailureMessage = "TesseractPos Set is wrong.";
 					Passed = false;
 					return false;
 				}
@@ -262,8 +286,8 @@ namespace Tests.Surface.Collections
 					if (arr.ItemsCount > 1)
 					{
 						arr.Clutch(TesseractGear.Reverse);
-						arr.RemoveLast(ref pos);
-						Interlocked.Decrement(ref count);
+						if (arr.RemoveLast(ref pos) != null)
+							Interlocked.Decrement(ref count);
 					}
 				}
 			});

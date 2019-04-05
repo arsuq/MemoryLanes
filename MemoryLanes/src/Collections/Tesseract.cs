@@ -203,8 +203,8 @@ namespace System.Collections.Concurrent
 		/// <param name="index">The index must be less than AllocatedSlots.</param>
 		/// <param name="value">The value to be set at index.</param>
 		/// <param name="comparand">Will be compared to this[index]</param>
-		/// <returns></returns>
-		public T CAS(in int index, in T value, in T comparand)
+		/// <returns>The original value at index.</returns>
+		public T CAS(int index, T value, T comparand)
 		{
 			if (Drive == TesseractGear.P) throw new InvalidOperationException("Wrong drive");
 			if (index < 0 || index > AllocatedSlots) throw new ArgumentOutOfRangeException("index");
@@ -313,7 +313,7 @@ namespace System.Collections.Concurrent
 			if (Drive == TesseractGear.Reverse)
 			{
 				pos = Interlocked.Decrement(ref i[INDEX]) + 1;
-				r = set(pos, null);
+				if (pos >= 0) r = set(pos, null);
 			}
 			else ex = new InvalidOperationException("Wrong drive");
 
@@ -529,7 +529,7 @@ namespace System.Collections.Concurrent
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		T set(in int index, in T value)
+		T set(int index, in T value)
 		{
 			var p = new TesseractPos(index);
 			// A little more speed could be squeezed out for some ops, when 
@@ -548,7 +548,7 @@ namespace System.Collections.Concurrent
 		}
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		int alloc(in int slots, int allocated)
+		int alloc(int slots, int allocated)
 		{
 			var p = new TesseractPos(allocated);
 
