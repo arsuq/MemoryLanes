@@ -2,7 +2,7 @@
    License, v. 2.0. If a copy of the MPL was not distributed with this
    file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
-#define TSR_INT
+//#define TSR_INT
 
 using System;
 using System.Collections.Concurrent;
@@ -167,7 +167,7 @@ namespace Tests.Surface.Collections
 
 		bool customExpand()
 		{
-			var ccaexp = new TSR((in int slots) => slots < 300 ? slots * 2 : Convert.ToInt32(slots * 1.5));
+			var ccaexp = new TSR((int slots) => slots < 300 ? slots * 2 : Convert.ToInt32(slots * 1.5));
 			var firstExp = ccaexp.Side + 1;
 			var secondExp = ccaexp.Side * 2 + 1;
 

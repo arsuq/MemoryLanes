@@ -48,7 +48,7 @@ namespace System.Collections.Concurrent
 	/// </summary>
 	/// <param name="allocatedSlots">The current AllocationSlots value.</param>
 	/// <returns>The desired new AllocatedSlots count.</returns>
-	public delegate int TesseractExpansion(in int allocatedSlots);
+	public delegate int TesseractExpansion(int allocatedSlots);
 
 	/// <summary>
 	/// The allowed concurrent operations.
