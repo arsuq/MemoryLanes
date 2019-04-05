@@ -26,8 +26,9 @@ namespace Tests.SocketLoad
 
 		public async Task ReceiveLoop()
 		{
-			Print.AsInfo("SocketLoad server started.");
+			await Task.Delay(0);
 
+			Print.AsInfo("SocketLoad server started.");
 			var data = new List<byte>();
 			server.Listen(100);
 

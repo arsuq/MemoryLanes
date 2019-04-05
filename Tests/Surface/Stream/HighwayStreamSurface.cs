@@ -21,6 +21,8 @@ namespace Tests.Surface
 
 		public async Task Run(IDictionary<string, List<string>> args)
 		{
+			await Task.Delay(0);
+
 			try
 			{
 				if (args.ContainsKey("+all"))

@@ -41,6 +41,8 @@ namespace Tests.Surface.Collections
 
 		public async Task Run(IDictionary<string, List<string>> args)
 		{
+			await Task.Delay(0);
+
 			try
 			{
 				var rdm = new Random();
