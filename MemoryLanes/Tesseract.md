@@ -54,12 +54,12 @@ block until all ongoing operations complete.
 ## Internals
 
 The ability to expand without copying data is in the predefined structure of the cube. 
-There is an overhead of one reference for each SIDE (4096 bytes), however the benefit 
-of having a page size block is the ability to be defragmented by the GC.
+The overhead is one reference for each SIDE (4096 bytes), the benefit is non blocking 
+expansion and noticeable memory release if the GC decides to collect gen 2. 
 
-The SIDE is not a byte length by chance. For quicker division and modular arithmetic it has to be
-a power of two, so that right shift and bitwise AND can be used. That said, one can do better.
-The Tesseract indexing does not compute anything, it just interprets the four bytes of the
+The SIDE is a byte length for a reason. For quicker division and modular arithmetic it has to be
+a power of two, so that right shift and bitwise AND can be used. 
+However, the Tesseract indexing does not compute anything, it just interprets the four bytes of the
 integer index as the direct 4D coordinates. 
 
 ### Locking
@@ -78,6 +78,16 @@ the total objects count via the *ItemsCount* property.
 > preallocated Tesseract (will never lock) with an *empty* one. The lock acquiring plus
 > the array allocation are nothing compared to the cache trashing penalty.
 
+### Drive
+
+Changing the gear demands external coordination. The first thing to note is that 
+it's meant to wait for the ongoing operations to complete, not to block the new ones.
+The latter would only delay the "Wrong drive" exceptions or suspend compatible ops
+for no reason. 
+
+In general one should treat the Drive as a read-only setting.
+
+
 ### Expansion
 
 One could design a custom growth by providing a *TesseractExpansion* callback in the constructor.
@@ -88,9 +98,6 @@ new size will be allocated. The default behavior however (no callback) is much s
 > The default expansion count may seem too much, compared to a classic length doubling, 
 > however it's actually more conservative after 10K when the 2x growth overcommits and locks
 > huge memory blocks.
-
-The cube is very GC friendly, all arrays are 4K bytes in size and will be compacted.
-Also partial or full deallocation will be noticeable, unlike LOH releases which the GC avoids collecting.
 
 ### Exceptions
 
