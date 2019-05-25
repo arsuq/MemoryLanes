@@ -18,9 +18,8 @@ namespace System
 		/// This method allocates so expect OutOfMemoryException.
 		/// </summary>
 		/// <param name="capacity">The number of bytes.</param>
-		/// <param name="dm">The ghost tracking switch.</param>
 		/// <exception cref="OutOfMemoryException">Guess what.</exception>
-		public MarshalLane(int capacity, MemoryLaneResetMode dm) : base(capacity, dm)
+		public MarshalLane(int capacity) : base(capacity)
 		{
 			lanePtr = Marshal.AllocHGlobal(capacity);
 			this.capacity = capacity;
@@ -31,20 +30,18 @@ namespace System
 		/// </summary>
 		/// <param name="size">Number of bytes.</param>
 		/// <param name="tries">The number of fails before switching to another lane.</param>
+		/// <param name="awaitMS">The awaitMS for each try</param>
 		/// <returns>A MarshalLaneFragment or null.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public MarshalLaneFragment AllocMarshalFragment(int size, int tries)
+		public MarshalLaneFragment AllocMarshalFragment(int size, int tries, int awaitMS)
 		{
 			var fr = new FragmentRange();
 
-			if (Alloc(size, ref fr, tries))
+			if (Alloc(size, ref fr, tries, awaitMS))
 			{
 				var frag = new MarshalLaneFragment(
 					fr.Offset, fr.Length, lanePtr, this,
-					() => free(i[LCYCLE], fr.Allocation));
-
-				if (ResetMode == MemoryLaneResetMode.TrackGhosts)
-					track(frag, fr.Allocation);
+					() => resetOne(fr.LaneCycle));
 
 				return frag;
 			}
@@ -56,8 +53,8 @@ namespace System
 		/// </summary>
 		/// <returns>Null if fails.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override MemoryFragment Alloc(int size, int tries = 10) =>
-			AllocMarshalFragment(size, tries);
+		public override MemoryFragment Alloc(int size, int tries = 10, int awaitMS = 5) =>
+			AllocMarshalFragment(size, tries, awaitMS);
 
 		/// <summary>
 		/// Frees the native memory.
@@ -66,12 +63,12 @@ namespace System
 
 		void destroy(bool isGC)
 		{
-			if (!Volatile.Read(ref isDisposed))
+			if (Interlocked.CompareExchange(ref isDisposed, 1, 0) == 0)
 			{
 				Marshal.FreeHGlobal(lanePtr);
-				Volatile.Write(ref isDisposed, true);
 				lanePtr = IntPtr.Zero;
 				if (!isGC) GC.SuppressFinalize(this);
+				Force(true, true);
 			}
 		}
 
@@ -81,6 +78,12 @@ namespace System
 		/// This is very leaky!
 		/// </summary>
 		~MarshalLane() => destroy(true);
+
+		public unsafe override ReadOnlySpan<byte> GetAllBytes()
+		{
+			byte* p = (byte*)lanePtr;
+			return new Span<byte>(p, capacity);
+		}
 
 		/// <summary>
 		/// The total allocated space.

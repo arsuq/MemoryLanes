@@ -31,7 +31,6 @@ namespace Tests.Surface
 			opt.AssertNothingOutsideThese("mh", "mmf", "nh");
 
 			if (!reset(opt)) return;
-			if (!freeGhosts(opt)) return;
 
 			if (!Passed.HasValue) Passed = true;
 			IsComplete = true;
@@ -100,89 +99,6 @@ namespace Tests.Surface
 						}
 
 						Print.Trace(hw.FullTrace(), 2, true, ConsoleColor.Cyan, ConsoleColor.Black);
-					}
-				}
-			}
-
-			return true;
-		}
-
-		bool freeGhosts(List<string> opt)
-		{
-			var stg = new HighwaySettings(1024, 3, MemoryLaneResetMode.TrackGhosts);
-			var iH = new Dictionary<string, IMemoryHighway>();
-
-			iH.Add("mh", new HeapHighway(stg, 1024, 1024));
-			iH.Add("nh", new MarshalHighway(stg, 1024, 1024));
-			iH.Add("mmf", new MappedHighway(stg, 1024, 1024));
-
-			foreach (var kp in iH)
-			{
-				var hwName = kp.Value.GetType().Name;
-				var F = new List<MemoryFragment>();
-
-				if (opt.Contains(kp.Key))
-				{
-					var hw = kp.Value;
-					using (hw)
-					{
-						Print.Trace("Allocating 4 fragments 1 will be lost.", ConsoleColor.Magenta);
-
-						void alloc()
-						{
-							F.Add(hw.AllocFragment(500));
-							hw.AllocFragment(500); // lost  
-							F.Add(hw.AllocFragment(500));
-							F.Add(hw.AllocFragment(500));
-						}
-
-						alloc();
-
-						Print.Trace("Triggering FreeGhosts()", ConsoleColor.Magenta);
-
-						hw.FreeGhosts();
-						var af = hw.GetTotalActiveFragments();
-
-						if (af != 4)
-						{
-							Passed = false;
-							FailureMessage = $"{hwName} FreeGhosts() collected something, maybe the GC passed. This may not be a failure.";
-							return false;
-						}
-
-						"FreeGhosts() did nothing on the live fragments".AsSuccess();
-						"Forcing GC and then FreeGhosts() ".Trace(ConsoleColor.Magenta);
-
-						GC.Collect(2);
-						GC.WaitForFullGCComplete();
-						Thread.Sleep(3000);
-						hw.FreeGhosts();
-						af = hw.GetTotalActiveFragments();
-
-						if (af < 3)
-						{
-							Passed = false;
-							FailureMessage = $"{hwName} expected 3 active fragments after one GC and GreeGhosts, got {af}";
-							return false;
-						}
-
-						"FreeGhosts() collected 1 as expected".AsSuccess();
-						"Disposing all".Trace(ConsoleColor.Magenta);
-
-						foreach (var f in F) f.Dispose();
-
-						af = hw.GetTotalActiveFragments();
-
-						if (af > 0)
-						{
-							Passed = false;
-							FailureMessage = $"{hwName} lane resetting on dispose is failing";
-							return false;
-						}
-
-						"FreeGhosts()".AsSuccess();
-
-						Print.Trace(hw.FullTrace(), 2, true, ConsoleColor.Cyan, ConsoleColor.Black, null);
 					}
 				}
 			}

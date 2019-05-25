@@ -7,14 +7,13 @@ namespace System
 {
 	public class HighwaySettings
 	{
-		public HighwaySettings(int defLaneCapacity, int maxLanesCount, MemoryLaneResetMode dm)
-			: this(defLaneCapacity, maxLanesCount, MAX_HIGHWAY_CAPACITY, dm) { }
+		public HighwaySettings(int defLaneCapacity, int maxLanesCount)
+			: this(defLaneCapacity, maxLanesCount, MAX_HIGHWAY_CAPACITY) { }
 
 		public HighwaySettings(
 			int defLaneCapacity = 0,
 			int maxLanesCount = MAX_LANE_COUNT,
-			long maxTotalBytes = MAX_HIGHWAY_CAPACITY,
-			MemoryLaneResetMode dm = MemoryLaneResetMode.FragmentDispose)
+			long maxTotalBytes = MAX_HIGHWAY_CAPACITY)
 		{
 			if (defLaneCapacity == 0) defLaneCapacity = DefaultLaneCapacity;
 
@@ -37,7 +36,6 @@ namespace System
 				"Invalid total bytes value.");
 
 			NextCapacity = (i) => DefaultCapacity;
-			Disposal = dm;
 		}
 
 		/// <summary>
@@ -61,7 +59,7 @@ namespace System
 		/// </summary>
 		public Func<int, int> NextCapacity;
 
-		public const int MAX_LANE_COUNT = 1000;
+		public const int MAX_LANE_COUNT = 1_000_000;
 		public const int MIN_LANE_CAPACITY = 1;
 		public const int MAX_LANE_CAPACITY = 2_000_000_000;
 		public const long MAX_HIGHWAY_CAPACITY = 200_000_000_000;
@@ -127,12 +125,7 @@ namespace System
 		/// Will trigger a Dispose() before process exits. True by default.
 		/// </summary>
 		public bool RegisterForProcessExitCleanup = true;
-
-		/// <summary>
-		/// Specifies the disposal mode.
-		/// </summary>
-		public readonly MemoryLaneResetMode Disposal;
-
+		
 		static int def_base_capacity = 8_000_000;
 	}
 }

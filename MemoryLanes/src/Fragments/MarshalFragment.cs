@@ -4,6 +4,7 @@
 
 
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace System
 {
@@ -114,12 +115,11 @@ namespace System
 		/// </summary>
 		public override void Dispose()
 		{
-			if (!isDisposed)
+			if (Interlocked.CompareExchange(ref isDisposed, 1, 0) == 0)
 			{
 				Destructor();
 				lane = null;
 				lanePtr = IntPtr.Zero;
-				isDisposed = true;
 			}
 		}
 

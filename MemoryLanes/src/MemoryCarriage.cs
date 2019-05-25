@@ -82,6 +82,7 @@ namespace System
 		/// The number of fails before switching to another lane. 
 		/// If 0 the HighwaySettings.LaneAllocTries value is used.
 		/// </param>
+		/// <param name="awaitMS">The awaitMS for each try</param>
 		/// <returns>A new fragment.</returns>
 		/// <exception cref="System.ArgumentOutOfRangeException">
 		/// If size is negative or greater than HighwaySettings.MAX_LANE_CAPACITY.
@@ -92,7 +93,7 @@ namespace System
 		/// One should never see this one!
 		/// </exception>
 		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
-		public F Alloc(int size, int tries = 0)
+		public F Alloc(int size, int tries = 0, int awaitMS = 5)
 		{
 			if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");
 			if (Lanes == null || Lanes.AllocatedSlots == 0) throw new MemoryLaneException(MemoryLaneException.Code.NotInitialized);
@@ -100,7 +101,7 @@ namespace System
 			if (tries == 0) tries = settings.LaneAllocTries;
 
 			F frag = null;
-			var lanesCount = Lanes.AppendIndex;
+			var lanesCount = Lanes.ItemsCount;
 
 			// Start from the oldest lane and cycle all lanes a few times before making a new lane
 			for (var laps = 0; laps < settings.LapsBeforeNewLane; laps++)
@@ -108,9 +109,9 @@ namespace System
 				{
 					var lane = Lanes[i];
 
-					if (lane != null)
+					if (lane != null && !lane.IsClosed && !lane.IsDisposed)
 					{
-						frag = createFragment(lane, size, tries);
+						frag = createFragment(lane, size, tries, awaitMS);
 
 						if (frag != null)
 						{
@@ -124,16 +125,18 @@ namespace System
 			if (noluckGate.Wait(settings.NewLaneAllocationTimeoutMS))
 			{
 				// Try again, there is at least one new lane
-				if (lanesCount < Lanes.AppendIndex)
+				if (lanesCount < Lanes.ItemsCount)
 				{
 					noluckGate.Release();
-					return Alloc(size, tries);
+					return Alloc(size, tries, awaitMS);
 				}
 				else
 					try
 					{
-						// No luck, create a new lane and do not publish it before getting a fragment
-						var nextCapacity = settings.NextCapacity(Lanes.AppendIndex);
+						// [i] No luck, create a new lane and do not publish it before getting a fragment
+
+						var ccMakers = settings.ConcurrentNewLaneAllocations - noluckGate.CurrentCount;
+						var nextCapacity = settings.NextCapacity(Lanes.AppendIndex + ccMakers);
 						var cap = size > nextCapacity ? size : nextCapacity;
 						var ml = allocLane(cap, true);
 
@@ -141,7 +144,7 @@ namespace System
 						// The consumer can infer that by checking if the fragment is null.
 						if (ml != null)
 						{
-							frag = createFragment(ml, size, tries);
+							frag = createFragment(ml, size, tries, awaitMS);
 
 							if (frag == null) throw new MemoryLaneException(
 								MemoryLaneException.Code.NewLaneAllocFail,
@@ -162,6 +165,7 @@ namespace System
 		/// </summary>
 		/// <param name="size">The desired buffer length.</param>
 		/// <param name="tries">The number of fails before switching to another lane.</param>
+		/// <param name="awaitMS">The awaitMS for each try</param>
 		/// <returns>A new fragment.</returns>
 		/// <exception cref="System.ArgumentOutOfRangeException">
 		/// If size is negative or greater than HighwaySettings.MAX_LANE_CAPACITY.
@@ -172,7 +176,8 @@ namespace System
 		/// One should never see this one!
 		/// </exception>
 		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
-		public MemoryFragment AllocFragment(int size, int tries) => Alloc(size, tries);
+		public MemoryFragment AllocFragment(int size, int tries = 4, int awaitMS = 10)
+			=> Alloc(size, tries, awaitMS);
 
 		/// <summary>
 		/// Calls Dispose to all lanes individually and switches the IsDisposed flag to true,
@@ -290,6 +295,51 @@ namespace System
 		}
 
 		/// <summary>
+		/// Creates a lane at specific slot with the size given by the settings NextCapacity callback.
+		/// The slot must be null or Disposed.
+		/// </summary>
+		/// <param name="index">The index of the lane in the highway.</param>
+		/// <returns>The newly created lane instance or null if fails.</returns>
+		/// <exception cref="MemoryLaneException">Thresholds are reached: 
+		/// MaxLanesCountReached or MaxTotalAllocBytesReached</exception>
+		public MemoryLane ReopenLane(int index)
+		{
+			// [i] The Allocation procedure will never look back at null slots when expanding
+			// thus there is no competition that may require locking.
+
+			if (Lanes.AppendIndex < index) return null;
+
+			var lane = Lanes[index];
+
+			if (lane == null || lane.IsDisposed)
+			{
+				var newLane = allocLane(settings.NextCapacity(index), true);
+
+				// In case that multiple threads attempt to reopen the same slot
+				if (Lanes.CAS(index, newLane, lane) != lane)
+					newLane.Dispose();
+
+				return Lanes[index];
+			}
+			else return null;
+		}
+
+		/// <summary>
+		/// Disposes a lane at index. This nulls the slot which 
+		/// will be counted if the lane is disposed directly.
+		/// The disposed but not nulled lanes may blow the MAX_LANES threshold at allocation.
+		/// </summary>
+		/// <param name="index">The slot index.</param>
+		public void DisposeLane(int index)
+		{
+			if (Lanes.AppendIndex >= index)
+			{
+				var lane = Lanes.Take(index);
+				if (lane != null) lane.Dispose();
+			}
+		}
+
+		/// <summary>
 		/// Gets a specific lane.
 		/// </summary>
 		/// <param name="index">The index must be less than the LastLaneIndex value. </param>
@@ -327,31 +377,6 @@ namespace System
 		MemoryLane IMemoryHighway.this[int index] => this[index];
 
 		/// <summary>
-		/// Triggers FreeGhosts() on all lanes.
-		/// </summary>
-		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
-		public void FreeGhosts()
-		{
-			if (settings.Disposal != MemoryLaneResetMode.TrackGhosts)
-				throw new MemoryLaneException(MemoryLaneException.Code.IncorrectDisposalMode);
-
-			if (isDisposed) throw new ObjectDisposedException("MemoryCarriage");
-
-			if (Interlocked.CompareExchange(ref freeGhostsGate, 1, 0) < 1)
-			{
-				try
-				{
-					foreach (var lane in Lanes.NotNullItems())
-						lane.FreeGhosts();
-				}
-				finally
-				{
-					Interlocked.Exchange(ref freeGhostsGate, 0);
-				}
-			}
-		}
-
-		/// <summary>
 		/// Creates a HighwayStream from the current highway,
 		/// </summary>
 		/// <param name="fragmentSize">The incremental memory size.</param>
@@ -381,7 +406,7 @@ namespace System
 			return string.Join(Environment.NewLine, lines);
 		}
 
-		protected abstract F createFragment(L ml, int size, int tries);
+		protected abstract F createFragment(L ml, int size, int tries, int awaitMS);
 		protected abstract L createLane(int size);
 
 		L allocLane(int capacity, bool hidden = false)
@@ -418,7 +443,6 @@ namespace System
 		public long LastAllocTickAnyLane => Thread.VolatileRead(ref lastAllocTickAnyLane);
 
 		long lastAllocTickAnyLane;
-		int freeGhostsGate = 0;
 		bool isDisposed;
 		SemaphoreSlim noluckGate;
 		Tesseract<L> Lanes;

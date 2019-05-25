@@ -5,6 +5,7 @@
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Threading;
 
 namespace System
 {
@@ -618,9 +619,6 @@ namespace System
 			return b;
 		}
 
-		public bool IsDisposed => isDisposed;
-		public int LaneCycle => laneCycle;
-
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		public void LaneCheck()
 		{
@@ -668,10 +666,13 @@ namespace System
 			return f.Span();
 		}
 
+		public int LaneCycle => laneCycle;
 		public MemoryLane Lane => lane;
+		public bool IsDisposed => Volatile.Read(ref isDisposed) > 0;
+
 		protected MemoryLane lane;
 		protected readonly int laneCycle;
-		protected bool isDisposed;
+		protected int isDisposed;
 		protected readonly Action Destructor;
 	}
 }

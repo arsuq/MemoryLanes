@@ -35,10 +35,10 @@ namespace System
 
 		public override StorageType Type => StorageType.NativeHeapLane;
 
-		protected override MarshalLaneFragment createFragment(MarshalLane ml, int size, int tries) =>
-			ml.AllocMarshalFragment(size, tries);
+		protected override MarshalLaneFragment createFragment(MarshalLane ml, int size, int tries, int awaitMS) =>
+			ml.AllocMarshalFragment(size, tries, awaitMS);
 
-		protected override MarshalLane createLane(int size) => new MarshalLane(size, settings.Disposal);
+		protected override MarshalLane createLane(int size) => new MarshalLane(size);
 
 		/// <summary>
 		/// Update before calling the default ctor.

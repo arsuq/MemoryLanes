@@ -5,7 +5,7 @@
 
 [![Build status](https://ci.appveyor.com/api/projects/status/onmv9w6a31v96u21?svg=true)](https://ci.appveyor.com/project/arsuq/files-8hnp0)
 
-> v1.4
+> v2.0
 
 ## Description 
 
@@ -85,7 +85,6 @@ public interface IMemoryHighway : IDisposable
 	int GetTotalFreeSpace();
 	int GetLanesCount();
 	int GetLastLaneIndex();
-	void FreeGhosts();
 	long LastAllocTickAnyLane { get; }
 	bool IsDisposed { get; }
 	StorageType Type { get; }
@@ -108,26 +107,12 @@ should also be changed if no settings instance is provided.
 
 
 
-### Reliable disposal
+### Disposal
 
+> The TrackGhosts mode is removed in v2.0
 
-There are two disposal modes that can be set in the HighwaySettings constructor:
-
-- **FragmentDispose (default)** In this mode the consumer *must* dispose all fragments in order 
-	to reset the lane. The only other option to unfreeze a lane is to *Force()* reset it, which is unsafe.
-
-- **TrackGhosts** In order to dispose the correct number of lost fragments, each lane tracks them with 
-   weak references and resets one allocation for every GC-ed and non disposed fragment. Even in this mode,
-   one should still dispose for as long as there is one ghost fragment the lane reset is dependent on a GC pass.
-   If the consumer disposes all fragments properly, this mode behaves like the FragmentDispose mode with the
-   additional tracking overhead.
-
-   The *TrackGhosts* mode demands a triggering logic for the cleanup function, with a timer or in any other way. 
-   The MemoryCarriage as well the MemoryLane classes have a *FreeGhosts()* method which is multi-call protected, 
-   so it's safe to call it more than once.
-
-   In general, forgetting to call Dispose on a fragment should be considered a bug. However if the consumers of the
-   fragments are unknown the only safe assumption one could make is to expect a bad disposal.
+ The consumer *must* dispose all fragments in order to reset the lane. 
+ The only other option to unfreeze a lane is to *Force()* reset it, which is unsafe.
 
 
 
@@ -141,14 +126,6 @@ and a mapped highway when working with megabytes of data.
 
 > In general, one should think more about fragment lifetimes than size variety.
 
-### Consistent fragment lifetime
-
-When the lifetime of the fragments is known any two-lane-plus highway works fine. 
-The second lane is needed for very high loads of concurrent allocations which prevent resetting by
-always appending new fragments. When the first lane is full the MemoryCarriage will
-shift the allocations to the next one, allowing the first to reset. Of course, if not restricted,
-the highway itself will make more lanes as needed so one should focus more on adjusting the thread 
-contention and fragment spread among the available lanes (see Highway structure).
 
 ### Unpredictable fragment lifetime 
 
@@ -163,15 +140,18 @@ Example: Two 8M lanes can be configured as 16x1M lanes or 4x512K + 4x1M + 3x2M +
 ### Highway structure
 
 Having more lanes in a highway is better for reducing the allocating threads competition.
-The process is sequential and only one thread at a time can shift the lane head pointer. For minimal delays, one
+The process is sequential and only one thread at a time can shift the lane offset. For minimal delays, one
 should have multiple lanes and the *LaneAllocTries* set to a small value (less than 10). This controls the number 
-failures to get a fragment (after the space check) before switching to a new lane, i.e. the number of times a competitor
-thread allocated. Having high *LaneAllocTries* values help for better data locality, but increases the concurrent atomic
-operations. Small values disperse the allocations to other lanes but affect negatively the max-free-block space 
-in the whole highway and waste more space.
+timeouts to get a fragment (after the space check) before switching to a new lane, i.e. the number of times a competitor
+thread allocated. Having high *LaneAllocTries* or awaitMS values helps for better data locality, but increases the 
+waiting time. Small values disperse the allocations to other lanes but affect negatively the max-free-block space 
+in the whole highway and waste more space. 
 
-> Before v1.4 the Alloc() used to spin, using atomics is not faster, but reduces the CPU waste.
+> The settings' *LaneAllocTries* is used instead of *tries* in ```Alloc(int size, int tries, int awaitMS)```
 
+> In v2.0 the awaitMS allows one to wait longer for better data locality or
+> skip a lane immediately ( tries = 1 and awaitMS = 0) if the allocation 
+> delay must me minimized.
 
 In addition to the lanes API one could use the native heap directly through the 
 **MarshalSlot** class. It is a MemoryFragment thus having the same Read/Write/Span
@@ -214,7 +194,7 @@ public class HighwaySettings
 	public Func<bool> OnMaxTotalBytesReached;
 	public Func<int, int> NextCapacity;
 
-	public const int MAX_LANE_COUNT = 1000;
+	public const int MAX_LANE_COUNT = 1_000_000;
 	public const int MIN_LANE_CAPACITY = 1;
 	public const int MAX_LANE_CAPACITY = 2_000_000_000;
 	public const long MAX_HIGHWAY_CAPACITY = 200_000_000_000;
@@ -250,8 +230,9 @@ no free space from the returned null fragment reference.
 One may notice that the buffer lengths are limited to Int32.MaxValue everywhere 
 in the API, so one couldn't use a MappedHighway with 4GB mapped file.
 The reason is having compatibility with the *Memory* and *Span* structs. 
-The highway is limited to ```MAX_LANE_COUNT = 1000``` for no special reason other than 
-a common sense, as it is the ```MAX_HIGHWAY_CAPACITY = 200_000_000_000``` value.
+
+> In v2.0 the MAX_LANE_COUNT is one million slots.
+
 
 ### Expansion
 

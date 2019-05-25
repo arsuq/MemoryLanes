@@ -37,10 +37,10 @@ namespace System
 
 		public override StorageType Type => StorageType.MemoryMappedFileLane;
 
-		protected override MappedFragment createFragment(MappedLane ml, int size, int tries) =>
-			ml.AllocMappedFragment(size, tries);
+		protected override MappedFragment createFragment(MappedLane ml, int size, int tries, int awaitMS) =>
+			ml.AllocMappedFragment(size, tries, awaitMS);
 
-		protected override MappedLane createLane(int size) => new MappedLane(size, null, settings.Disposal);
+		protected override MappedLane createLane(int size) => new MappedLane(size, null);
 
 		/// <summary>
 		/// Update before calling the default ctor.

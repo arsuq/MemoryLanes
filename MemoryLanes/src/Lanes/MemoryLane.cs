@@ -19,15 +19,10 @@ namespace System
 		/// </summary>
 		/// <param name="capacity">The number of bytes.</param>
 		/// <param name="rm">FragmentDispose</param>
-		public MemoryLane(int capacity, MemoryLaneResetMode rm)
+		public MemoryLane(int capacity)
 		{
 			if (capacity < HighwaySettings.MIN_LANE_CAPACITY || capacity > HighwaySettings.MAX_LANE_CAPACITY)
 				throw new MemoryLaneException(MemoryLaneException.Code.SizeOutOfRange);
-
-			ResetMode = rm;
-
-			if (rm == MemoryLaneResetMode.TrackGhosts)
-				Tracker = new Tesseract<WeakReference<MemoryFragment>>();
 		}
 
 		/// <summary>
@@ -38,8 +33,9 @@ namespace System
 		/// </remarks>
 		/// <param name="size">The requested length.</param>
 		/// <param name="tries">The number of fails before switching to another lane.</param>
+		/// <param name="awaitMS">The awaitMS for each try</param>
 		/// <returns>Null if fails.</returns>
-		public abstract MemoryFragment Alloc(int size, int tries);
+		public abstract MemoryFragment Alloc(int size, int tries, int awaitMS = 8);
 
 		/// <summary>
 		/// Attempts to allocate a fragment range in the remaining lane space.
@@ -47,139 +43,59 @@ namespace System
 		/// <param name="size">The requested length.</param>
 		/// <param name="frag">A data bag.</param>
 		/// <param name="tries">The number of fails before switching to another lane.</param>
+		/// <param name="awaitMS">The awaitMS for each try</param>
 		/// <returns>True if the space was successfully taken.</returns>
-		internal bool Alloc(int size, ref FragmentRange frag, int tries)
+		internal bool Alloc(int size, ref FragmentRange frag, int tries, int awaitMS)
 		{
 			var CAP = LaneCapacity;
-			var oldoffset = Volatile.Read(ref i[OFFSET]);
-			var newoffset = oldoffset + size;
+			var r = false;
 
-			while (!IsClosed && newoffset <= CAP && tries-- > 0)
-			{
-				// The observed offset is unchanged
-				if (Interlocked.CompareExchange(ref i[OFFSET], newoffset, oldoffset) == oldoffset)
+			if (Volatile.Read(ref i[OFFSET]) + size <= CAP)
+				while (isDisposed < 1 && !IsClosed && tries-- > 0 && !r && Monitor.TryEnter(allocGate, awaitMS))
 				{
-					// Just makes the slot, the derived lane will set it at 'Allocation
-					if (ResetMode == MemoryLaneResetMode.TrackGhosts) Tracker.Append(null);
+					var offset = i[OFFSET];
 
-					Volatile.Write(ref lastAllocTick, DateTime.Now.Ticks);
-
-					frag.Allocation = Interlocked.Increment(ref i[ALLOCS]) - 1;
-					frag.Length = size;
-					frag.Offset = oldoffset;
-
-					return true;
-				}
-
-				// Another thread allocated
-				oldoffset = Volatile.Read(ref i[OFFSET]);
-				newoffset = oldoffset + size;
-			}
-
-			return false;
-		}
-
-		/// <summary>
-		/// Triggers deallocation of the tracked not-disposed and GC collected fragments. 
-		/// Does nothing if the fragments are still alive. 
-		/// </summary>
-		/// <remarks>
-		/// This method is racing both the allocations and the reset. If the lane is reset 
-		/// FreeGhosts() returns immediately. The check is made on every iteration before the resetOne() call.
-		/// </remarks>
-		/// <returns>The number of deallocations.</returns>
-		/// <exception cref="System.MemoryLaneException">Code: IncorrectDisposalMode</exception>
-		public int FreeGhosts()
-		{
-			if (ResetMode != MemoryLaneResetMode.TrackGhosts)
-				throw new MemoryLaneException(MemoryLaneException.Code.IncorrectDisposalMode);
-
-			int freed = 0;
-
-			if (Interlocked.CompareExchange(ref freeGhostsGate, 1, 0) < 1)
-				try
-				{
-					int ai = Tracker.AppendIndex;
-					int startedCycle = LaneCycle;
-
-					for (int i = 0; i <= ai; i++)
+					if (offset + size <= CAP)
 					{
-						var t = Tracker[i];
+						i[OFFSET] += size;
 
-						if (t == null) continue;
-						if (!t.TryGetTarget(out MemoryFragment f) || f == null)
-						{
-							// Could be a new cycle already 
-							if (startedCycle != LaneCycle) return freed;
-							Tracker[i] = null;
-							resetOne(startedCycle);
-							freed++;
-						}
+						// The reset locks only when 0.
+						frag.Allocation = Interlocked.Increment(ref i[ALLOCS]);
+						frag.Length = size;
+						frag.Offset = offset;
+						frag.LaneCycle = i[LCYCLE];
+
+						lastAllocTick = DateTime.Now.Ticks;
+
+						r = true;
 					}
+
+					Monitor.Exit(allocGate);
 				}
-				finally
+
+			return r;
+		}
+
+		protected bool resetOne(int cycle)
+		{
+			// [i] The Interlocked.Decrement forces an Increment in Alloc.
+			// This should prevent queues of disposed frags, but slows down Alloc.
+
+			if (LaneCycle != cycle) return false;
+			if (Interlocked.Decrement(ref i[ALLOCS]) == 0)
+				lock (allocGate)
 				{
-					Interlocked.Exchange(ref freeGhostsGate, 0);
+					// Check again if all fragments are disposed.
+					if (i[ALLOCS] == 0)
+					{
+						i[OFFSET] = 0;
+						i[LCYCLE]++;
+					}
+					else if (i[ALLOCS] < 0)
+						throw new MemoryLaneException(MemoryLaneException.Code.LaneNegativeReset);
 				}
 
-			return freed;
-		}
-
-		/// <summary>
-		/// Free is called from the fragment's Dispose method.
-		/// </summary>
-		/// <param name="cycle">The lane cycle given to the fragment at creation time.</param>
-		protected void free(int cycle, int allocation)
-		{
-			if (ResetMode == MemoryLaneResetMode.TrackGhosts && cycle == LaneCycle)
-				Tracker[allocation] = null;
-
-			resetOne(cycle);
-		}
-
-		/// <summary>
-		/// Tracks the provided fragment for cleanup if its Dispose method is never called 
-		/// and the object is GC-ed.
-		/// </summary>
-		/// <param name="f">The fragment to be tracked.</param>
-		/// <param name="allocationIdx">The allocation index.</param>
-		protected void track(MemoryFragment f, int allocationIdx)
-		{
-			if (ResetMode == MemoryLaneResetMode.TrackGhosts)
-			{
-				if (f.LaneCycle == LaneCycle)
-					Tracker[allocationIdx] = new WeakReference<MemoryFragment>(f);
-				else throw new MemoryLaneException(MemoryLaneException.Code.AttemptToAccessWrongLaneCycle);
-			}
-			else throw new MemoryLaneException(MemoryLaneException.Code.IncorrectDisposalMode);
-		}
-
-		bool resetOne(int cycle)
-		{
-			bool result = false;
-
-			// Enter only if it's the correct lane cycle and there are allocations
-			if (LaneCycle == cycle && Allocations > 0)
-			{
-				var allocs = Interlocked.Decrement(ref i[ALLOCS]);
-
-				// If all fragments are disposed, reset the offset to 0 and change the laneCycle.
-				if (allocs == 0)
-				{
-					Volatile.Write(ref i[OFFSET], 0);
-					Interlocked.Increment(ref i[LCYCLE]);
-
-					// The AppendIndex shift is just an Interlocked.Exchange when forced
-					if (ResetMode == MemoryLaneResetMode.TrackGhosts)
-						Tracker.MoveAppendIndex(0, true);
-
-					result = true;
-				}
-				else if (allocs > 0) result = true;
-				else throw new MemoryLaneException(MemoryLaneException.Code.LaneNegativeReset);
-			}
-
-			return result;
+			return true;
 		}
 
 		/// <summary>
@@ -198,14 +114,12 @@ namespace System
 			Interlocked.Exchange(ref isClosed, close ? 1 : 0);
 
 			if (reset)
-			{
-				Interlocked.Exchange(ref i[OFFSET], 0);
-				Interlocked.Exchange(ref i[ALLOCS], 0);
-				Interlocked.Increment(ref i[LCYCLE]);
-
-				if (ResetMode == MemoryLaneResetMode.TrackGhosts)
-					Tracker.MoveAppendIndex(0, true);
-			}
+				lock (allocGate)
+				{
+					i[LCYCLE] += 1;
+					i[OFFSET] = 0;
+					i[ALLOCS] = 0;
+				}
 		}
 
 		/// <summary>
@@ -228,7 +142,7 @@ namespace System
 			{
 				Force(false, true);
 
-				using (var f = Alloc(LaneCapacity, 1))
+				using (var f = Alloc(LaneCapacity, 1, 1000))
 				{
 					Interlocked.Exchange(ref isClosed, 1);
 
@@ -245,6 +159,11 @@ namespace System
 
 			return read;
 		}
+
+		/// <summary>
+		/// For diagnostics.
+		/// </summary>
+		public abstract ReadOnlySpan<byte> GetAllBytes();
 
 		/// <summary>
 		/// Traces the Allocations, LaneCycle, Capacity, Offset, LasrtAllocTick and IsClosed properties.
@@ -287,13 +206,9 @@ namespace System
 		/// <summary>
 		/// If true the underlying memory storage is released.
 		/// </summary>
-		public bool IsDisposed => Volatile.Read(ref isDisposed);
+		public bool IsDisposed => Volatile.Read(ref isDisposed) > 0;
 
-		public const int SPIN_GATE_AWAIT_MS = 10;
-		public const int SPIN_GATE_BAIL_MS = 80;
-		public const int TRACKER_ASSUMED_MIN_FRAG_SIZE_BYTES = 32;
-
-		protected bool isDisposed;
+		protected int isDisposed;
 		protected long lastAllocTick;
 
 		// The indices of Allocations, Offset and LaneCycle
@@ -301,49 +216,26 @@ namespace System
 		protected const int OFFSET = 64;
 		protected const int LCYCLE = 96;
 
-		public readonly MemoryLaneResetMode ResetMode;
-
-		// The Tracker index is the Allocation index of the fragment
-		Tesseract<WeakReference<MemoryFragment>> Tracker = null;
-
 		object formatGate = new object();
 		object allocGate = new object();
-		int freeGhostsGate;
 		int isClosed;
 
 		protected int[] i = new int[97];
 	}
 
-	/// <summary>
-	/// Determines the way lanes deal with fragment deallocation.
-	/// </summary>
-	public enum MemoryLaneResetMode : int
-	{
-		/// <summary>
-		/// If the consumer forgets to call dispose on a fragment,
-		/// the lane will never reset unless forced.
-		/// </summary>
-		FragmentDispose = 0,
-		/// <summary>
-		/// The lane will track all fragments into a special collection
-		/// of weak refs, so when the GC collects the non-disposed fragments
-		/// the lane can deallocate the correct amount and reset. 
-		/// The triggering of the deallocation - FreeGhosts() is consumers responsibility.
-		/// </summary>
-		TrackGhosts = 1
-	}
-
 	struct FragmentRange
 	{
-		public FragmentRange(int offset, int length, int allocation)
+		public FragmentRange(int offset, int length, int allocation, int cycle)
 		{
 			Offset = offset;
 			Length = length;
 			Allocation = allocation;
+			LaneCycle = cycle;
 		}
 
 		public int Offset;
 		public int Length;
 		public int Allocation;
+		public int LaneCycle;
 	}
 }

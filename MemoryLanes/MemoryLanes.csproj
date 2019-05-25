@@ -7,9 +7,9 @@
     <Copyright></Copyright>
     <Company></Company>
     <Product />
-    <AssemblyVersion>1.4.0.0</AssemblyVersion>
-    <FileVersion>1.4.0.0</FileVersion>
-    <Version>1.4</Version>
+    <AssemblyVersion>2.0.0.0</AssemblyVersion>
+    <FileVersion>2.0.0.0</FileVersion>
+    <Version>2.0</Version>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Arsuq</Authors>
@@ -17,6 +17,14 @@
     <Description>Memory fragmenter.</Description>
     <PackageProjectUrl></PackageProjectUrl>
     <RepositoryUrl>https://github.com/arsuq/MemoryLanes</RepositoryUrl>
+    <PackageReleaseNotes>+ The Ghost tracking disposal mode is removed.
++ The allocations are serialized with monitor.TryEnter and a timeout, so 
+  one could wait if data locality is desired or use awaitMS = 0 and skip a 
+  lane if the latency is more important.
++ The MAX_LANE_COUNT is one million slots.
++ All lane and fragment types have multi-call protected Dispose().
++ The highways can Dispose/Reopen Lanes
++ MemoryLane.GetAllBytes diagnostic method</PackageReleaseNotes>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">

@@ -22,6 +22,7 @@ namespace System
 		/// <param name="size">The desired buffer length.</param>
 		/// <param name="tries">The number of fails before switching to another lane. 
 		/// If 0, the HighwaySettings.LaneAllocTries is used. </param>
+		/// <param name="awaitMS">The awaitMS for each try</param>
 		/// <returns>A new fragment.</returns>
 		/// <exception cref="System.ArgumentOutOfRangeException">
 		/// If size is negative or greater than HighwaySettings.MAX_LANE_CAPACITY.
@@ -32,7 +33,7 @@ namespace System
 		/// One should never see this one!
 		/// </exception>
 		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
-		MemoryFragment AllocFragment(int size, int tries = 0);
+		MemoryFragment AllocFragment(int size, int tries = 0, int awaitMS = 10);
 
 		/// <summary>
 		/// Gets a specific lane.
@@ -55,6 +56,22 @@ namespace System
 		/// <param name="fragmentSize">The incremental memory size.</param>
 		/// <returns>The Stream.</returns>
 		HighwayStream CreateStream(int fragmentSize);
+
+		/// <summary>
+		/// Creates a lane at specific slot with the size given by the settings NextCapacity callback.
+		/// The slot must be null or Disposed.
+		/// </summary>
+		/// <param name="index">The index of the lane in the highway.</param>
+		/// <returns>The newly created lane instance or null if fails.</returns>
+		MemoryLane ReopenLane(int index);
+
+		/// <summary>
+		/// Disposes a lane at index. This nulls the slot which 
+		/// will be counted if the lane is disposed directly.
+		/// The disposed but not nulled lanes may blow the MAX_LANES threshold at allocation.
+		/// </summary>
+		/// <param name="index">The slot index.</param>
+		void DisposeLane(int index);
 
 		/// <summary>
 		/// Returns an aggregate of all active fragments in all lanes.
@@ -90,12 +107,6 @@ namespace System
 		/// <returns>The number of preallocated lanes.</returns>
 		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
 		int GetLastLaneIndex();
-
-		/// <summary>
-		/// Triggers FreeGhosts() on all lanes.
-		/// </summary>
-		/// <exception cref="ObjectDisposedException">If the MemoryCarriage is disposed.</exception>
-		void FreeGhosts();
 
 		/// <summary>
 		/// The last allocation time. 

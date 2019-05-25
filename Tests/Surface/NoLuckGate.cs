@@ -69,11 +69,13 @@ namespace Tests.Surface
 							Task.WaitAll(CCAllocs);
 
 							"Allocs complete".AsInfo();
+							var lanesCount = hw.GetLanesCount();
+							var totalFrags = hw.GetTotalActiveFragments();
 
-							if (hw.GetLanesCount() - 1 > cc)
+							if (lanesCount - 1 > cc)
 							{
 								Passed = false;
-								FailureMessage = $"{hwName}: There are more than {cc} new lanes. Expected the no-luckGate to hold them off.";
+								FailureMessage = $"{hwName}: There are {lanesCount} lanes, cc: {cc}. Expected the no-luckGate to hold them off.";
 								return;
 							}
 

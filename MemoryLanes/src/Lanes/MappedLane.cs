@@ -18,7 +18,7 @@ namespace System
 		/// Creates a new lane with FragmentDispose mode.
 		/// </summary>
 		/// <param name="capacity">The lane length.</param>
-		public MappedLane(int capacity) : this(capacity, null, MemoryLaneResetMode.FragmentDispose) { }
+		public MappedLane(int capacity) : this(capacity, null) { }
 
 		/// <summary>
 		/// Creates a new lane.
@@ -26,7 +26,7 @@ namespace System
 		/// <param name="capacity">The length in bytes.</param>
 		/// <param name="filename">If not provided it's auto generated as MMF-#KB-ID</param>
 		/// <param name="dm">Toggle lost fragments tracking</param>
-		public MappedLane(int capacity, string filename, MemoryLaneResetMode dm) : base(capacity, dm)
+		public MappedLane(int capacity, string filename) : base(capacity)
 		{
 			laneCapacity = capacity;
 			if (string.IsNullOrEmpty(filename)) FileID = string.Format("MMF-{0}K-{1}", capacity / 1024, Guid.NewGuid().ToString().Substring(0, 8));
@@ -40,22 +40,16 @@ namespace System
 		/// </summary>
 		/// <param name="size">The length in bytes.</param>
 		/// <param name="tries">The number of fails before switching to another lane.</param>
+		/// <param name="awaitMS">The awaitMS for each try</param>
 		/// <returns>Null if fails.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public MappedFragment AllocMappedFragment(int size, int tries)
+		public MappedFragment AllocMappedFragment(int size, int tries, int awaitMS)
 		{
 			var fr = new FragmentRange();
 
-			if (Alloc(size, ref fr, tries))
-			{
-				var frag = new MappedFragment(fr.Offset, fr.Length, mmva, this, () => free(i[LCYCLE], fr.Allocation));
-
-				if (ResetMode == MemoryLaneResetMode.TrackGhosts)
-					track(frag, fr.Allocation);
-
-				return frag;
-			}
-			else return null;
+			return Alloc(size, ref fr, tries, awaitMS) ?
+				new MappedFragment(fr.Offset, fr.Length, mmva, this, () => resetOne(fr.LaneCycle)) :
+				null;
 		}
 
 		/// <summary>
@@ -63,9 +57,11 @@ namespace System
 		/// </summary>
 		/// <param name="size">The length in bytes</param>
 		/// <param name="tries">The number of fails before switching to another lane.</param>
+		/// <param name="awaitMS">The awaitMS for each try</param>
 		/// <returns>A casted MappedFragment if succeeds, null if fails.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public override MemoryFragment Alloc(int size, int tries) => AllocMappedFragment(size, tries);
+		public override MemoryFragment Alloc(int size, int tries, int awaitMS)
+			=> AllocMappedFragment(size, tries, awaitMS);
 
 		/// <summary>
 		/// Deletes the mapped file.
@@ -74,17 +70,17 @@ namespace System
 
 		void destroy(bool isGC = false)
 		{
-			if (!Volatile.Read(ref isDisposed))
+			if (Interlocked.CompareExchange(ref isDisposed, 1, 0) == 0)
 			{
 				try
 				{
 					if (mmva != null) mmva.Dispose();
 					if (mmf != null) mmf.Dispose();
 					if (!string.IsNullOrEmpty(FileID) && File.Exists(FileID)) File.Delete(FileID);
+					Force(true, true);
 				}
-				catch(Exception) { }
+				catch (Exception) { }
 				if (!isGC) GC.SuppressFinalize(this);
-				Volatile.Write(ref isDisposed, true);
 			}
 		}
 
@@ -93,6 +89,21 @@ namespace System
 		/// in case it's not properly disposed.
 		/// </summary>
 		~MappedLane() => destroy(true);
+
+		public unsafe override ReadOnlySpan<byte> GetAllBytes()
+		{
+			byte* p = null;
+			try
+			{
+				mmva.SafeMemoryMappedViewHandle.AcquirePointer(ref p);
+				return new Span<byte>(p, laneCapacity);
+			}
+			finally
+			{
+				if (p != null)
+					mmva.SafeMemoryMappedViewHandle.ReleasePointer();
+			}
+		}
 
 		/// <summary>
 		/// The capacity set in the ctor.

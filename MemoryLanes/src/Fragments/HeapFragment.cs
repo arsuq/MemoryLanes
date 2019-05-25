@@ -3,6 +3,7 @@
    file, You can obtain one at http://mozilla.org/MPL/2.0/. */
 
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace System
 {
@@ -80,12 +81,11 @@ namespace System
 
 		public override void Dispose()
 		{
-			if (!isDisposed)
+			if (Interlocked.CompareExchange(ref isDisposed, 1, 0) == 0)
 			{
 				Destructor();
 				lane = null;
 				Memory = null;
-				isDisposed = true;
 			}
 		}
 

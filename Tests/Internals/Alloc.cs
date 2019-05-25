@@ -56,7 +56,6 @@ namespace Tests.Internals
 					 // [!] Do not try catch
 
 					 // Someone must process the remainder
-					 // It's ok to read from L cache if it's 0;
 					 var subCount = rem > 0 ? part + Interlocked.Exchange(ref rem, 0) : part;
 
 					 for (int j = 0; j < subCount; j++)

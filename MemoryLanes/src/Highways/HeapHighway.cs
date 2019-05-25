@@ -36,10 +36,10 @@ namespace System
 
 		public override StorageType Type => StorageType.ManagedHeapLane;
 
-		protected override HeapFragment createFragment(HeapLane ml, int size, int tries) =>
-			ml.AllocHeapFragment(size, tries);
+		protected override HeapFragment createFragment(HeapLane ml, int size, int tries, int awaitMS) =>
+			ml.AllocHeapFragment(size, tries, awaitMS);
 
-		protected override HeapLane createLane(int size) => new HeapLane(size, settings.Disposal);
+		protected override HeapLane createLane(int size) => new HeapLane(size);
 
 		/// <summary>
 		/// Update before calling the default ctor.
