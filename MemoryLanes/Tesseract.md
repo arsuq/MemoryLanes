@@ -4,8 +4,7 @@
 
 # Tesseract
 
-The MemoryLanes use a concurrent data structure for tracking fragments. 
-It's a virtual array allowing **safe multi-threaded, indexed access** to its cells 
+The MemoryLanes lib uses a virtual array allowing **safe multi-threaded, indexed access** to its cells 
 **while expanding**. The actual storage are four jagged arrays with a side of 256 slots
 and total capacity of 2^31. It's constrained to reference types only for the atomic ops to work,
 but one could use the ```TesseractCell<T>``` (T : struct) as a class wrapper. The Cell is implicitly
