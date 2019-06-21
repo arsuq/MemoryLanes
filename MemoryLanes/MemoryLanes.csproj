@@ -17,7 +17,7 @@
     <Description>Memory fragmenter.</Description>
     <PackageProjectUrl></PackageProjectUrl>
     <RepositoryUrl>https://github.com/arsuq/MemoryLanes</RepositoryUrl>
-    <PackageReleaseNotes>+ icon</PackageReleaseNotes>
+    <PackageReleaseNotes></PackageReleaseNotes>
     <PackageIconUrl>https://raw.githubusercontent.com/arsuq/MemoryLanes/master/MemoryLanes/Logo.png</PackageIconUrl>
   </PropertyGroup>
 

@@ -27,6 +27,7 @@ namespace System
 		{
 			if (length < 0) throw new ArgumentOutOfRangeException("length");
 
+			useAccessChecks = false;
 			this.length = length;
 			slotPtr = Marshal.AllocHGlobal(length);
 		}
