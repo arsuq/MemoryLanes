@@ -7,7 +7,7 @@ namespace System.IO
 	/// <summary>
 	/// A stream object with a fragment as a memory storage.
 	/// </summary>
-	public class FragmentStream : Stream
+	public class FragmentStream : Stream, IDisposable
 	{
 		/// <summary>
 		/// Creates a stream objects.
@@ -160,6 +160,11 @@ namespace System.IO
 
 			len = value;
 		}
+
+		/// <summary>
+		/// Disposes the fragment
+		/// </summary>
+		public void IDispose() => Fragment.Dispose();
 
 		public readonly MemoryFragment Fragment;
 		long pos;

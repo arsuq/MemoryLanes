@@ -322,6 +322,91 @@
             AttemptToAccessWrongLaneCycle, AttemptToAccessDisposedLane, AttemptToAccessClosedLane
             </exception>
         </member>
+        <member name="T:System.HeapSlot">
+            <summary>
+            Represents a slice of managed memory. 
+            This object is not part of a MemoryLane and its lifetime does not affect other MemoryFragment instances.
+            </summary>
+        </member>
+        <member name="M:System.HeapSlot.#ctor(System.Byte[])">
+            <summary>
+            Creates a MemoryFragment from a managed array. 
+            Be aware that the buffer could potentially be mutated concurrently or 
+            unexpectedly nulled from outside. Consider using the length constructor.
+            </summary>
+            <param name="slot">The buffer is shared!</param>
+            <exception cref="T:System.ArgumentNullException"></exception>
+        </member>
+        <member name="M:System.HeapSlot.#ctor(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Creates a MemoryFragment from a managed array. 
+            Be aware that the buffer could potentially be mutated concurrently or 
+            unexpectedly nulled from outside. Consider using the length constructor.
+            </summary>
+            <param name="slot">The buffer</param>
+            <param name="from">The start index</param>
+            <param name="length">The number of bytes</param>
+            <exception cref="T:System.ArgumentOutOfRangeException"></exception>
+            <exception cref="T:System.ArgumentNullException"></exception>
+        </member>
+        <member name="M:System.HeapSlot.#ctor(System.Int32)">
+            <summary>
+            Allocates a buffer on the managed heap.
+            </summary>
+            <param name="length">The buffer size in bytes</param>
+            <exception cref="T:System.ArgumentOutOfRangeException"></exception>
+        </member>
+        <member name="M:System.HeapSlot.Span(System.Boolean)">
+            <summary>
+            Take a Span of the whole range.
+            </summary>
+            <param name="format">Zero the bytes</param>
+            <returns>The Span</returns>
+        </member>
+        <member name="M:System.HeapSlot.Write(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Writes the bytes in data (0-length) to the slot starting at <c>offset</c> position.
+            </summary>
+            <param name="data">The source array.</param>
+            <param name="offset">The writing position in the heap slot.</param>
+            <param name="length">How many bytes from the source to take.</param>
+            <returns>The offset + length</returns>
+        </member>
+        <member name="M:System.HeapSlot.Read(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Reads bytes from the slot starting at offset until  <c>destination</c> is full or there is no more data.
+            The writing in <c>destination</c> starts at destOffset.
+            </summary>
+            <param name="destination">The read data.</param>
+            <param name="offset">The position in source to begin reading from.</param>
+            <param name="destOffset">Index in destination where the copying will begin at. By default is 0.</param>
+            <returns>The total bytes read, i.e. the new offset.</returns>
+            <exception cref="T:System.ArgumentNullException">If destination is null.</exception>
+            <exception cref="T:System.ArgumentOutOfRangeException">For offset and destOffset.</exception>
+        </member>
+        <member name="M:System.HeapSlot.Span">
+            <summary>
+            Makes a span over the whole slot.
+            </summary>
+            <returns>The span structure.</returns>
+        </member>
+        <member name="M:System.HeapSlot.op_Implicit(System.HeapSlot)~System.Memory{System.Byte}">
+            <summary>
+            Gets the fragment Memory. 
+            </summary>
+            <param name="ms">The slot.</param>
+        </member>
+        <member name="M:System.HeapSlot.op_Implicit(System.HeapSlot)~System.ReadOnlyMemory{System.Byte}">
+            <summary>
+            Casts the fragment as ReadOnlyMemory of bytes. 
+            </summary>
+            <param name="ms">The slot.</param>
+        </member>
+        <member name="P:System.HeapSlot.Length">
+            <summary>
+            The fragment length.
+            </summary>
+        </member>
         <member name="T:System.MappedFragment">
             <summary>
             Represents a fragment of a memory mapped file.
@@ -1718,6 +1803,11 @@
             Will shrink the stream length, but not the fragment.
             </summary>
             <param name="value"></param>
+        </member>
+        <member name="M:System.IO.FragmentStream.IDispose">
+            <summary>
+            Disposes the fragment
+            </summary>
         </member>
         <member name="T:System.IO.HighwayStream">
             <summary>

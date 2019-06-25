@@ -457,6 +457,7 @@ namespace System
 		ManagedHeapLane = 1,
 		MemoryMappedFileLane = 2,
 		NativeHeapLane = 4,
-		NativeHeapSlot = 8
+		NativeHeapSlot = 8,
+		ManagedHeapSlot = 16
 	}
 }

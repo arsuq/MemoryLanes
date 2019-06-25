@@ -5,7 +5,7 @@
 
 [![Build status](https://ci.appveyor.com/api/projects/status/onmv9w6a31v96u21?svg=true)](https://ci.appveyor.com/project/arsuq/files-8hnp0)
 
-> v2.0
+> v2.1
 
 ## Description 
 
@@ -109,11 +109,9 @@ should also be changed if no settings instance is provided.
 
 ### Disposal
 
-> The TrackGhosts mode is removed in v2.0
 
  The consumer *must* dispose all fragments in order to reset the lane. 
  The only other option to unfreeze a lane is to *Force()* reset it, which is unsafe.
-
 
 
 ## Usage
@@ -149,13 +147,22 @@ in the whole highway and waste more space.
 
 > The settings' *LaneAllocTries* is used instead of *tries* in ```Alloc(int size, int tries, int awaitMS)```
 
-> In v2.0 the awaitMS allows one to wait longer for better data locality or
+> The awaitMS allows one to wait longer for better data locality or
 > skip a lane immediately ( tries = 1 and awaitMS = 0) if the allocation 
 > delay must me minimized.
+
+### Slots
 
 In addition to the lanes API one could use the native heap directly through the 
 **MarshalSlot** class. It is a MemoryFragment thus having the same Read/Write/Span
 accessors, but it is not part of any lane and doesn't affect other fragments. 
+
+Similarly, there is a **HeapSlot** fragment type, which is handy for reading and writing
+primitives from/to a managed byte array. This is the easiest way to create a fragment.
+
+> Note that if the HeapSlot is constructed with an external buffer (instead of length)
+> its lifetime and data could be modified from outside. 
+
 
 ### Streams
 
@@ -231,7 +238,7 @@ One may notice that the buffer lengths are limited to Int32.MaxValue everywhere
 in the API, so one couldn't use a MappedHighway with 4GB mapped file.
 The reason is having compatibility with the *Memory* and *Span* structs. 
 
-> In v2.0 the MAX_LANE_COUNT is one million slots.
+> The MAX_LANE_COUNT is one million slots.
 
 
 ### Expansion
@@ -263,6 +270,7 @@ In **System**:
   - MappedFragment
   - MarshalFragment
   - MarshalSlot
+  - HeapSlot
 
 - **Lanes**
   - MemoryLane (abstract)

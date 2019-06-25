@@ -1,6 +1,10 @@
 
 # Changes
 
+## v2.1
+
++ A HeapSlot MemoryFragment type added.
+
 ## v2.0
 
 + The Ghost tracking disposal mode is removed.
