@@ -16,12 +16,14 @@ namespace Tests.Surface
 			"Tests concurrent access over the same memory fragment casted as integer slice." +
 			"This test is not about MemoryLanes, but rather about interpretation " +
 			"of byte segments to different structure layouts;";
+
+		public string Tags => string.Empty;
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
 		public bool IsComplete { get; private set; }
 		public bool IndependentLaunchOnly => false;
 
-		public Task Run(IDictionary<string, List<string>> args)
+		public Task Start(IDictionary<string, List<string>> args)
 		{
 			const int IN_PARALLEL = 30;
 			var T = new Task[IN_PARALLEL];

@@ -20,12 +20,13 @@ namespace Tests.Surface
 			"Example client: -mode c -mc 200 -ms 1024 -r" + Environment.NewLine +
 			"Example server: -mode s";
 
+		public string Tags => string.Empty;
 		public bool IndependentLaunchOnly => true;
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
 		public bool IsComplete { get; private set; }
 
-		public Task Run(ArgMap args)
+		public Task Start(ArgMap args)
 		{
 			if (args == null || args.Count < 1) throw new ArgumentException("args");
 

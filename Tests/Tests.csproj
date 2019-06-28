@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="TestSurface" Version="1.1.4" />
+    <PackageReference Include="TestSurface" Version="1.2.0" />
   </ItemGroup>
 
 </Project>

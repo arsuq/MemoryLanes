@@ -19,12 +19,13 @@ namespace Tests.Surface
 			"Optional Flags: -count = fragments count, -size = fragment size, which will be randomized" +
 			"Example: -ExpectedAllocation -store mh nh mmf");
 
+		public string Tags => string.Empty;
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
 		public bool IndependentLaunchOnly => false;
 		public bool IsComplete { get; private set; }
 
-		public async Task Run(IDictionary<string, List<string>> args)
+		public async Task Start(IDictionary<string, List<string>> args)
 		{
 			await Task.Delay(0);
 

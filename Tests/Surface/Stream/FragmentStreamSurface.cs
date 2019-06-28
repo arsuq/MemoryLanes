@@ -15,13 +15,13 @@ namespace Tests.Surface
 	class FragmentStreamSurface : ITestSurface
 	{
 		public string Info => "Tests the FragmentStream class. Args: -store mh mmf nh";
-
+		public string Tags => "stream, fragment";
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
 		public bool IndependentLaunchOnly => false;
 		public bool IsComplete { get; private set; }
 
-		public async Task Run(IDictionary<string, List<string>> args)
+		public async Task Start(IDictionary<string, List<string>> args)
 		{
 			await Task.Delay(0);
 

@@ -208,7 +208,7 @@
           "build/netstandard2.0/NETStandard.Library.targets": {}
         }
       },
-      "TestSurface/1.1.4": {
+      "TestSurface/1.2.0": {
         "type": "package",
         "compile": {
           "lib/netstandard2.0/TestSurface.dll": {}
@@ -698,16 +698,16 @@
         "netstandard.library.nuspec"
       ]
     },
-    "TestSurface/1.1.4": {
-      "sha512": "pnYJyhBPjMy/l/kNx8y6vKzJeIocKnQabpXs8KTpL23l276ISpo7njMFHYpvrzdYOmN3jk8O75gJtInhQsyMLw==",
+    "TestSurface/1.2.0": {
+      "sha512": "ybIAuiaLJ1TRo0BMpW7AU2w+w2OAirXeLHb9KlvAhfVUv7Q3tFmMcRcICrgA9SvJZBybobu4FtlqhdxDahANvg==",
       "type": "package",
-      "path": "testsurface/1.1.4",
+      "path": "testsurface/1.2.0",
       "files": [
         ".nupkg.metadata",
         ".signature.p7s",
         "lib/netstandard2.0/TestSurface.dll",
         "lib/netstandard2.0/TestSurface.xml",
-        "testsurface.1.1.4.nupkg.sha512",
+        "testsurface.1.2.0.nupkg.sha512",
         "testsurface.nuspec"
       ]
     },
@@ -721,7 +721,7 @@
     ".NETCoreApp,Version=v2.2": [
       "MemoryLanes >= 2.1.0",
       "Microsoft.NETCore.App >= 2.2.0",
-      "TestSurface >= 1.1.4"
+      "TestSurface >= 1.2.0"
     ]
   },
   "packageFolders": {
@@ -777,7 +777,7 @@
           },
           "TestSurface": {
             "target": "Package",
-            "version": "[1.1.4, )"
+            "version": "[1.2.0, )"
           }
         },
         "imports": [

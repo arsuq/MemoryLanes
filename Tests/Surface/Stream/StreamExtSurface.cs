@@ -12,13 +12,13 @@ namespace Tests.Surface.Stream
 	class StreamExtSurface : ITestSurface
 	{
 		public string Info => "Tests the StreamExt extensions.";
-
+		public string Tags => "stream";
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
 		public bool IndependentLaunchOnly => false;
 		public bool IsComplete { get; private set; }
 
-		public async Task Run(IDictionary<string, List<string>> args)
+		public async Task Start(IDictionary<string, List<string>> args)
 		{
 			var D = new byte[2][] {
 				new byte[100],

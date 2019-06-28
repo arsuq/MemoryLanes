@@ -12,13 +12,13 @@ namespace Tests.Surface
 	public class GetAllBytes : ITestSurface
 	{
 		public string Info => "Tests the GetAllBytes lane method. This should be used for diagnostics only. Args: -store mh mmf nh";
-
+		public string Tags => string.Empty;
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
 		public bool IndependentLaunchOnly => false;
 		public bool IsComplete { get; private set; }
 
-		public Task Run(IDictionary<string, List<string>> args)
+		public Task Start(IDictionary<string, List<string>> args)
 		{
 			if (args.ContainsKey("+all"))
 				args.Add("-store", new List<string>() { "mh", "mmf", "nh" });

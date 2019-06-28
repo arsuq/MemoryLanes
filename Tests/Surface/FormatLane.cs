@@ -14,13 +14,13 @@ namespace Tests.Surface
 	class FormatLane : ITestSurface
 	{
 		public string Info => "Tests the lane.Format(stream) method";
-
+		public string Tags => string.Empty;
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
 		public bool IndependentLaunchOnly => false;
 		public bool IsComplete { get; private set; }
 
-		public async Task Run(IDictionary<string, List<string>> args)
+		public async Task Start(IDictionary<string, List<string>> args)
 		{
 			await Task.Delay(0);
 

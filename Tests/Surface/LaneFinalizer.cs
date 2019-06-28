@@ -14,13 +14,13 @@ namespace Tests.Surface
 	public class LaneFinalizer : ITestSurface
 	{
 		public string Info => "Tests whether undisposed lanes would release the underlying unmanaged resources.";
-
+		public string Tags => string.Empty;
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
 		public bool IndependentLaunchOnly => false;
 		public bool IsComplete { get; private set; }
 
-		public async Task Run(IDictionary<string, List<string>> args)
+		public async Task Start(IDictionary<string, List<string>> args)
 		{
 			await Task.Delay(0);
 

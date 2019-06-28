@@ -21,12 +21,13 @@ namespace Tests.Surface
 	{
 		public string Info => "Tests allocation of structs on the unmanaged heap.";
 
+		public string Tags => string.Empty;
 		public bool IndependentLaunchOnly => false;
 		public string FailureMessage => string.Empty;
 		public bool? Passed { get; private set; }
 		public bool IsComplete { get; private set; }
 
-		public unsafe Task Run(ArgMap args)
+		public unsafe Task Start(ArgMap args)
 		{
 			return Task.Run(() =>
 			{

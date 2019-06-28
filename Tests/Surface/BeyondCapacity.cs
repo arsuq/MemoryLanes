@@ -14,12 +14,13 @@ namespace Tests.Surface
 	{
 		public string Info => "Tests allocation outside the highway capacity. Args: -store mh mmf nh";
 
+		public string Tags => string.Empty;
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
 		public bool IndependentLaunchOnly => false;
 		public bool IsComplete { get; private set; }
 
-		public async Task Run(IDictionary<string, List<string>> args)
+		public async Task Start(IDictionary<string, List<string>> args)
 		{
 			await Task.Delay(0);
 

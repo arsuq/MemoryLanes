@@ -26,8 +26,9 @@ namespace Tests.Surface.Collections
 
 	public class TesseractSurface : ITestSurface
 	{
-		public string Info => "Tests either the Tesseract<T> class.";
+		public string Info => "Tests the Tesseract<T> class.";
 
+		public string Tags => string.Empty;
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
 		public bool IsComplete { get; private set; }
@@ -39,7 +40,7 @@ namespace Tests.Surface.Collections
 		public const object NULL = null;
 #endif
 
-		public async Task Run(IDictionary<string, List<string>> args)
+		public async Task Start(IDictionary<string, List<string>> args)
 		{
 			await Task.Delay(0);
 
