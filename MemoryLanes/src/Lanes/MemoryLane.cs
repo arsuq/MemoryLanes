@@ -59,8 +59,7 @@ namespace System
 					{
 						i[OFFSET] += size;
 
-						// The reset locks only when 0.
-						frag.Allocation = Interlocked.Increment(ref i[ALLOCS]);
+						frag.Allocation = ++i[ALLOCS];
 						frag.Length = size;
 						frag.Offset = offset;
 						frag.LaneCycle = i[LCYCLE];
@@ -78,9 +77,6 @@ namespace System
 
 		protected bool resetOne(int cycle)
 		{
-			// [i] The Interlocked.Decrement forces an Increment in Alloc.
-			// This should prevent queues of disposed frags, but slows down Alloc.
-
 			if (LaneCycle != cycle) return false;
 			if (Interlocked.Decrement(ref i[ALLOCS]) == 0)
 				lock (allocGate)

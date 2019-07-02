@@ -1804,10 +1804,17 @@
             </summary>
             <param name="value"></param>
         </member>
-        <member name="M:System.IO.FragmentStream.IDispose">
+        <member name="M:System.IO.FragmentStream.ReadByte">
             <summary>
-            Disposes the fragment
+            Reads the byte at Position and advances one slot
             </summary>
+            <returns>The byte as int</returns>
+        </member>
+        <member name="M:System.IO.FragmentStream.WriteByte(System.Byte)">
+            <summary>
+            Writes the value at Position and advances one slot
+            </summary>
+            <param name="value">The byte</param>
         </member>
         <member name="T:System.IO.HighwayStream">
             <summary>
@@ -1892,10 +1899,22 @@
             If offset or count are negative or count reaches beyond the fragment capacity.</exception>
             <exception cref="T:System.ArgumentException">If the buffer slice from offset is smaller than count.</exception>
         </member>
-        <member name="M:System.IO.HighwayStream.IDispose">
+        <member name="M:System.IO.HighwayStream.Dispose(System.Boolean)">
             <summary>
             Does not dispose the highway, just the allocated fragments.
             </summary>
+        </member>
+        <member name="M:System.IO.HighwayStream.ReadByte">
+            <summary>
+            Reads the byte at Position and advances one slot
+            </summary>
+            <returns>The byte as int</returns>
+        </member>
+        <member name="M:System.IO.HighwayStream.WriteByte(System.Byte)">
+            <summary>
+            Writes the value at Position and advances one slot
+            </summary>
+            <param name="value">The byte</param>
         </member>
         <member name="M:System.IO.StreamExt.ReadFrom(System.IO.Stream,System.IO.Stream,System.Int32,System.Byte[])">
             <summary>

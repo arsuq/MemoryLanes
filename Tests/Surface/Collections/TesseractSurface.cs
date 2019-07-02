@@ -27,8 +27,7 @@ namespace Tests.Surface.Collections
 	public class TesseractSurface : ITestSurface
 	{
 		public string Info => "Tests the Tesseract<T> class.";
-
-		public string Tags => string.Empty;
+		public string Tags => "frm";
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
 		public bool IsComplete { get; private set; }
@@ -74,9 +73,11 @@ namespace Tests.Surface.Collections
 
 		bool pos()
 		{
-			var I = new int[] { 111, 333, 517, 67440, 8_888_888, 1_234_432_323 };
+			var I = new int[] { 111, 256, 256 * 256 , 333, 517, 67440, 8_888_888, 1_234_432_323 };
 			var E = new (int d0, int d1, int d2, int d3)[] {
 				(0, 0, 0, 111),
+				(0, 0, 1, 0),
+				(0, 1, 0, 0),
 				(0, 0, 1, 77),
 				(0, 0, 2, 5),
 				(0, 1, 7, 112),

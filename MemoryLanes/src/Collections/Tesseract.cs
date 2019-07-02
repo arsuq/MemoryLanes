@@ -163,7 +163,7 @@ namespace System.Collections.Concurrent
 			get
 			{
 				if (Drive == TesseractGear.P) throw new InvalidOperationException("Wrong drive");
-				if (index < 0 || index > AllocatedSlots) throw new ArgumentOutOfRangeException("index");
+				if (index < 0 || index >= AllocatedSlots) throw new ArgumentOutOfRangeException("index");
 
 				var p = new TesseractPos(index);
 
@@ -172,7 +172,7 @@ namespace System.Collections.Concurrent
 			set
 			{
 				if (Drive == TesseractGear.P) throw new InvalidOperationException("Wrong drive");
-				if (index < 0 || index > AllocatedSlots) throw new ArgumentOutOfRangeException("index");
+				if (index < 0 || index >= AllocatedSlots) throw new ArgumentOutOfRangeException("index");
 
 				set(index, value);
 			}
@@ -192,7 +192,7 @@ namespace System.Collections.Concurrent
 		public T Take(int index)
 		{
 			if (Drive == TesseractGear.P) throw new InvalidOperationException("Wrong drive");
-			if (index < 0 || index > AllocatedSlots) throw new ArgumentOutOfRangeException("index");
+			if (index < 0 || index >= AllocatedSlots) throw new ArgumentOutOfRangeException("index");
 
 			return set(index, null);
 		}
@@ -207,7 +207,7 @@ namespace System.Collections.Concurrent
 		public T CAS(int index, T value, T comparand)
 		{
 			if (Drive == TesseractGear.P) throw new InvalidOperationException("Wrong drive");
-			if (index < 0 || index > AllocatedSlots) throw new ArgumentOutOfRangeException("index");
+			if (index < 0 || index >= AllocatedSlots) throw new ArgumentOutOfRangeException("index");
 
 			var p = new TesseractPos(index);
 			var r = Interlocked.CompareExchange(ref blocks[p.D0][p.D1][p.D2][p.D3], value, comparand);

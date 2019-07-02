@@ -7,7 +7,7 @@ namespace System.IO
 	/// <summary>
 	/// A stream object with a fragment as a memory storage.
 	/// </summary>
-	public class FragmentStream : Stream, IDisposable
+	public class FragmentStream : Stream
 	{
 		/// <summary>
 		/// Creates a stream objects.
@@ -161,10 +161,38 @@ namespace System.IO
 			len = value;
 		}
 
+		protected override void Dispose(bool disposing)
+		{
+			if (disposing && Fragment != null && !Fragment.IsDisposed)
+			{
+				Fragment.Dispose();
+				base.Dispose(disposing);
+			}
+		}
+
 		/// <summary>
-		/// Disposes the fragment
+		/// Reads the byte at Position and advances one slot
 		/// </summary>
-		public void IDispose() => Fragment.Dispose();
+		/// <returns>The byte as int</returns>
+		public override int ReadByte()
+		{
+			var r = (len > pos) ? Fragment.Span()[(int)pos] : -1;
+
+			if (pos + 1 < len) pos++;
+
+			return r;
+		}
+
+		/// <summary>
+		/// Writes the value at Position and advances one slot
+		/// </summary>
+		/// <param name="value">The byte</param>
+		public override void WriteByte(byte value)
+		{
+			Fragment.Span()[(int)pos] = value;
+
+			if (pos + 1 < len) pos++;
+		}
 
 		public readonly MemoryFragment Fragment;
 		long pos;

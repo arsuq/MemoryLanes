@@ -12,7 +12,7 @@ namespace System.IO
 	/// <summary>
 	/// A stream with a MemoryHighway for storage.
 	/// </summary>
-	public class HighwayStream : Stream, IDisposable
+	public class HighwayStream : Stream
 	{
 		/// <summary>
 		/// Creates a new Highway stream instance.
@@ -283,23 +283,59 @@ namespace System.IO
 		/// <summary>
 		/// Does not dispose the highway, just the allocated fragments.
 		/// </summary>
-		public void IDispose()
+		protected override void Dispose(bool disposing)
 		{
-			if (!isDisposed)
+			if (disposing && !isDisposed)
 			{
-				try
-				{
+				if (fragments != null)
 					foreach (var f in fragments)
 						if (f != null && !f.IsDisposed)
-							f.Dispose();
+							try
+							{
+								f.Dispose();
+							}
+							catch { }
 
-					fragments = null;
-					base.Dispose();
-				}
-				catch { }
+				fragments = null;
+				base.Dispose(disposing);
 				isDisposed = true;
 			}
 		}
+
+		/// <summary>
+		/// Reads the byte at Position and advances one slot
+		/// </summary>
+		/// <returns>The byte as int</returns>
+		public override int ReadByte()
+		{
+			int fsi = 0;
+			int so = 0;
+
+			locate((int)pos, ref fsi, ref so);
+
+			var r = fragments[fsi].Span()[so];
+
+			if (pos + 1 < len) pos++;
+
+			return r;
+		}
+
+		/// <summary>
+		/// Writes the value at Position and advances one slot
+		/// </summary>
+		/// <param name="value">The byte</param>
+		public override void WriteByte(byte value)
+		{
+			int fsi = 0;
+			int so = 0;
+
+			locate((int)pos, ref fsi, ref so);
+
+			fragments[fsi].Span()[so] = value;
+
+			if (pos + 1 < len) pos++;
+		}
+
 
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
 		void locate(int index, ref int fragIdx, ref int offset)

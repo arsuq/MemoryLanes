@@ -105,7 +105,7 @@ namespace System
 
 			// Start from the oldest lane and cycle all lanes a few times before making a new lane
 			for (var laps = 0; laps < settings.LapsBeforeNewLane; laps++)
-				for (var i = 0; i <= lanesCount; i++)
+				for (var i = 0; i < lanesCount; i++)
 				{
 					var lane = Lanes[i];
 

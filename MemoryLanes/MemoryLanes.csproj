@@ -7,17 +7,17 @@
     <Copyright>Copyright © Arsuq</Copyright>
     <Company></Company>
     <Product />
-    <AssemblyVersion>2.1.0.0</AssemblyVersion>
-    <FileVersion>2.1.0.0</FileVersion>
-    <Version>2.1</Version>
+    <AssemblyVersion>2.1.0.1</AssemblyVersion>
+    <FileVersion>2.1.0.1</FileVersion>
+    <Version>2.1.0.1</Version>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Arsuq</Authors>
     <PackageLicenseUrl>https://www.mozilla.org/en-US/MPL/2.0/</PackageLicenseUrl>
     <Description>A memory fragmenter.</Description>
-    <PackageProjectUrl></PackageProjectUrl>
-    <RepositoryUrl>https://github.com/arsuq/MemoryLanes.git</RepositoryUrl>
-    <PackageReleaseNotes>+HeapSlot MemoryFragment type</PackageReleaseNotes>
+    <PackageProjectUrl>https://github.com/arsuq/MemoryLanes.git</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/arsuq/MemoryLanes</RepositoryUrl>
+    <PackageReleaseNotes></PackageReleaseNotes>
     <PackageIconUrl>https://raw.githubusercontent.com/arsuq/MemoryLanes/master/MemoryLanes/Logo.png</PackageIconUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>memory</PackageTags>
