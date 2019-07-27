@@ -12,8 +12,8 @@ namespace Tests.Surface
 {
 	class FragmentWrite : ITestSurface
 	{
-		public string Info => "Tests the MemoryFragment Write methods. Args: -store mh mmf nh";
-		public string Tags => string.Empty;
+		public string Info => "Tests the MemoryFragment Write methods. Args: -store mh mmf nh vh";
+		public string Tags => "fragment";
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
 		public bool IndependentLaunchOnly => false;
@@ -24,10 +24,10 @@ namespace Tests.Surface
 			await Task.Delay(0);
 
 			if (args.ContainsKey("+all"))
-				args.Add("-store", new List<string>() { "mh", "mmf", "nh" });
+				args.Add("-store", new List<string>() { "mh", "mmf", "nh", "vh" });
 
 			var opt = args["-store"];
-			opt.AssertNothingOutsideThese("mh", "mmf", "nh");
+			opt.AssertNothingOutsideThese("mh", "mmf", "nh", "vh");
 
 			var stg = new HighwaySettings(1024, 2);
 			var iH = new Dictionary<string, IMemoryHighway>();
@@ -37,6 +37,7 @@ namespace Tests.Surface
 			iH.Add("mh", new HeapHighway(stg, LEN, LEN));
 			iH.Add("nh", new MarshalHighway(stg, LEN, LEN));
 			iH.Add("mmf", new MappedHighway(stg, LEN, LEN));
+			iH.Add("vh", new VirtualHighway());
 
 			foreach (var kp in iH)
 			{

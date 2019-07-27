@@ -1,6 +1,10 @@
 
 # Changes
 
+## v2.2
+
++ A VirtualHighway added. 
+
 ## v2.1
 
 + A HeapSlot MemoryFragment type added.

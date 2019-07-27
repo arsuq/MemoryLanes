@@ -5,7 +5,7 @@
 
 [![Build status](https://ci.appveyor.com/api/projects/status/onmv9w6a31v96u21?svg=true)](https://ci.appveyor.com/project/arsuq/files-8hnp0)
 
-> v2.1
+> v2.2
 
 ## Description 
 
@@ -91,6 +91,9 @@ public interface IMemoryHighway : IDisposable
 }
 ```
 
+There is also a **VirtualHighway**, which does not manage lanes, but creates either Heap or Marshal slots.
+
+
 The default highway constructor will create two lanes - 8M and 4M in length. For a HeapHighway
 one can avoid the LOH by configuring the initial lanes to be less than 80K in size, as well as the 
 ```DefaultLaneCapacity``` in the settings as it's the expansion length (see [expansion]).
@@ -112,6 +115,9 @@ should also be changed if no settings instance is provided.
 
  The consumer *must* dispose all fragments in order to reset the lane. 
  The only other option to unfreeze a lane is to *Force()* reset it, which is unsafe.
+
+ For fragments produced by a *VirtualHighway*, configured to use the managed heap, no
+ disposal is required. 
 
 
 ## Usage
@@ -137,6 +143,8 @@ Example: Two 8M lanes can be configured as 16x1M lanes or 4x512K + 4x1M + 3x2M +
 
 ### Highway structure
 
+> This does not apply for virtual highways
+
 Having more lanes in a highway is better for reducing the allocating threads competition.
 The process is sequential and only one thread at a time can shift the lane offset. For minimal delays, one
 should have multiple lanes and the *LaneAllocTries* set to a small value (less than 10). This controls the number 
@@ -145,7 +153,7 @@ thread allocated. Having high *LaneAllocTries* or awaitMS values helps for bette
 waiting time. Small values disperse the allocations to other lanes but affect negatively the max-free-block space 
 in the whole highway and waste more space. 
 
-> The settings' *LaneAllocTries* is used instead of *tries* in ```Alloc(int size, int tries, int awaitMS)```
+> If tries is 0, the settings' *LaneAllocTries* is used instead in ```Alloc(int size, int tries, int awaitMS)```
 
 > The awaitMS allows one to wait longer for better data locality or
 > skip a lane immediately ( tries = 1 and awaitMS = 0) if the allocation 
@@ -284,6 +292,7 @@ In **System**:
   - HeapHighway
   - MappedHighway
   - MarhsalHighway
+  - VirtualHighway
 
 - **Exceptions**
   - MemoryLaneException

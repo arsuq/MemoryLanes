@@ -1274,6 +1274,82 @@
             Update before calling the default ctor.
             </summary>
         </member>
+        <member name="T:System.VirtualHighway">
+            <summary>
+            AllocFragment() produces either HeapSlot or MarshalSlot instances.
+            There are no lanes hence no need to be disposed.
+            </summary>
+        </member>
+        <member name="M:System.VirtualHighway.#ctor(System.Boolean)">
+            <summary>
+            If allocateNativeHeapSlots is true will allocate fragments on the native heap,
+            otherwise on the managed heap.
+            </summary>
+            <param name="allocateNativeHeapSlots">False by default</param>
+        </member>
+        <member name="P:System.VirtualHighway.Item(System.Int32)">
+            <returns>Null</returns>
+        </member>
+        <member name="P:System.VirtualHighway.LastAllocTickAnyLane">
+            <summary>
+            Returns 0
+            </summary>
+        </member>
+        <member name="P:System.VirtualHighway.IsDisposed">
+            <summary>
+            Returns false.
+            </summary>
+        </member>
+        <member name="M:System.VirtualHighway.AllocFragment(System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Only the size argument is used.
+            </summary>
+            <param name="size">The size in bytes.</param>
+            <param name="tries">Ignored</param>
+            <param name="awaitMS">Ignored</param>
+            <returns>Either a HeapSlot or a MarshalSlot</returns>
+        </member>
+        <member name="M:System.VirtualHighway.CreateStream(System.Int32)">
+            <summary>
+            Creates a HighwayStream
+            </summary>
+        </member>
+        <member name="M:System.VirtualHighway.Dispose">
+            <summary>
+            Does nothing.
+            </summary>
+        </member>
+        <member name="M:System.VirtualHighway.DisposeLane(System.Int32)">
+            <summary>
+            Does nothing.
+            </summary>
+        </member>
+        <member name="M:System.VirtualHighway.FullTrace">
+            <summary>
+            Returns an empty string.
+            </summary>
+        </member>
+        <member name="M:System.VirtualHighway.GetLanes">
+            <returns>NUll</returns>
+        </member>
+        <member name="M:System.VirtualHighway.GetLanesCount">
+            <returns>0</returns>
+        </member>
+        <member name="M:System.VirtualHighway.GetLastLaneIndex">
+            <returns>0</returns>
+        </member>
+        <member name="M:System.VirtualHighway.GetTotalActiveFragments">
+            <returns>0</returns>
+        </member>
+        <member name="M:System.VirtualHighway.GetTotalCapacity">
+            <returns>0</returns>
+        </member>
+        <member name="M:System.VirtualHighway.GetTotalFreeSpace">
+            <returns>0</returns>
+        </member>
+        <member name="M:System.VirtualHighway.ReopenLane(System.Int32)">
+            <returns>Null</returns>
+        </member>
         <member name="T:System.HeapLane">
             <summary>
             A memory lane backed by the managed heap.

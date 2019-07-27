@@ -12,7 +12,7 @@ namespace Tests.Surface
 {
 	public class HighwayStreamSurface : ITestSurface
 	{
-		public string Info => "Tests the HighwayStream class. Args: -store mh mmf nh";
+		public string Info => "Tests the HighwayStream class. Args: -store mh mmf nh vh";
 		public string Tags => "stream, highway";
 		public string FailureMessage { get; private set; }
 		public bool? Passed { get; private set; }
@@ -26,17 +26,18 @@ namespace Tests.Surface
 			try
 			{
 				if (args.ContainsKey("+all"))
-					args.Add("-store", new List<string>() { "mh", "mmf", "nh" });
+					args.Add("-store", new List<string>() { "mh", "mmf", "nh", "vh" });
 
 				args.AssertAll("-store");
 				var opt = args["-store"];
-				opt.AssertNothingOutsideThese("mh", "mmf", "nh");
+				opt.AssertNothingOutsideThese("mh", "mmf", "nh", "vh");
 
 				var iH = new Dictionary<string, IMemoryHighway>();
 
 				iH.Add("mh", new HeapHighway(1024));
 				iH.Add("nh", new MarshalHighway(1024));
 				iH.Add("mmf", new MappedHighway(1024));
+				iH.Add("vh", new MappedHighway(1024));
 
 				var xsbuff = new byte[3];
 				var sbuff = new byte[8];
