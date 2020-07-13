@@ -5,7 +5,7 @@
 
 [![Build status](https://ci.appveyor.com/api/projects/status/onmv9w6a31v96u21?svg=true)](https://ci.appveyor.com/project/arsuq/files-8hnp0)
 
-> v2.2
+> v2.3
 
 ## Description 
 

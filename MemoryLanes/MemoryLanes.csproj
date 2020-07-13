@@ -1,15 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <LangVersion>7.3</LangVersion>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Copyright>Copyright © Arsuq</Copyright>
     <Company></Company>
     <Product />
-    <AssemblyVersion>2.2.0.0</AssemblyVersion>
-    <FileVersion>2.2.0.0</FileVersion>
-    <Version>2.2.0.0</Version>
+    <AssemblyVersion>2.3.0.0</AssemblyVersion>
+    <FileVersion>2.3.0.0</FileVersion>
+    <Version>2.3.0.0</Version>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
     <Authors>Arsuq</Authors>
@@ -17,7 +17,7 @@
     <Description>A memory fragmenter.</Description>
     <PackageProjectUrl>https://github.com/arsuq/MemoryLanes.git</PackageProjectUrl>
     <RepositoryUrl>https://github.com/arsuq/MemoryLanes</RepositoryUrl>
-    <PackageReleaseNotes>A VirtualHighway added.</PackageReleaseNotes>
+    <PackageReleaseNotes>Upgraded to .Net Core 3.1</PackageReleaseNotes>
     <PackageIconUrl>https://raw.githubusercontent.com/arsuq/MemoryLanes/master/MemoryLanes/Logo.png</PackageIconUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>memory</PackageTags>
