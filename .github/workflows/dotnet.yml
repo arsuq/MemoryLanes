@@ -19,5 +19,5 @@ jobs:
     - name: Build
       run: dotnet build --no-restore
     - name: List
-      run: ls
+      run: dotnet Tests.dll +all +noprint
       working-directory: /home/runner/work/MemoryLanes/MemoryLanes/Tests/bin/Debug/netcoreapp3.1
