@@ -17,7 +17,7 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore
     - name: Build
-      run: dotnet build --no-restore
+      run: dotnet build -c Release --no-restore
     - name: List
       run: dotnet Tests.dll +all
       working-directory: /home/runner/work/MemoryLanes/MemoryLanes/Tests/bin/Release/netcoreapp3.1
