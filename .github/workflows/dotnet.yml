@@ -20,4 +20,4 @@ jobs:
       run: dotnet build --no-restore
     - name: List
       run: ls
-      working-directory: ./bin/Release
+      working-directory: /home/runner/work/MemoryLanes/MemoryLanes/MemoryLanes/bin/Debug
